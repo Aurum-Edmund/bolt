@@ -1,4 +1,4 @@
-﻿# Bolt — Language and Compiler (Stage-0)
+# Bolt � Language and Compiler (Stage-0)
 
 **Status:** Active development (kernel-first).  
 **Specs:** v2.3 Language / v3.1 Master.  
@@ -57,3 +57,14 @@ MIT License. See [LICENSE](LICENSE).
 
 
 
+## Tests
+1. Configure and build as above.
+2. Build unit tests:
+   ```powershell
+   cmake --build --preset build-windows-release --target bolt_unit_tests
+   ```
+3. Run them (multi-config generators require the configuration):
+   ```powershell
+   ctest -C Debug --output-on-failure --test-dir build/windows-release
+   ```
+Use `--no-dump-mir` when invoking `boltcc` if you want minimal output during smoke tests.
