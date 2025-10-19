@@ -1,0 +1,5 @@
+package demo.sample; module demo.sample;
+
+public function demoMain() {
+    return;
+}

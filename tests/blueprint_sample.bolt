@@ -1,0 +1,13 @@
+package demo.samples; module demo.blueprints;
+
+[packed]
+public blueprint UartControl {
+    [bits(1)] enable: unsignedInteger;
+    [bits(2)] parity: unsignedInteger;
+    [bits(2)] stopBits: unsignedInteger;
+    [bits(27)] reserved: unsignedInteger;
+}
+
+public function blueprintDemo() {
+    return;
+}
