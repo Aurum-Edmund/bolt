@@ -30,7 +30,7 @@ namespace bolt::hir
         std::string name;
         TypeReference type;
         SourceSpan span;
-        bool isLiveValue{false};
+        bool isLive{false};
     };
 
     struct Function
@@ -49,7 +49,7 @@ namespace bolt::hir
         std::optional<std::uint64_t> systemRequestId;
         std::optional<std::string> intrinsicName;
         std::vector<std::string> kernelMarkers;
-        bool returnIsLiveValue{false};
+        bool returnIsLive{false};
         SourceSpan span;
     };
 
@@ -60,7 +60,7 @@ namespace bolt::hir
         std::vector<Attribute> attributes;
         std::optional<std::uint32_t> bitWidth;
         std::optional<std::uint64_t> alignmentBytes;
-        bool isLiveValue{false};
+        bool isLive{false};
         SourceSpan span;
     };
 

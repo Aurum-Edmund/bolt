@@ -1,4 +1,4 @@
-﻿#include "lowering.hpp"
+#include "lowering.hpp"
 
 #include "builder.hpp"
 
@@ -106,9 +106,9 @@ namespace bolt::mir
             if (hirFunction.hasReturnType)
             {
                 std::string detail = "return " + hirFunction.returnType.text;
-                if (hirFunction.returnIsLiveValue)
+                if (hirFunction.returnIsLive)
                 {
-                    detail += " [LiveValue]";
+                    detail += " [Live]";
                 }
                 appendDetail(builder, entryBlock, std::move(detail));
             }
@@ -116,9 +116,9 @@ namespace bolt::mir
             for (const auto& parameter : hirFunction.parameters)
             {
                 std::string detail = "param " + parameter.name + ": " + parameter.type.text;
-                if (parameter.isLiveValue)
+                if (parameter.isLive)
                 {
-                    detail += " [LiveValue]";
+                    detail += " [Live]";
                 }
                 appendDetail(builder, entryBlock, std::move(detail));
             }
@@ -148,9 +148,9 @@ namespace bolt::mir
             {
                 std::ostringstream stream;
                 stream << "field " << field.name << ": " << field.type.text;
-                if (field.isLiveValue)
+                if (field.isLive)
                 {
-                    stream << " [LiveValue]";
+                    stream << " [Live]";
                 }
                 if (field.bitWidth.has_value())
                 {
@@ -169,3 +169,4 @@ namespace bolt::mir
         return module;
     }
 } // namespace bolt::mir
+

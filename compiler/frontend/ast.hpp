@@ -30,7 +30,7 @@ namespace bolt::frontend
         std::string typeName;
         SourceSpan span;
         SourceSpan typeSpan;
-        bool isLiveValue{false};
+        bool isLive{false};
         bool hasKernelMarker{false};
         std::string kernelMarkerName;
     };
@@ -44,7 +44,7 @@ namespace bolt::frontend
         std::optional<std::string> returnType;
         std::optional<SourceSpan> returnTypeSpan;
         SourceSpan span;
-        bool returnIsLiveValue{false};
+        bool returnIsLive{false};
         bool hasKernelMarker{false};
         std::string kernelMarkerName;
     };
@@ -56,7 +56,7 @@ namespace bolt::frontend
         std::string typeName;
         SourceSpan span;
         SourceSpan typeSpan;
-        bool isLiveValue{false};
+        bool isLive{false};
     };
 
     struct BlueprintDeclaration

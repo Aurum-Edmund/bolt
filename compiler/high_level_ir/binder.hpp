@@ -36,7 +36,7 @@ namespace bolt::hir
         void emitError(const std::string& code, const std::string& message, SourceSpan span);
         const bolt::frontend::AttributeArgument* findAttributeArgument(const Attribute& attribute, std::string_view name) const;
         std::optional<std::uint64_t> parseUnsigned(const bolt::frontend::AttributeArgument& argument) const;
-        void applyLiveValueQualifier(TypeReference& typeRef, bool& isLiveValue, const std::string& subject, const SourceSpan& span);
+        void applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std::string& subject, const SourceSpan& span);
 
         Attribute convertAttribute(const bolt::frontend::Attribute& attribute);
         Function convertFunction(const bolt::frontend::FunctionDeclaration& function);

@@ -243,9 +243,9 @@ std::optional<std::uint64_t> Binder::parseUnsigned(const bolt::frontend::Attribu
     return std::nullopt;
 }
 
-void Binder::applyLiveValueQualifier(TypeReference& typeRef, bool& isLiveValue, const std::string& subject, const SourceSpan& span)
+void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std::string& subject, const SourceSpan& span)
 {
-    constexpr std::string_view qualifier = "LiveValue";
+    constexpr std::string_view qualifier = "Live";
     if (typeRef.text.rfind(qualifier, 0) != 0)
     {
         return;
@@ -255,12 +255,12 @@ void Binder::applyLiveValueQualifier(TypeReference& typeRef, bool& isLiveValue, 
     const auto first = remainder.find_first_not_of(" \t\r\n");
     if (first == std::string::npos)
     {
-        emitError("BOLT-E2217", "LiveValue qualifier on " + subject + " must reference a concrete type.", span);
+        emitError("BOLT-E2217", "Live qualifier on " + subject + " must reference a concrete type.", span);
         return;
     }
     const auto last = remainder.find_last_not_of(" \t\r\n");
     typeRef.text = remainder.substr(first, last - first + 1);
-    isLiveValue = true;
+    isLive = true;
 }
 
     Function Binder::convertFunction(const bolt::frontend::FunctionDeclaration& function)
@@ -390,7 +390,7 @@ void Binder::applyLiveValueQualifier(TypeReference& typeRef, bool& isLiveValue, 
             param.type.text = parameter.typeName;
             param.type.span = parameter.typeSpan;
             param.span = parameter.span;
-            applyLiveValueQualifier(param.type, param.isLiveValue, "parameter '" + param.name + "' in function '" + converted.name + "'", param.type.span);
+            applyLiveQualifier(param.type, param.isLive, "parameter '" + param.name + "' in function '" + converted.name + "'", param.type.span);
             converted.parameters.emplace_back(std::move(param));
         }
 
@@ -416,7 +416,7 @@ void Binder::applyLiveValueQualifier(TypeReference& typeRef, bool& isLiveValue, 
                 converted.returnType.span = *function.returnTypeSpan;
             }
             converted.hasReturnType = true;
-            applyLiveValueQualifier(converted.returnType, converted.returnIsLiveValue, "return type of function '" + converted.name + "'", converted.returnType.span);
+            applyLiveQualifier(converted.returnType, converted.returnIsLive, "return type of function '" + converted.name + "'", converted.returnType.span);
         }
 
         return converted;
@@ -485,7 +485,7 @@ void Binder::applyLiveValueQualifier(TypeReference& typeRef, bool& isLiveValue, 
             }
         }
 
-        applyLiveValueQualifier(converted.type, converted.isLiveValue, "field '" + converted.name + "' in blueprint '" + blueprintName + "'", converted.type.span);
+        applyLiveQualifier(converted.type, converted.isLive, "field '" + converted.name + "' in blueprint '" + blueprintName + "'", converted.type.span);
         return converted;
     }
 

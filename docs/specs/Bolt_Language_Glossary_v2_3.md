@@ -106,7 +106,7 @@ blueprint UartControl {
 **Live Value (volatile):**
 - Loads and stores are side-effecting; they are never removed or merged across fences.
 - Reordering across **packed** memory-mapped input/output blueprint fields is forbidden; the compiler must respect program order.
-- Front-end analysis records LiveValue qualifiers alongside type metadata so MIR/LIR passes can honour ordering and visibility guarantees.
+- Front-end analysis records Live qualifiers alongside type metadata so MIR/LIR passes can honour ordering and visibility guarantees.
 
 ---
 
@@ -309,3 +309,4 @@ function systemWrite(fileDescriptor: integer32, buffer: &byte, length: unsignedI
 - **bounds checks** — Optional runtime checks for memory accesses that can be enabled in debug builds and disabled in release builds.
 
 End of v2.3 — Kernel-Ready (no underscores, full words, with complete definitions).
+
