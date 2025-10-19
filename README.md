@@ -45,4 +45,5 @@ Bolt is a full-word, kernel-safe systems language and toolchain designed for the
 Use short-lived feature branches. Adhere to the language glossary (full words, no underscores) and keep freestanding paths allocation-free. Run the smoke test before opening a pull request.
 
 ## License
-TBD.
+MIT License. See [LICENSE](LICENSE).
+
