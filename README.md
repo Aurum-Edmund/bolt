@@ -1,4 +1,4 @@
-# Bolt � Language and Compiler (Stage-0)
+﻿# Bolt — Language and Compiler (Stage-0)
 
 **Status:** Active development (kernel-first).  
 **Specs:** v2.3 Language / v3.1 Master.  
@@ -27,13 +27,19 @@ Bolt is a full-word, kernel-safe systems language and toolchain designed for the
 ```
 /bolt
   /compiler
-    /frontend       # lexer, parser, tokens
-    /high_level_ir  # semantic binder and HIR data structures
-    /middle_ir     # MIR scaffolding, lowering, verification
-    /driver      # boltcc entry point
-  /docs          # stage0 roadmaps and notes
-  /tests         # sample sources (lexing/blueprint demos)
-  /cmake         # toolchain files and presets
+    /frontend          # lexing, parsing, tokens
+    /high_level_ir     # binder and HIR data structures
+    /middle_ir         # MIR scaffolding, lowering, verification
+    /low_level_ir      # forthcoming LIR modelling (machine-aware)
+    /backend           # backend passes (selection, allocation)
+    /linker            # bolt-ld wrapper and image scripts
+    /logging           # shared logger integration
+    /language_server   # boltlsp implementation
+    /driver            # boltcc entry point
+    /targets           # architecture-specific configuration
+  /docs               # roadmaps, specs
+  /tests              # sample sources and smoke cases
+  /cmake              # toolchain files and presets
 ```
 
 ## Roadmap

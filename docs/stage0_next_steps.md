@@ -1,6 +1,6 @@
-# Stage-0 Compiler Build Priorities
+﻿# Stage-0 Compiler Build Priorities
 
-This checklist captures the immediate follow-up tasks after establishing the Stage-0 scaffold. The items mirror sections 4–8 of the build instructions and should be completed in order so that every layer has a stable interface before back-end work begins.
+This checklist captures the immediate follow-up tasks after establishing the Stage-0 scaffold. The items mirror sections 4â€“8 of the build instructions and should be completed in order so that every layer has a stable interface before back-end work begins.
 
 _Status update:_ The Stage-0 lexer is in place; the next milestones focus on parsing and representation construction.
 
@@ -13,9 +13,9 @@ _Status update:_ The Stage-0 lexer is in place; the next milestones focus on par
    - Next: expose lowering entry points to MIR and model module-level linkage metadata.
    - Debug: MIR lowering populates stub functions, verifier runs, and printer dumps module/function layout.
 3. **Middle Representation (compiler/middle_ir)**
-   - Model basic blocks, instruction opcodes, and effect kinds per spec §5.
+   - Model basic blocks, instruction opcodes, and effect kinds per spec Â§5.
    - Add a verifier that enforces single entry, explicit terminators, and LiveValue barriers.
-4. **Back-End Preparation (compiler/back_end + compiler/targets/x64)**
+4. **Back-End Preparation (compiler/backend + compiler/targets/x64)**
    - Describe calling convention records (argument registers, callee preserved sets).
    - Sketch stack frame builder and object writer interface.
 5. **Driver Integration**
@@ -26,6 +26,7 @@ _Status update:_ The Stage-0 lexer is in place; the next milestones focus on par
    - Add CI configuration using the provided `CMakePresets.json`.
 
 Progress through these items should stay aligned with the language and compiler glossaries to preserve terminology and attribute semantics.
+
 
 
 
