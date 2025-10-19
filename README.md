@@ -68,3 +68,6 @@ MIT License. See [LICENSE](LICENSE).
    ctest -C Debug --output-on-failure --test-dir build/windows-release
    ```
 Use `--no-dump-mir` when invoking `boltcc` if you want minimal output during smoke tests.
+
+Refer to `docs/testing_gates.md` for upcoming coverage gates (golden outputs, negative diagnostics, hash stability, multi-target builds).
+
