@@ -8,7 +8,7 @@
 #include "../middle_ir/printer.hpp"
 #include "../middle_ir/lowering.hpp"
 #include "../middle_ir/verifier.hpp"
-#include "../middle_ir/canonical.hpp"
+#include "../middle_ir/canonical.hpp"\n#include "../middle_ir/passes/live_enforcement.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -174,7 +174,13 @@ namespace bolt
 
     bool runMirPipeline(const hir::Module& module, const hir::ImportResolutionResult& resolvedImports, const CommandLineOptions& options)
     {
-        mir::Module mirModule = mir::lowerFromHir(module);
+                mir::Module mirModule = mir::lowerFromHir(module);
+
+        if (!mir::enforceLive(mirModule))
+        {
+            std::cerr << "BOLT-E4100 MirLiveEnforcementFailed: module '" << module.moduleName << "'.\n";
+            return false;
+        }
         mirModule.resolvedImports.clear();
         for (const auto& entry : resolvedImports.imports)
         {
@@ -468,6 +474,8 @@ int main(int argc, char** argv)
 
     return bolt::runCompiler(options.value());
 }
+
+
 
 
 
