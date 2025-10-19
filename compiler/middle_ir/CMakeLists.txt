@@ -1,4 +1,4 @@
-﻿set(BOLT_MIR_SOURCES
+set(BOLT_MIR_SOURCES
     module.cpp
     builder.cpp
     printer.cpp
@@ -21,3 +21,4 @@ if (MSVC)
 else()
     target_compile_options(bolt_mir PRIVATE -Wall -Wextra -Wpedantic)
 endif()
+
