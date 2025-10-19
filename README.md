@@ -1,4 +1,4 @@
-﻿# Bolt — Language and Compiler (Stage-0)
+﻿# Bolt — Language and Compiler
 
 **Status:** Active development (kernel-first).  
 **Specs:** v2.3 Language / v3.1 Master.  

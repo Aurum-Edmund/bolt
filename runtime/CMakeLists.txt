@@ -1,5 +1,6 @@
 set(BOLT_RUNTIME_SOURCES
     runtime.c
+    runtime_start_entry.c
 )
 
 add_library(bolt_runtime STATIC ${BOLT_RUNTIME_SOURCES})
@@ -29,3 +30,4 @@ else ()
             -Wpedantic
     )
 endif ()
+
