@@ -3,6 +3,7 @@
 #include "../hir/binder.hpp"
 #include "../mir/module.hpp"
 #include "../mir/builder.hpp"
+#include "../mir/printer.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -151,6 +152,8 @@ namespace bolt
                   << mirModule.name
                   << "' with " << mirModule.functions.size()
                   << " functions.\n";
+        std::cout << "[debug] MIR dump:\n";
+        mir::print(mirModule, std::cout);
     }
 
     int runCompiler(const CommandLineOptions& options)

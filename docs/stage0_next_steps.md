@@ -11,6 +11,7 @@ _Status update:_ The Stage-0 lexer is in place; the next milestones focus on par
 2. **High-Level IR (compiler/hir)**
    - **Completed:** foundational HIR data structures with type references, attribute-derived alignment flags, packed/bitfield metadata, and LiveValue/kernel marker flags.
    - Next: expose lowering entry points to MIR and model module-level linkage metadata.
+   - Debug: MIR stub printer dumps module/function layout after binding.
 3. **Middle Representation (compiler/mir)**
    - Model basic blocks, instruction opcodes, and effect kinds per spec §5.
    - Add a verifier that enforces single entry, explicit terminators, and LiveValue barriers.
@@ -25,5 +26,6 @@ _Status update:_ The Stage-0 lexer is in place; the next milestones focus on par
    - Add CI configuration using the provided `CMakePresets.json`.
 
 Progress through these items should stay aligned with the language and compiler glossaries to preserve terminology and attribute semantics.
+
 
 

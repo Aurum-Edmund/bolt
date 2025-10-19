@@ -1,6 +1,7 @@
-set(BOLT_MIR_SOURCES
+﻿set(BOLT_MIR_SOURCES
     module.cpp
     builder.cpp
+    printer.cpp
 )
 
 add_library(bolt_mir STATIC ${BOLT_MIR_SOURCES})
