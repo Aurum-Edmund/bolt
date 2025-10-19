@@ -42,7 +42,7 @@ namespace
         if (text == "false") return TokenKind::KeywordFalse;
         if (text == "null") return TokenKind::KeywordNull;
         if (text == "void") return TokenKind::KeywordVoid;
-        if (text == "static") return TokenKind::KeywordStatic;
+        if (text == "link") return TokenKind::KeywordLink;
         if (text == "if") return TokenKind::KeywordIf;
         if (text == "else") return TokenKind::KeywordElse;
         if (text == "while") return TokenKind::KeywordWhile;
@@ -445,3 +445,4 @@ namespace bolt::frontend
         m_location.column = 1;
     }
 } // namespace bolt::frontend
+

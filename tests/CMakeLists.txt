@@ -2,6 +2,7 @@
     unit/frontend/LexerTest.cpp
     unit/frontend/ParserTest.cpp
     unit/high_level_ir/BinderTest.cpp
+    unit/high_level_ir/ImportResolverTest.cpp
     unit/middle_ir/LoweringTest.cpp
     unit/middle_ir/MirCanonicalTest.cpp
 )

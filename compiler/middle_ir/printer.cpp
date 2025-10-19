@@ -17,7 +17,40 @@ namespace bolt::mir
 
     void print(const Module& module, std::ostream& stream)
     {
-        stream << "module " << module.name << "\n";
+        stream << "module " << module.moduleName << "\n";
+        if (!module.packageName.empty())
+        {
+            stream << "package " << module.packageName << "\n";
+        }
+        if (!module.canonicalModulePath.empty())
+        {
+            stream << "canonical " << module.canonicalModulePath << "\n";
+        }
+        if (!module.imports.empty())
+        {
+            printIndent(stream, 1);
+            stream << "imports (" << module.imports.size() << ")\n";
+            for (const auto& importName : module.imports)
+            {
+                printIndent(stream, 2);
+                stream << importName << "\n";
+            }
+        }
+        if (!module.resolvedImports.empty())
+        {
+            printIndent(stream, 1);
+            stream << "resolvedImports (" << module.resolvedImports.size() << ")\n";
+            for (const auto& entry : module.resolvedImports)
+            {
+                printIndent(stream, 2);
+                stream << entry.modulePath;
+                if (entry.filePath.has_value())
+                {
+                    stream << " -> " << *entry.filePath;
+                }
+                stream << "\n";
+            }
+        }
 
         for (const auto& function : module.functions)
         {

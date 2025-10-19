@@ -75,10 +75,17 @@ namespace bolt::hir
         SourceSpan span;
     };
 
+    struct Import
+    {
+        std::string modulePath;
+        SourceSpan span;
+    };
+
     struct Module
     {
         std::string packageName;
         std::string moduleName;
+        std::vector<Import> imports;
         std::vector<Function> functions;
         std::vector<Blueprint> blueprints;
         std::vector<std::string> kernelMarkers;

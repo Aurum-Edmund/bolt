@@ -38,7 +38,7 @@ namespace bolt::frontend
         KeywordFalse,
         KeywordNull,
         KeywordVoid,
-        KeywordStatic,
+        KeywordLink,
         KeywordIf,
         KeywordElse,
         KeywordWhile,

@@ -33,6 +33,31 @@ namespace bolt::frontend
 
             std::vector<std::string> modifiers = parseModifiers();
 
+            if (check(TokenKind::KeywordImport))
+            {
+                if (!attributes.empty())
+                {
+                    Diagnostic diag;
+                    diag.code = "BOLT-E2108";
+                    diag.message = "Attributes are not allowed on import statements.";
+                    diag.span = attributes.front().span;
+                    m_diagnostics.emplace_back(std::move(diag));
+                }
+
+                if (!modifiers.empty())
+                {
+                    Diagnostic diag;
+                    diag.code = "BOLT-E2109";
+                    diag.message = "Modifiers are not allowed before an import statement.";
+                    diag.span = previous().span;
+                    m_diagnostics.emplace_back(std::move(diag));
+                }
+
+                ImportDeclaration importDecl = parseImport();
+                unit.imports.emplace_back(std::move(importDecl));
+                continue;
+            }
+
             if (match(TokenKind::KeywordFunction))
             {
                 FunctionDeclaration fn = parseFunction(std::move(modifiers));
@@ -225,11 +250,37 @@ namespace bolt::frontend
         return module;
     }
 
+    ImportDeclaration Parser::parseImport()
+    {
+        ImportDeclaration importDecl{};
+
+        const Token& keyword = advance();
+        importDecl.span.begin = keyword.span.begin;
+        importDecl.span.end = keyword.span.end;
+
+        auto [path, pathSpan] = parseQualifiedName("BOLT-E2107", "Expected module path after 'import'.");
+        if (!path.empty())
+        {
+            importDecl.modulePath = std::move(path);
+            if (pathSpan.begin.line != 0 || pathSpan.begin.column != 0)
+            {
+                importDecl.span.end = pathSpan.end;
+            }
+        }
+
+        if (match(TokenKind::Semicolon))
+        {
+            importDecl.span.end = previous().span.end;
+        }
+
+        return importDecl;
+    }
+
     std::vector<std::string> Parser::parseModifiers()
     {
         std::vector<std::string> modifiers;
         while (check(TokenKind::KeywordPublic)
-               || check(TokenKind::KeywordStatic)
+               || check(TokenKind::KeywordLink)
                || check(TokenKind::KeywordExtern))
         {
             const Token& token = advance();
@@ -609,3 +660,4 @@ namespace bolt::frontend
         return capture;
     }
 } // namespace bolt::frontend
+

@@ -1,6 +1,8 @@
-﻿#include "../frontend/lexer.hpp"
+#include "../frontend/lexer.hpp"
 #include "../frontend/parser.hpp"
 #include "../high_level_ir/binder.hpp"
+#include "../high_level_ir/import_resolver.hpp"
+#include "../high_level_ir/module_locator.hpp"
 #include "../middle_ir/module.hpp"
 #include "../middle_ir/builder.hpp"
 #include "../middle_ir/printer.hpp"
@@ -9,6 +11,7 @@
 #include "../middle_ir/canonical.hpp"
 
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -169,17 +172,32 @@ namespace bolt
         return buffer.str();
     }
 
-    bool runMirPipeline(const hir::Module& module, const CommandLineOptions& options)
+    bool runMirPipeline(const hir::Module& module, const hir::ImportResolutionResult& resolvedImports, const CommandLineOptions& options)
     {
         mir::Module mirModule = mir::lowerFromHir(module);
+        mirModule.resolvedImports.clear();
+        for (const auto& entry : resolvedImports.imports)
+        {
+            if (entry.status == hir::ImportStatus::Resolved)
+            {
+                mir::Module::ResolvedImport resolved;
+                resolved.modulePath = entry.modulePath;
+                if (entry.resolvedFilePath.has_value())
+                {
+                    resolved.filePath = entry.resolvedFilePath;
+                }
+                mirModule.resolvedImports.emplace_back(std::move(resolved));
+            }
+        }
 
         if (!mir::verify(mirModule))
         {
-            std::cerr << "BOLT-E4000 MirVerificationFailed: module '" << mirModule.name << "'.\n";
+            std::cerr << "BOLT-E4000 MirVerificationFailed: module '" << mirModule.canonicalModulePath << "'.\n";
             return false;
         }
 
-        std::cout << "[notice] MIR module lowered with " << mirModule.functions.size() << " functions.\n";
+        std::cout << "[notice] MIR module " << mirModule.canonicalModulePath
+                  << " lowered with " << mirModule.functions.size() << " functions.\n";
         if (options.dumpMir)
         {
             std::cout << "[debug] MIR dump:\n";
@@ -216,7 +234,6 @@ namespace bolt
         }
         return true;
     }
-
     int runCompiler(const CommandLineOptions& options)
     {
         std::cout << "[information] Starting boltcc stage-0 pipeline.\n";
@@ -319,11 +336,95 @@ namespace bolt
                         std::cout << "[notice] Bound module symbols (functions: "
                                   << boundModule.functions.size()
                                   << ", blueprints: " << boundModule.blueprints.size()
+                                  << ", imports: " << boundModule.imports.size()
                                   << ").\n";
 
-                        if (!runMirPipeline(boundModule, options))
+                        hir::ModuleLocator moduleLocator;
+                        std::vector<std::filesystem::path> searchRoots;
+                        std::filesystem::path inputPathFs = std::filesystem::path(path).lexically_normal();
+                        if (inputPathFs.has_parent_path())
                         {
+                            searchRoots.emplace_back(inputPathFs.parent_path());
+                        }
+                        if (!searchRoots.empty())
+                        {
+                            moduleLocator.setSearchRoots(std::move(searchRoots));
+                        }
+
+                        std::string canonicalModulePath = boundModule.moduleName;
+                        if (!boundModule.packageName.empty())
+                        {
+                            moduleLocator.registerModule(boundModule.packageName, inputPathFs);
+                            if (boundModule.packageName != boundModule.moduleName)
+                            {
+                                canonicalModulePath = boundModule.packageName + "::" + boundModule.moduleName;
+                            }
+                        }
+                        moduleLocator.registerModule(boundModule.moduleName, inputPathFs);
+                        moduleLocator.registerModule(canonicalModulePath, inputPathFs);
+
+                        hir::ImportResolver importResolver;
+                        importResolver.setModuleLocator(&moduleLocator);
+                        hir::ImportResolutionResult resolution = importResolver.resolve(boundModule);
+                        const auto& importDiagnostics = importResolver.diagnostics();
+
+                        if (!importDiagnostics.empty())
+                        {
+                            for (const auto& diagnostic : importDiagnostics)
+                            {
+                                std::cerr << diagnostic.code << ' '
+                                          << "L" << diagnostic.span.begin.line << ":C" << diagnostic.span.begin.column
+                                          << " -> "
+                                          << diagnostic.message << '\n';
+                            }
                             exitCode = 1;
+                        }
+                        else
+                        {
+                            std::vector<std::string> pendingImports;
+                            std::vector<std::string> resolvedImports;
+                            for (const auto& entry : resolution.imports)
+                            {
+                                if (entry.status == hir::ImportStatus::Pending)
+                                {
+                                    pendingImports.emplace_back(entry.modulePath);
+                                }
+                                else if (entry.status == hir::ImportStatus::Resolved)
+                                {
+                                    if (entry.resolvedFilePath.has_value())
+                                    {
+                                        resolvedImports.emplace_back(entry.modulePath + " -> " + *entry.resolvedFilePath);
+                                    }
+                                    else
+                                    {
+                                        resolvedImports.emplace_back(entry.modulePath);
+                                    }
+                                }
+                            }
+
+                            if (!resolvedImports.empty())
+                            {
+                                std::cout << "[notice] Resolved imports (" << resolvedImports.size() << "):\n";
+                                for (const auto& entry : resolvedImports)
+                                {
+                                    std::cout << "    " << entry << '\n';
+                                }
+                            }
+
+                            if (!pendingImports.empty())
+                            {
+                                std::cout << "[notice] Pending import resolution for "
+                                          << pendingImports.size() << " module(s):\n";
+                                for (const auto& name : pendingImports)
+                                {
+                                    std::cout << "    " << name << '\n';
+                                }
+                            }
+
+                            if (!runMirPipeline(boundModule, resolution, options))
+                            {
+                                exitCode = 1;
+                            }
                         }
                     }
                 }
@@ -367,6 +468,9 @@ int main(int argc, char** argv)
 
     return bolt::runCompiler(options.value());
 }
+
+
+
 
 
 

@@ -39,5 +39,41 @@ public function sample(value: integer32) -> integer32 {
         EXPECT_TRUE(fn.returnType.has_value());
         EXPECT_EQ(*fn.returnType, "integer32");
     }
+
+    TEST(ParserTest, ParsesImportStatement)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+import demo.utils.core;
+
+public function dummy() {
+    return;
+}
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        CompilationUnit unit = parseSource(source, diagnostics);
+
+        EXPECT_TRUE(diagnostics.empty());
+        ASSERT_EQ(unit.imports.size(), 1u);
+        EXPECT_EQ(unit.imports.front().modulePath, "demo.utils.core");
+    }
+
+    TEST(ParserTest, ReportsAttributesOnImport)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+[packed]
+import demo.alpha;
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        CompilationUnit unit = parseSource(source, diagnostics);
+
+        EXPECT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2108");
+        ASSERT_EQ(unit.imports.size(), 1u);
+        EXPECT_EQ(unit.imports.front().modulePath, "demo.alpha");
+    }
 }
 } // namespace bolt::frontend

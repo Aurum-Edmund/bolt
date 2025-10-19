@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -64,7 +65,16 @@ namespace bolt::mir
 
     struct Module
     {
-        std::string name;
+        std::string packageName;
+        std::string moduleName;
+        std::string canonicalModulePath;
+        std::vector<std::string> imports;
+        struct ResolvedImport
+        {
+            std::string modulePath;
+            std::optional<std::string> filePath;
+        };
+        std::vector<ResolvedImport> resolvedImports;
         std::vector<Function> functions;
     };
 } // namespace bolt::mir

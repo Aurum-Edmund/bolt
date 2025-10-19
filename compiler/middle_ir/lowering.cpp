@@ -35,7 +35,28 @@ namespace bolt::mir
     Module lowerFromHir(const hir::Module& hirModule)
     {
         Module module;
-        module.name = hirModule.moduleName;
+        module.packageName = hirModule.packageName;
+        module.moduleName = hirModule.moduleName;
+        if (!hirModule.packageName.empty())
+        {
+            if (hirModule.packageName == hirModule.moduleName)
+            {
+                module.canonicalModulePath = hirModule.moduleName;
+            }
+            else
+            {
+                module.canonicalModulePath = hirModule.packageName + "::" + hirModule.moduleName;
+            }
+        }
+        else
+        {
+            module.canonicalModulePath = hirModule.moduleName;
+        }
+        module.imports.reserve(hirModule.imports.size());
+        for (const auto& importDecl : hirModule.imports)
+        {
+            module.imports.emplace_back(importDecl.modulePath);
+        }
 
         Builder builder{module};
 

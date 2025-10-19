@@ -7,3 +7,5 @@ out/
 *.pdb
 *.log
 site/
+Context/
+Taskboard/

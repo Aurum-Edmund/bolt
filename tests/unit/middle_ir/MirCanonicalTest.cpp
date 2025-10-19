@@ -50,6 +50,8 @@ public function beta(value: integer32) {
 
         const std::string expected =
             "module demo.tests\n"
+            "package demo.tests\n"
+            "canonical demo.tests\n"
             "function alpha\n"
             "  block 0 entry\n"
             "    inst 0 7 modifiers: public\n"

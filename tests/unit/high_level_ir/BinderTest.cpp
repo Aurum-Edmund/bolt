@@ -131,5 +131,51 @@ public blueprint Timer {
         ASSERT_TRUE(prioField.alignmentBytes.has_value());
         EXPECT_EQ(*prioField.alignmentBytes, 16u);
     }
+
+    TEST(BinderTest, CapturesImports)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+import demo.alpha;
+import demo.beta.gamma
+
+public function sample() {
+    return;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty());
+
+        ASSERT_EQ(module.imports.size(), 2u);
+        EXPECT_EQ(module.imports[0].modulePath, "demo.alpha");
+        EXPECT_EQ(module.imports[1].modulePath, "demo.beta.gamma");
+    }
+
+    TEST(BinderTest, DuplicateImportsEmitDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+import demo.alpha;
+import demo.beta;
+import demo.alpha;
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        const auto& diags = binder.diagnostics();
+        ASSERT_FALSE(diags.empty());
+        EXPECT_EQ(diags.front().code, "BOLT-E2218");
+        ASSERT_EQ(module.imports.size(), 2u);
+        EXPECT_EQ(module.imports[0].modulePath, "demo.alpha");
+        EXPECT_EQ(module.imports[1].modulePath, "demo.beta");
+    }
 }
 } // namespace bolt::hir

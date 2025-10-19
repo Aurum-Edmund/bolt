@@ -35,7 +35,7 @@ namespace bolt::frontend
         case TokenKind::KeywordFalse: return "false";
         case TokenKind::KeywordNull: return "null";
         case TokenKind::KeywordVoid: return "void";
-        case TokenKind::KeywordStatic: return "static";
+        case TokenKind::KeywordLink: return "link";
         case TokenKind::KeywordIf: return "if";
         case TokenKind::KeywordElse: return "else";
         case TokenKind::KeywordWhile: return "while";
@@ -75,3 +75,4 @@ namespace bolt::frontend
         return "unknown";
     }
 } // namespace bolt::frontend
+

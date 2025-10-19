@@ -1,4 +1,6 @@
 module demo.blueprints
+package demo.samples
+canonical demo.samples::demo.blueprints
 function blueprint.UartControl
   block 0 entry
     inst 0 7 modifiers: public

@@ -1,6 +1,8 @@
 set(BOLT_HIR_SOURCES
     binder.cpp
+    import_resolver.cpp
     module.cpp
+    module_locator.cpp
 )
 
 add_library(bolt_hir STATIC ${BOLT_HIR_SOURCES})

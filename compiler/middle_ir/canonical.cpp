@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <utility>
 #include <vector>
 
 namespace bolt::mir
@@ -53,7 +54,36 @@ namespace bolt::mir
     std::string canonicalPrint(const Module& module)
     {
         std::ostringstream stream;
-        stream << "module " << module.name << '\n';
+        stream << "module " << module.moduleName << '\n';
+        stream << "package " << module.packageName << '\n';
+        stream << "canonical " << module.canonicalModulePath << '\n';
+
+        std::vector<std::string> imports = module.imports;
+        std::sort(imports.begin(), imports.end());
+        for (const auto& importName : imports)
+        {
+            stream << "import " << importName << '\n';
+        }
+
+        std::vector<std::pair<std::string, std::string>> resolved;
+        resolved.reserve(module.resolvedImports.size());
+        for (const auto& entry : module.resolvedImports)
+        {
+            std::string detail = entry.modulePath;
+            if (entry.filePath.has_value())
+            {
+                detail += " -> ";
+                detail += *entry.filePath;
+            }
+            resolved.emplace_back(entry.modulePath, std::move(detail));
+        }
+        std::sort(resolved.begin(), resolved.end(), [](const auto& left, const auto& right) {
+            return left.first < right.first;
+        });
+        for (const auto& pair : resolved)
+        {
+            stream << "resolved " << pair.second << '\n';
+        }
 
         for (const auto* function : sortedFunctions(module))
         {

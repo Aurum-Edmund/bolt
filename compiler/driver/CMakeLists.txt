@@ -19,6 +19,7 @@ target_link_libraries(boltcc
         bolt_front_end
         bolt_hir
         bolt_mir
+        bolt_runtime
 )
 
 if (MSVC)
@@ -37,3 +38,4 @@ else ()
             -Wpedantic
     )
 endif ()
+

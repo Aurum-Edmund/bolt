@@ -68,6 +68,12 @@ namespace bolt::frontend
         SourceSpan span;
     };
 
+    struct ImportDeclaration
+    {
+        std::string modulePath;
+        SourceSpan span;
+    };
+
     struct ModuleDeclaration
     {
         std::string packageName;
@@ -78,6 +84,7 @@ namespace bolt::frontend
     struct CompilationUnit
     {
         ModuleDeclaration module;
+        std::vector<ImportDeclaration> imports;
         std::vector<FunctionDeclaration> functions;
         std::vector<BlueprintDeclaration> blueprints;
     };

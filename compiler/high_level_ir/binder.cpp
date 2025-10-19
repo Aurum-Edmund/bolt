@@ -40,6 +40,32 @@ namespace bolt::hir
         module.moduleName = m_ast.module.moduleName;
         module.span = m_ast.module.span;
 
+        std::unordered_map<std::string, SourceSpan> importSymbols;
+
+        for (const auto& importDecl : m_ast.imports)
+        {
+            if (importDecl.modulePath.empty())
+            {
+                continue;
+            }
+
+            auto inserted = importSymbols.emplace(importDecl.modulePath, importDecl.span);
+            if (!inserted.second)
+            {
+                Diagnostic diag;
+                diag.code = "BOLT-E2218";
+                diag.message = "Duplicate import '" + importDecl.modulePath + "' in module.";
+                diag.span = importDecl.span;
+                m_diagnostics.emplace_back(std::move(diag));
+                continue;
+            }
+
+            Import importEntry{};
+            importEntry.modulePath = importDecl.modulePath;
+            importEntry.span = importDecl.span;
+            module.imports.emplace_back(std::move(importEntry));
+        }
+
         for (const auto& function : m_ast.functions)
         {
             module.functions.emplace_back(convertFunction(function));

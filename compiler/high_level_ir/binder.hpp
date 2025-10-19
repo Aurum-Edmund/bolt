@@ -1,5 +1,6 @@
 #pragma once
 
+#include "diagnostic.hpp"
 #include "module.hpp"
 
 #include <optional>
@@ -10,13 +11,6 @@
 
 namespace bolt::hir
 {
-    struct Diagnostic
-    {
-        std::string code;
-        std::string message;
-        SourceSpan span;
-    };
-
     class Binder
     {
     public:

@@ -11,6 +11,8 @@ option(BOLT_ENABLE_TESTS "Build unit tests" ON)
 add_subdirectory(compiler/frontend)
 add_subdirectory(compiler/high_level_ir)
 add_subdirectory(compiler/middle_ir)
+add_subdirectory(runtime)
+add_subdirectory(compiler/linker)
 add_subdirectory(compiler/driver)
 
 if (BOLT_ENABLE_TESTS)

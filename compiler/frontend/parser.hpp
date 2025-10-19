@@ -30,6 +30,7 @@ namespace bolt::frontend
         bool isTerminator(TokenKind kind, std::initializer_list<TokenKind> terminators, int angleDepth) const;
 
         ModuleDeclaration parseModule();
+        ImportDeclaration parseImport();
         std::vector<std::string> parseModifiers();
         FunctionDeclaration parseFunction(std::vector<std::string> modifiers);
         BlueprintDeclaration parseBlueprint(std::vector<std::string> modifiers);
