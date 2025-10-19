@@ -36,7 +36,7 @@ namespace
 
 [aligned(32)]
 [systemRequest(identifier=3)]
-public function demoFunc(value: Live integer32) -> Live integer32 {
+public function demoFunc(integer32 value) -> Live integer32 {
     return;
 }
 )";
@@ -101,3 +101,6 @@ public blueprint Timer {
     }
 }
 } // namespace bolt::mir
+
+
+

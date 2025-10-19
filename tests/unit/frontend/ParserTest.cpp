@@ -22,7 +22,7 @@ namespace
     {
         const std::string source = R"(package demo.tests; module demo.tests;
 
-public function sample(value: integer32) -> integer32 {
+public function sample(integer32 value) -> integer32 {
     return;
 }
 )";
@@ -77,3 +77,4 @@ import demo.alpha;
     }
 }
 } // namespace bolt::frontend
+

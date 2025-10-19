@@ -37,7 +37,7 @@ namespace
 public function alpha() {
 }
 
-public function beta(value: integer32) {
+public function beta(integer32 value) {
     return;
 }
 )";
@@ -67,3 +67,4 @@ public function beta(value: integer32) {
     }
 }
 } // namespace bolt::mir
+
