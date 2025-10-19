@@ -72,3 +72,9 @@ Use `--no-dump-mir` when invoking `boltcc` if you want minimal output during smo
 Refer to `docs/testing_gates.md` for upcoming coverage gates (golden outputs, negative diagnostics, hash stability, multi-target builds).
 
 
+
+## Debug Options
+- `--no-dump-mir` suppresses MIR dump noise during smoke tests.
+- `--show-mir-hash` prints the MIR canonical hash (for hash-stability gates).
+- `--emit-mir-canonical=<path>` writes the MIR canonical dump for golden comparisons.
+

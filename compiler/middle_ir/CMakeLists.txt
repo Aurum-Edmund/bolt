@@ -1,9 +1,10 @@
-set(BOLT_MIR_SOURCES
+﻿set(BOLT_MIR_SOURCES
     module.cpp
     builder.cpp
     printer.cpp
     lowering.cpp
     verifier.cpp
+    canonical.cpp
 )
 
 add_library(bolt_mir STATIC ${BOLT_MIR_SOURCES})
@@ -20,5 +21,3 @@ if (MSVC)
 else()
     target_compile_options(bolt_mir PRIVATE -Wall -Wextra -Wpedantic)
 endif()
-
-

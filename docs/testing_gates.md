@@ -1,4 +1,4 @@
-# Testing Gates (Planned)
+﻿# Testing Gates (Planned)
 
 This document outlines the Stage-0 testing gates that must be in place before we progress to the backend milestones. Each gate is currently a roadmap item; they are not yet automated.
 
@@ -17,10 +17,7 @@ This document outlines the Stage-0 testing gates that must be in place before we
   - Non-exhaustive pattern matches
 - Ensure each emits the documented diagnostic code and message.
 
-## 3. Hash Stability
-- Compute a canonical hash for AST/MIR dumps.
-- Detect drift to guard against nondeterministic output.
-
+## 3. Hash Stability\n- Compute a canonical hash for AST/MIR dumps.\n- Detect drift to guard against nondeterministic output.\n- Use the MIR canonical printer/hash (olt::mir::canonicalPrint, canonicalHash) to feed this gate.\n
 ## 4. Build & Target Matrix
 - **Development build**: Windows + MSVC/LLVM toolchain, emitting COFF for quick `dumpbin` or `llvm-objdump` inspection.
 - **Kernel build**: `x86_64-elf` freestanding, custom link script, no CRT.
@@ -29,3 +26,4 @@ This document outlines the Stage-0 testing gates that must be in place before we
 - Language spec v2.3 semantics must match implemented behaviour.
 - Compiler spec: keep pass descriptions, invariants, IR formatting, and error codes aligned with the code.
 - README stays updated with Windows build steps, supported targets, examples, and known limitations.
+

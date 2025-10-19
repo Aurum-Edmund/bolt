@@ -1,4 +1,4 @@
-#include "../frontend/lexer.hpp"
+﻿#include "../frontend/lexer.hpp"
 #include "../frontend/parser.hpp"
 #include "../high_level_ir/binder.hpp"
 #include "../middle_ir/module.hpp"
@@ -6,6 +6,7 @@
 #include "../middle_ir/printer.hpp"
 #include "../middle_ir/lowering.hpp"
 #include "../middle_ir/verifier.hpp"
+#include "../middle_ir/canonical.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -31,6 +32,8 @@ namespace bolt
         bool showHelp{false};
         bool showVersion{false};
         bool dumpMir{true};
+        bool showMirHash{false};
+        std::optional<std::string> mirCanonicalPath;
     };
 
     class CommandLineParser
@@ -77,6 +80,19 @@ namespace bolt
                 if (argument == "--no-dump-mir")
                 {
                     options.dumpMir = false;
+                    continue;
+                }
+
+                if (argument == "--show-mir-hash")
+                {
+                    options.showMirHash = true;
+                    continue;
+                }
+
+                if (argument.rfind("--emit-mir-canonical=", 0) == 0)
+                {
+                    constexpr std::string_view canonicalOpt = "--emit-mir-canonical=";
+                    options.mirCanonicalPath = std::string{argument.substr(canonicalOpt.size())};
                     continue;
                 }
 
@@ -129,6 +145,8 @@ namespace bolt
                   << "  --target=<triple>      Select target profile. Default: x64-freestanding.\n"
                   << "  --dump-mir             Emit MIR lowering output (default).\n"
                   << "  --no-dump-mir          Suppress MIR debug output.\n"
+                  << "  --show-mir-hash        Print MIR canonical hash after lowering.\n"
+                  << "  --emit-mir-canonical=<path> Write MIR canonical dump to the given path.\n"
                   << "  -o <path>              Write output to the specified path.\n";
     }
 
@@ -151,7 +169,7 @@ namespace bolt
         return buffer.str();
     }
 
-    bool runMirPipeline(const hir::Module& module, bool dumpMir)
+    bool runMirPipeline(const hir::Module& module, const CommandLineOptions& options)
     {
         mir::Module mirModule = mir::lowerFromHir(module);
 
@@ -162,7 +180,7 @@ namespace bolt
         }
 
         std::cout << "[notice] MIR module lowered with " << mirModule.functions.size() << " functions.\n";
-        if (dumpMir)
+        if (options.dumpMir)
         {
             std::cout << "[debug] MIR dump:\n";
             mir::print(mirModule, std::cout);
@@ -170,6 +188,31 @@ namespace bolt
         else
         {
             std::cout << "[debug] MIR dump suppressed (--no-dump-mir).\n";
+        }
+
+        if (options.showMirHash || options.mirCanonicalPath.has_value())
+        {
+            const std::string canonical = mir::canonicalPrint(mirModule);
+            const std::uint64_t hash = mir::canonicalHash(mirModule);
+
+            if (options.showMirHash)
+            {
+                std::cout << "[debug] MIR canonical hash: 0x" << std::hex << hash << std::dec << '\n';
+            }
+
+            if (options.mirCanonicalPath.has_value())
+            {
+                std::ofstream out(*options.mirCanonicalPath, std::ios::binary);
+                if (!out)
+                {
+                    std::cerr << "BOLT-W4001 MirCanonicalWriteFailed: '" << *options.mirCanonicalPath << "'.\n";
+                }
+                else
+                {
+                    out << canonical;
+                    std::cout << "[notice] MIR canonical written to " << *options.mirCanonicalPath << '\n';
+                }
+            }
         }
         return true;
     }
@@ -278,7 +321,7 @@ namespace bolt
                                   << ", blueprints: " << boundModule.blueprints.size()
                                   << ").\n";
 
-                        if (!runMirPipeline(boundModule, options.dumpMir))
+                        if (!runMirPipeline(boundModule, *options))
                         {
                             exitCode = 1;
                         }
@@ -324,4 +367,5 @@ int main(int argc, char** argv)
 
     return bolt::runCompiler(*options);
 }
+
 

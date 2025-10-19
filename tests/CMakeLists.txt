@@ -3,6 +3,7 @@
     unit/frontend/ParserTest.cpp
     unit/high_level_ir/BinderTest.cpp
     unit/middle_ir/LoweringTest.cpp
+    unit/middle_ir/MirCanonicalTest.cpp
 )
 
 add_executable(bolt_unit_tests ${BOLT_UNIT_TEST_SOURCES})
