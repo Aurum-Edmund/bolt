@@ -1,9 +1,37 @@
-#include "lowering.hpp"
+﻿#include "lowering.hpp"
 
 #include "builder.hpp"
 
+#include <sstream>
+#include <string>
+
 namespace bolt::mir
 {
+    namespace
+    {
+        void appendDetail(Builder& builder, BasicBlock& block, std::string text)
+        {
+            auto& inst = builder.appendInstruction(block, InstructionKind::Unary);
+            inst.detail = std::move(text);
+        }
+
+        std::string joinList(const std::vector<std::string>& list, std::string_view label)
+        {
+            if (list.empty())
+            {
+                return {};
+            }
+
+            std::ostringstream stream;
+            stream << label;
+            for (const auto& entry : list)
+            {
+                stream << ' ' << entry;
+            }
+            return stream.str();
+        }
+    } // namespace
+
     Module lowerFromHir(const hir::Module& hirModule)
     {
         Module module;
@@ -18,19 +46,105 @@ namespace bolt::mir
 
             if (!hirFunction.modifiers.empty())
             {
-                std::string detail = "modifiers:";
-                for (const auto& modifier : hirFunction.modifiers)
-                {
-                    detail += " " + modifier;
-                }
-                auto& inst = builder.appendInstruction(entryBlock, InstructionKind::Unary);
-                inst.detail = detail;
+                appendDetail(builder, entryBlock, joinList(hirFunction.modifiers, "modifiers:"));
             }
 
-            builder.appendInstruction(entryBlock, InstructionKind::Return).detail = "stub";
+            if (hirFunction.isInterruptHandler)
+            {
+                appendDetail(builder, entryBlock, "attr interruptHandler");
+            }
+            if (hirFunction.isBareFunction)
+            {
+                appendDetail(builder, entryBlock, "attr bareFunction");
+            }
+            if (hirFunction.isPageAligned)
+            {
+                appendDetail(builder, entryBlock, "attr pageAligned");
+            }
+            if (hirFunction.sectionName.has_value())
+            {
+                appendDetail(builder, entryBlock, "section " + *hirFunction.sectionName);
+            }
+            if (hirFunction.alignmentBytes.has_value())
+            {
+                appendDetail(builder, entryBlock, "aligned " + std::to_string(*hirFunction.alignmentBytes));
+            }
+            if (hirFunction.systemRequestId.has_value())
+            {
+                appendDetail(builder, entryBlock, "systemRequest " + std::to_string(*hirFunction.systemRequestId));
+            }
+            if (hirFunction.intrinsicName.has_value())
+            {
+                appendDetail(builder, entryBlock, "intrinsic " + *hirFunction.intrinsicName);
+            }
+            if (!hirFunction.kernelMarkers.empty())
+            {
+                appendDetail(builder, entryBlock, joinList(hirFunction.kernelMarkers, "kernelMarkers:"));
+            }
+
+            if (hirFunction.hasReturnType)
+            {
+                std::string detail = "return " + hirFunction.returnType.text;
+                if (hirFunction.returnIsLiveValue)
+                {
+                    detail += " [LiveValue]";
+                }
+                appendDetail(builder, entryBlock, std::move(detail));
+            }
+
+            for (const auto& parameter : hirFunction.parameters)
+            {
+                std::string detail = "param " + parameter.name + ": " + parameter.type.text;
+                if (parameter.isLiveValue)
+                {
+                    detail += " [LiveValue]";
+                }
+                appendDetail(builder, entryBlock, std::move(detail));
+            }
+
+            builder.appendInstruction(entryBlock, InstructionKind::Return).detail = "function";
+        }
+
+        for (const auto& blueprint : hirModule.blueprints)
+        {
+            auto& mirFunction = builder.createFunction("blueprint." + blueprint.name);
+            auto& entryBlock = builder.appendBlock(mirFunction, "entry");
+
+            if (!blueprint.modifiers.empty())
+            {
+                appendDetail(builder, entryBlock, joinList(blueprint.modifiers, "modifiers:"));
+            }
+            if (blueprint.isPacked)
+            {
+                appendDetail(builder, entryBlock, "attr packed");
+            }
+            if (blueprint.alignmentBytes.has_value())
+            {
+                appendDetail(builder, entryBlock, "aligned " + std::to_string(*blueprint.alignmentBytes));
+            }
+
+            for (const auto& field : blueprint.fields)
+            {
+                std::ostringstream stream;
+                stream << "field " << field.name << ": " << field.type.text;
+                if (field.isLiveValue)
+                {
+                    stream << " [LiveValue]";
+                }
+                if (field.bitWidth.has_value())
+                {
+                    stream << " bits=" << *field.bitWidth;
+                }
+                if (field.alignmentBytes.has_value())
+                {
+                    stream << " align=" << *field.alignmentBytes;
+                }
+                appendDetail(builder, entryBlock, stream.str());
+            }
+
+            builder.appendInstruction(entryBlock, InstructionKind::Return).detail = "blueprint";
         }
 
         return module;
     }
 } // namespace bolt::mir
-

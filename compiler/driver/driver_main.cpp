@@ -30,6 +30,7 @@ namespace bolt
         std::string emitKind{"obj"};
         bool showHelp{false};
         bool showVersion{false};
+        bool dumpMir{true};
     };
 
     class CommandLineParser
@@ -64,6 +65,18 @@ namespace bolt
                 if (argument.rfind("--target=", 0) == 0)
                 {
                     options.targetTriple = std::string{argument.substr(9)};
+                    continue;
+                }
+
+                if (argument == "--dump-mir")
+                {
+                    options.dumpMir = true;
+                    continue;
+                }
+
+                if (argument == "--no-dump-mir")
+                {
+                    options.dumpMir = false;
                     continue;
                 }
 
@@ -114,6 +127,8 @@ namespace bolt
                   << "  --version              Show version information and exit.\n"
                   << "  --emit=<kind>          Select output kind (obj, ir, bin). Default: obj.\n"
                   << "  --target=<triple>      Select target profile. Default: x64-freestanding.\n"
+                  << "  --dump-mir             Emit MIR lowering output (default).\n"
+                  << "  --no-dump-mir          Suppress MIR debug output.\n"
                   << "  -o <path>              Write output to the specified path.\n";
     }
 
@@ -136,7 +151,7 @@ namespace bolt
         return buffer.str();
     }
 
-    bool runMirPipeline(const hir::Module& module)
+    bool runMirPipeline(const hir::Module& module, bool dumpMir)
     {
         mir::Module mirModule = mir::lowerFromHir(module);
 
@@ -147,8 +162,15 @@ namespace bolt
         }
 
         std::cout << "[notice] MIR module lowered with " << mirModule.functions.size() << " functions.\n";
-        std::cout << "[debug] MIR dump:\n";
-        mir::print(mirModule, std::cout);
+        if (dumpMir)
+        {
+            std::cout << "[debug] MIR dump:\n";
+            mir::print(mirModule, std::cout);
+        }
+        else
+        {
+            std::cout << "[debug] MIR dump suppressed (--no-dump-mir).\n";
+        }
         return true;
     }
 
@@ -256,7 +278,7 @@ namespace bolt
                                   << ", blueprints: " << boundModule.blueprints.size()
                                   << ").\n";
 
-                        if (!runMirPipeline(boundModule))
+                        if (!runMirPipeline(boundModule, options.dumpMir))
                         {
                             exitCode = 1;
                         }
@@ -267,7 +289,7 @@ namespace bolt
 
         if (exitCode == 0)
         {
-            std::cout << "[notice] Front-end and MIR stub stages completed.\n";
+            std::cout << "[notice] Front-end and MIR stages completed.\n";
         }
         else
         {
@@ -302,3 +324,4 @@ int main(int argc, char** argv)
 
     return bolt::runCompiler(*options);
 }
+

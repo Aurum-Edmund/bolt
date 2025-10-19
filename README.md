@@ -22,6 +22,7 @@ Bolt is a full-word, kernel-safe systems language and toolchain designed for the
    ```powershell
    build/windows-release/compiler/driver/Debug/boltcc.exe tests/blueprint_sample.bolt --emit=obj --target=x64-freestanding
    ```
+   Use `--no-dump-mir` to suppress the MIR debug output if you prefer a quieter run.
 
 ## Repository Layout
 ```
