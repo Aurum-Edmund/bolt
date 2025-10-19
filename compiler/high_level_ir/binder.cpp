@@ -140,6 +140,11 @@ namespace bolt::hir
         }
         }
 
+        if (!allowed && attribute.name.rfind("kernel_", 0) == 0)
+        {
+            allowed = true;
+        }
+
         if (!allowed)
         {
             Diagnostic diag;
