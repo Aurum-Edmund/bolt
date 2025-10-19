@@ -4,6 +4,8 @@
 #include "../mir/module.hpp"
 #include "../mir/builder.hpp"
 #include "../mir/printer.hpp"
+#include "../mir/lowering.hpp"
+#include "../mir/verifier.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -134,26 +136,20 @@ namespace bolt
         return buffer.str();
     }
 
-    void runMirStub(const hir::Module& module)
+    bool runMirPipeline(const hir::Module& module)
     {
-        mir::Module mirModule;
-        mirModule.name = module.moduleName;
+        mir::Module mirModule = mir::lowerFromHir(module);
 
-        mir::Builder builder{mirModule};
-
-        for (const auto& function : module.functions)
+        if (!mir::verify(mirModule))
         {
-            auto& mirFunction = builder.createFunction(function.name);
-            auto& entryBlock = builder.appendBlock(mirFunction, "entry");
-            (void)builder.appendInstruction(entryBlock, mir::InstructionKind::Return);
+            std::cerr << "BOLT-E4000 MirVerificationFailed: module '" << mirModule.name << "'.\n";
+            return false;
         }
 
-        std::cout << "[notice] MIR stub generated for module '"
-                  << mirModule.name
-                  << "' with " << mirModule.functions.size()
-                  << " functions.\n";
+        std::cout << "[notice] MIR module lowered with " << mirModule.functions.size() << " functions.\n";
         std::cout << "[debug] MIR dump:\n";
         mir::print(mirModule, std::cout);
+        return true;
     }
 
     int runCompiler(const CommandLineOptions& options)
@@ -260,7 +256,10 @@ namespace bolt
                                   << ", blueprints: " << boundModule.blueprints.size()
                                   << ").\n";
 
-                        runMirStub(boundModule);
+                        if (!runMirPipeline(boundModule))
+                        {
+                            exitCode = 1;
+                        }
                     }
                 }
             }

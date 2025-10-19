@@ -18,7 +18,7 @@ Bolt is a full-word, kernel-safe systems language and toolchain designed for the
    ```powershell
    cmake --build --preset build-windows-release --target boltcc
    ```
-5. Run a smoke test (lex + parse + bind + MIR stub with debug dump):
+5. Run a smoke test (lex + parse + bind + MIR lowering + verification + debug dump):
    ```powershell
    build/windows-release/compiler/driver/Debug/boltcc.exe tests/blueprint_sample.bolt --emit=obj --target=x64-freestanding
    ```
@@ -46,5 +46,6 @@ Use short-lived feature branches. Adhere to the language glossary (full words, n
 
 ## License
 MIT License. See [LICENSE](LICENSE).
+
 
 
