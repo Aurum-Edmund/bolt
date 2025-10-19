@@ -24,3 +24,13 @@ target_include_directories(bolt_unit_tests
 )
 
 add_test(NAME bolt_unit_tests COMMAND bolt_unit_tests)
+if (TARGET boltcc)
+    set(_golden_output "${CMAKE_BINARY_DIR}/golden/blueprint_sample.mir")
+    add_test(NAME golden_mir_blueprint
+        COMMAND ${CMAKE_COMMAND}
+            -DBOLTCC=$<TARGET_FILE:boltcc>
+            -DSOURCE=${CMAKE_SOURCE_DIR}/examples/blueprint_sample.bolt
+            -DGOLDEN=${CMAKE_SOURCE_DIR}/examples/golden/blueprint_sample.mir
+            -DOUTPUT=${_golden_output}
+            -P ${CMAKE_SOURCE_DIR}/tests/golden/RunMirGolden.cmake)
+endif ()

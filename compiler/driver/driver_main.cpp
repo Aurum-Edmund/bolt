@@ -321,7 +321,7 @@ namespace bolt
                                   << ", blueprints: " << boundModule.blueprints.size()
                                   << ").\n";
 
-                        if (!runMirPipeline(boundModule, *options))
+                        if (!runMirPipeline(boundModule, options))
                         {
                             exitCode = 1;
                         }
@@ -365,7 +365,8 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    return bolt::runCompiler(*options);
+    return bolt::runCompiler(options.value());
 }
+
 
 
