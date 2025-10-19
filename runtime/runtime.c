@@ -48,3 +48,13 @@ void* bolt_memory_fill(void* destination, int value, size_t bytes)
     }
     return destination;
 }
+#if !defined(_MSC_VER)
+extern int start(void);
+
+BOLT_NORETURN void _start(void)
+{
+    int code = start();
+    (void)code;
+    bolt_panic_abort("start returned");
+}
+#endif
