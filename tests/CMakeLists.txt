@@ -5,6 +5,7 @@
     unit/high_level_ir/ImportResolverTest.cpp
     unit/middle_ir/LoweringTest.cpp
     unit/middle_ir/MirCanonicalTest.cpp
+    unit/middle_ir/LiveEnforcementTest.cpp
 )
 
 add_executable(bolt_unit_tests ${BOLT_UNIT_TEST_SOURCES})
@@ -15,6 +16,7 @@ target_link_libraries(bolt_unit_tests
         bolt_front_end
         bolt_hir
         bolt_mir
+        bolt_mir_passes
 )
 
 target_include_directories(bolt_unit_tests

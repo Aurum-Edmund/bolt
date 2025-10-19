@@ -1,10 +1,10 @@
-set(BOLT_MIR_PASSES_SOURCES
+﻿set(BOLT_MIR_PASSES_SOURCES
     live_enforcement.cpp
 )
 
-add_library(bolt_mir_passes STATIC )
+add_library(bolt_mir_passes STATIC ${BOLT_MIR_PASSES_SOURCES})
 
 target_include_directories(bolt_mir_passes
     PUBLIC
-        /..
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
 )

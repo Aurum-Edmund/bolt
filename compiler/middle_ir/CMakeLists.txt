@@ -22,3 +22,11 @@ else()
     target_compile_options(bolt_mir PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
+
+add_subdirectory(passes)
+
+target_link_libraries(bolt_mir
+    PUBLIC
+        bolt_hir
+        bolt_mir_passes
+)
