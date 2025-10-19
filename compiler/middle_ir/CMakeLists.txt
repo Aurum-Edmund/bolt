@@ -11,8 +11,8 @@ add_library(bolt_mir STATIC ${BOLT_MIR_SOURCES})
 target_include_directories(bolt_mir
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/../hir
-        ${CMAKE_SOURCE_DIR}/compiler/front_end
+        ${CMAKE_CURRENT_SOURCE_DIR}/../high_level_ir
+        ${CMAKE_SOURCE_DIR}/compiler/frontend
 )
 
 if (MSVC)
@@ -20,4 +20,5 @@ if (MSVC)
 else()
     target_compile_options(bolt_mir PRIVATE -Wall -Wextra -Wpedantic)
 endif()
+
 

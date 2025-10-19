@@ -8,7 +8,7 @@ add_library(bolt_hir STATIC ${BOLT_HIR_SOURCES})
 target_include_directories(bolt_hir
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_SOURCE_DIR}/compiler/front_end
+        ${CMAKE_SOURCE_DIR}/compiler/frontend
 )
 
 target_compile_features(bolt_hir PUBLIC cxx_std_17)
@@ -29,3 +29,4 @@ else ()
             -Wpedantic
     )
 endif ()
+

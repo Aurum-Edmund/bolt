@@ -27,9 +27,9 @@ Bolt is a full-word, kernel-safe systems language and toolchain designed for the
 ```
 /bolt
   /compiler
-    /front_end   # lexer, parser, tokens
-    /hir         # high-level IR structures and binder
-    /mir         # MIR scaffolding and builder utilities
+    /frontend       # lexer, parser, tokens
+    /high_level_ir  # semantic binder and HIR data structures
+    /middle_ir     # MIR scaffolding, lowering, verification
     /driver      # boltcc entry point
   /docs          # stage0 roadmaps and notes
   /tests         # sample sources (lexing/blueprint demos)
@@ -46,6 +46,7 @@ Use short-lived feature branches. Adhere to the language glossary (full words, n
 
 ## License
 MIT License. See [LICENSE](LICENSE).
+
 
 
 

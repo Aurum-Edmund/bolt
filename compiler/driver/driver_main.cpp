@@ -1,11 +1,11 @@
-#include "../front_end/lexer.hpp"
-#include "../front_end/parser.hpp"
-#include "../hir/binder.hpp"
-#include "../mir/module.hpp"
-#include "../mir/builder.hpp"
-#include "../mir/printer.hpp"
-#include "../mir/lowering.hpp"
-#include "../mir/verifier.hpp"
+#include "../frontend/lexer.hpp"
+#include "../frontend/parser.hpp"
+#include "../high_level_ir/binder.hpp"
+#include "../middle_ir/module.hpp"
+#include "../middle_ir/builder.hpp"
+#include "../middle_ir/printer.hpp"
+#include "../middle_ir/lowering.hpp"
+#include "../middle_ir/verifier.hpp"
 
 #include <algorithm>
 #include <fstream>

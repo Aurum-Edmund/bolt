@@ -1,7 +1,7 @@
 #pragma once
 
 #include "module.hpp"
-#include "../hir/module.hpp"
+#include "../high_level_ir/module.hpp"
 
 namespace bolt::mir
 {
