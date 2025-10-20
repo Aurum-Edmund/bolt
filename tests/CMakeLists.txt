@@ -9,6 +9,7 @@ set(BOLT_UNIT_TEST_SOURCES
     unit/middle_ir/LiveEnforcementTest.cpp
     unit/runtime/RuntimeHelpersTest.cpp
     unit/linker/LinkerCommandLineTest.cpp
+    unit/linker/LinkerInvocationTest.cpp
 )
 
 add_executable(bolt_unit_tests ${BOLT_UNIT_TEST_SOURCES})

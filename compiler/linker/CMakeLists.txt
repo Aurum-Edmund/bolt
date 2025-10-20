@@ -1,5 +1,6 @@
 add_library(bolt_linker_cli STATIC
     cli_options.cpp
+    linker_invocation.cpp
 )
 
 target_include_directories(bolt_linker_cli

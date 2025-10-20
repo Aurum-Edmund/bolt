@@ -1,6 +1,9 @@
 #include "cli_options.hpp"
+#include "linker_invocation.hpp"
 
 #include <iostream>
+#include <filesystem>
+#include <cstdlib>
 
 #ifndef BOLT_LD_VERSION
 #define BOLT_LD_VERSION "Stage0"
@@ -33,6 +36,35 @@ namespace linker
     static void printVersion()
     {
         std::cout << "bolt-ld Stage-0 wrapper (build profile: " << BOLT_LD_VERSION << ")\n";
+    }
+
+    static std::string quoteIfNeeded(const std::string& value)
+    {
+        if (value.find_first_of(" \"\t") == std::string::npos)
+        {
+            return value;
+        }
+
+        std::string quoted{"\""};
+        for (char ch : value)
+        {
+            if (ch == '\\' || ch == '"')
+            {
+                quoted.push_back('\\');
+            }
+            quoted.push_back(ch);
+        }
+        quoted.push_back('"');
+        return quoted;
+    }
+
+    static void printInvocation(const LinkerInvocation& invocation)
+    {
+        std::cout << "[bolt-ld] platform linker: " << invocation.executable << "\n";
+        for (const auto& argument : invocation.arguments)
+        {
+            std::cout << "[bolt-ld]   " << argument << "\n";
+        }
     }
 
     static int runLinker(const CommandLineOptions& options)
@@ -85,16 +117,45 @@ namespace linker
             std::cout << "[bolt-ld] verbose output enabled." << (options.dryRun ? " (dry run)" : "") << "\n";
         }
 
+        auto plan = planLinkerInvocation(options);
+        if (plan.hasError)
+        {
+            std::cerr << "bolt-ld: " << plan.errorMessage << "\n";
+            return 1;
+        }
+
+        if (options.verbose || options.dryRun)
+        {
+            printInvocation(plan.invocation);
+        }
+
         if (options.dryRun)
         {
             std::cout << "[bolt-ld] dry run: platform linker invocation skipped.\n";
-        }
-        else
-        {
-            std::cout << "[bolt-ld] (stub) no linking performed yet.\n";
+            return 0;
         }
 
-        return 0;
+        if (!std::filesystem::exists(plan.invocation.executable))
+        {
+            std::cerr << "bolt-ld: linker executable '" << plan.invocation.executable
+                      << "' was not found. Use --dry-run to inspect the command plan.\n";
+            return 1;
+        }
+
+        std::string command = quoteIfNeeded(plan.invocation.executable.string());
+        for (const auto& argument : plan.invocation.arguments)
+        {
+            command.push_back(' ');
+            command += quoteIfNeeded(argument);
+        }
+
+        auto exitCode = std::system(command.c_str());
+        if (exitCode != 0)
+        {
+            std::cerr << "bolt-ld: platform linker exited with code " << exitCode << ".\n";
+        }
+
+        return exitCode;
     }
 } // namespace linker
 } // namespace bolt

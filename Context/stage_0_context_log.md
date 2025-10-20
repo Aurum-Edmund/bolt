@@ -33,6 +33,7 @@
 - Freestanding `_start` entry point is now gated behind `BOLT_RUNTIME_INCLUDE_FREESTANDING_START` so host-linked tools can reuse runtime helpers without conflicting CRT entry symbols.
 - Runtime memory helpers now have unit tests covering byte copy, fill, and zero-length behavior to guard the freestanding runtime contract.
 - Linker wrapper now parses structured CLI options (emit kind, targets, sysroot/runtime roots) and ships with unit coverage to prepare for real platform invocations.
+- Linker wrapper now plans Windows invocations (`link.exe`), surfaces the computed command line when verbose/dry-run is enabled, and reports missing host linkers with diagnostics.
 
 ## Progress Metric
 - **Estimated Stage-0 completion:** ~55?%
