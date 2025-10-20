@@ -2,6 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <system_error>
+#include <string>
+
 using namespace bolt::linker;
 
 namespace
@@ -18,6 +25,55 @@ namespace
         options.targetTriple = "x86_64-pc-windows-msvc";
         return options;
     }
+
+    class LinkerValidationTest : public ::testing::Test
+    {
+    protected:
+        void SetUp() override
+        {
+            auto timestamp = std::chrono::steady_clock::now().time_since_epoch().count();
+            workspace = std::filesystem::temp_directory_path() / std::filesystem::path{"bolt_linker_validation"}
+                / std::to_string(timestamp) / std::to_string(reinterpret_cast<std::uintptr_t>(this));
+            std::filesystem::create_directories(workspace);
+        }
+
+        void TearDown() override
+        {
+            std::error_code ec;
+            std::filesystem::remove_all(workspace, ec);
+        }
+
+        std::filesystem::path createDirectory(const std::string& name)
+        {
+            auto path = workspace / name;
+            std::filesystem::create_directories(path);
+            return path;
+        }
+
+        std::filesystem::path createFile(const std::string& name)
+        {
+            auto path = workspace / name;
+            std::filesystem::create_directories(path.parent_path());
+            std::ofstream stream{path};
+            stream << "bolt";
+            return path;
+        }
+
+        CommandLineOptions createValidOptions()
+        {
+            CommandLineOptions options;
+            options.targetTriple = "x86_64-pc-windows-msvc";
+            options.emitKind = EmitKind::Executable;
+            auto outputDirectory = createDirectory("out");
+            options.outputPath = outputDirectory / "app.exe";
+            options.inputObjects = {createFile("obj/main.obj")};
+            options.runtimeRootPath = createDirectory("runtime");
+            options.librarySearchPaths = {createDirectory("lib")};
+            return options;
+        }
+
+        std::filesystem::path workspace;
+    };
 }
 
 TEST(LinkerInvocationTest, PlansWindowsExecutableInvocation)
@@ -146,5 +202,55 @@ TEST(LinkerInvocationTest, PlansAirImageInvocation)
     {
         EXPECT_EQ(plan.invocation.arguments[index], expected[index]) << "mismatch at index " << index;
     }
+}
+
+TEST_F(LinkerValidationTest, ReportsMissingImportBundle)
+{
+    auto options = createValidOptions();
+    options.importBundlePath = workspace / "missing.bundle";
+
+    auto result = validateLinkerInputs(options, false);
+    ASSERT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "import bundle '" + options.importBundlePath.string() + "' was not found.");
+}
+
+TEST_F(LinkerValidationTest, ReportsRuntimeRootThatIsNotADirectory)
+{
+    auto options = createValidOptions();
+    auto filePath = createFile("runtime.dat");
+    options.runtimeRootPath = filePath;
+
+    auto result = validateLinkerInputs(options, false);
+    ASSERT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "runtime root '" + filePath.string() + "' is not a directory.");
+}
+
+TEST_F(LinkerValidationTest, ReportsMissingOutputDirectory)
+{
+    auto options = createValidOptions();
+    auto missingDir = workspace / "no_such_dir" / "app.exe";
+    options.outputPath = missingDir;
+
+    auto result = validateLinkerInputs(options, false);
+    ASSERT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "output directory '" + missingDir.parent_path().string() + "' was not found.");
+}
+
+TEST_F(LinkerValidationTest, SkipsObjectValidationDuringDryRun)
+{
+    auto options = createValidOptions();
+    options.inputObjects = {workspace / "does_not_exist.obj"};
+
+    auto result = validateLinkerInputs(options, true);
+    EXPECT_FALSE(result.hasError);
+}
+
+TEST_F(LinkerValidationTest, AcceptsValidConfiguration)
+{
+    auto options = createValidOptions();
+    options.importBundlePath = createFile("imports.bin");
+
+    auto result = validateLinkerInputs(options, false);
+    EXPECT_FALSE(result.hasError);
 }
 

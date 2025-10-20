@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #if defined(_WIN32)
@@ -78,6 +79,59 @@ namespace linker
         {
             std::cout << "[bolt-ld]   " << quoteIfNeeded(argument) << "\n";
         }
+    }
+
+    static std::filesystem::path computeImportBundleOutputPath(const CommandLineOptions& options)
+    {
+        auto targetPath = options.outputPath;
+        targetPath += ".imports";
+        return targetPath;
+    }
+
+    static bool persistImportBundle(const CommandLineOptions& options)
+    {
+        auto targetPath = computeImportBundleOutputPath(options);
+
+        std::error_code existsError;
+        auto targetExists = std::filesystem::exists(targetPath, existsError);
+        if (existsError)
+        {
+            std::cerr << "bolt-ld: failed to inspect existing import bundle target '" << targetPath
+                      << "': " << existsError.message() << "\n";
+            return false;
+        }
+
+        if (targetExists)
+        {
+            std::error_code equivalentError;
+            if (std::filesystem::equivalent(options.importBundlePath, targetPath, equivalentError))
+            {
+                std::cout << "[bolt-ld] import bundle already present at " << targetPath << "\n";
+                return true;
+            }
+
+            if (equivalentError)
+            {
+                std::cerr << "bolt-ld: failed to compare import bundle paths '" << options.importBundlePath << "' and '"
+                          << targetPath << "': " << equivalentError.message() << "\n";
+                return false;
+            }
+        }
+
+        std::error_code copyError;
+        std::filesystem::copy_file(options.importBundlePath,
+            targetPath,
+            std::filesystem::copy_options::overwrite_existing,
+            copyError);
+        if (copyError)
+        {
+            std::cerr << "bolt-ld: failed to copy import bundle '" << options.importBundlePath << "' to '" << targetPath
+                      << "': " << copyError.message() << "\n";
+            return false;
+        }
+
+        std::cout << "[bolt-ld] import bundle copied to " << targetPath << "\n";
+        return true;
     }
 
     static int executeLinker(const LinkerInvocation& invocation)
@@ -181,9 +235,46 @@ namespace linker
             std::cout << "[bolt-ld] link library: " << library << "\n";
         }
 
+        if (!options.linkerScriptPath.empty())
+        {
+            std::cout << "[bolt-ld] linker script: " << options.linkerScriptPath << "\n";
+        }
+
+        if (!options.importBundlePath.empty())
+        {
+            std::cout << "[bolt-ld] import bundle: " << options.importBundlePath << "\n";
+        }
+
+        if (!options.sysrootPath.empty())
+        {
+            std::cout << "[bolt-ld] sysroot: " << options.sysrootPath << "\n";
+        }
+
+        if (!options.runtimeRootPath.empty())
+        {
+            std::cout << "[bolt-ld] runtime root: " << options.runtimeRootPath << "\n";
+        }
+
+        for (const auto& searchPath : options.librarySearchPaths)
+        {
+            std::cout << "[bolt-ld] library search: " << searchPath << "\n";
+        }
+
+        for (const auto& library : options.libraries)
+        {
+            std::cout << "[bolt-ld] link library: " << library << "\n";
+        }
+
         for (const auto& object : options.inputObjects)
         {
             std::cout << "[bolt-ld] input: " << object << "\n";
+        }
+
+        auto validation = validateLinkerInputs(options, options.dryRun);
+        if (validation.hasError)
+        {
+            std::cerr << "bolt-ld: " << validation.errorMessage << "\n";
+            return 1;
         }
 
         if (options.verbose)
@@ -205,6 +296,13 @@ namespace linker
 
         if (options.dryRun)
         {
+            if (!options.importBundlePath.empty())
+            {
+                auto targetPath = computeImportBundleOutputPath(options);
+                std::cout << "[bolt-ld] dry run: import bundle '" << options.importBundlePath
+                          << "' would copy to '" << targetPath << "'.\n";
+            }
+
             std::cout << "[bolt-ld] dry run: platform linker invocation skipped.\n";
             return 0;
         }
@@ -220,6 +318,15 @@ namespace linker
         if (exitCode != 0)
         {
             std::cerr << "bolt-ld: platform linker exited with code " << exitCode << ".\n";
+            return exitCode;
+        }
+
+        if (!options.importBundlePath.empty())
+        {
+            if (!persistImportBundle(options))
+            {
+                return 1;
+            }
         }
 
         return exitCode;

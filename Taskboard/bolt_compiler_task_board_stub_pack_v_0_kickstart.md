@@ -44,6 +44,7 @@
 - Linker wrapper now produces Windows static library plans via `lib.exe`, enabling archive packaging for Stage-0 builds.
 - Linker wrapper now materialises Air (`ld.lld`) command plans, validating linker scripts and freestanding entry configuration while avoiding conflicts with `.air` kernel artifact naming.
 - Linker documentation clarifies that Stage-0 resolves `ld.lld` directly and records guidance for SDKs that ship alternate wrapper names so environments stay compatible.
+- Linker wrapper validates linker scripts, import bundles, runtime roots, and object inputs ahead of invocation, and stages import bundles to `<output>.imports` after successful links (dry runs report the planned destination).
 
 ---
 

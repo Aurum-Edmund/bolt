@@ -1,5 +1,9 @@
 #include "linker_invocation.hpp"
 
+#include <system_error>
+#include <string_view>
+#include <utility>
+
 namespace bolt
 {
 namespace linker
@@ -259,6 +263,119 @@ namespace linker
         result.hasError = true;
         result.errorMessage = "linker planning for target '" + options.targetTriple + "' is not implemented.";
         return result;
+    }
+
+    namespace
+    {
+        LinkerValidationResult createValidationError(std::string message)
+        {
+            LinkerValidationResult result;
+            result.hasError = true;
+            result.errorMessage = std::move(message);
+            return result;
+        }
+    } // namespace
+
+    LinkerValidationResult validateLinkerInputs(const CommandLineOptions& options, bool skipInputObjectValidation)
+    {
+        auto requireRegularFile = [](const std::filesystem::path& path, std::string_view description)
+        {
+            std::error_code ec;
+            auto status = std::filesystem::status(path, ec);
+            if (ec || status.type() == std::filesystem::file_type::not_found)
+            {
+                return createValidationError(std::string(description) + " '" + path.string() + "' was not found.");
+            }
+
+            if (status.type() != std::filesystem::file_type::regular)
+            {
+                return createValidationError(std::string(description) + " '" + path.string() + "' is not a file.");
+            }
+
+            return LinkerValidationResult{};
+        };
+
+        auto requireDirectory = [](const std::filesystem::path& path, std::string_view description)
+        {
+            std::error_code ec;
+            auto status = std::filesystem::status(path, ec);
+            if (ec || status.type() == std::filesystem::file_type::not_found)
+            {
+                return createValidationError(std::string(description) + " '" + path.string() + "' was not found.");
+            }
+
+            if (status.type() != std::filesystem::file_type::directory)
+            {
+                return createValidationError(std::string(description) + " '" + path.string() + "' is not a directory.");
+            }
+
+            return LinkerValidationResult{};
+        };
+
+        auto checkResult = LinkerValidationResult{};
+
+        if (!options.linkerScriptPath.empty())
+        {
+            checkResult = requireRegularFile(options.linkerScriptPath, "linker script");
+            if (checkResult.hasError)
+            {
+                return checkResult;
+            }
+        }
+
+        if (!options.importBundlePath.empty())
+        {
+            checkResult = requireRegularFile(options.importBundlePath, "import bundle");
+            if (checkResult.hasError)
+            {
+                return checkResult;
+            }
+        }
+
+        if (!options.runtimeRootPath.empty())
+        {
+            checkResult = requireDirectory(options.runtimeRootPath, "runtime root");
+            if (checkResult.hasError)
+            {
+                return checkResult;
+            }
+        }
+
+        for (const auto& libraryPath : options.librarySearchPaths)
+        {
+            checkResult = requireDirectory(libraryPath, "library search path");
+            if (checkResult.hasError)
+            {
+                return checkResult;
+            }
+        }
+
+        if (!options.outputPath.empty())
+        {
+            auto parentPath = options.outputPath.parent_path();
+            if (!parentPath.empty())
+            {
+                checkResult = requireDirectory(parentPath, "output directory");
+                if (checkResult.hasError)
+                {
+                    return checkResult;
+                }
+            }
+        }
+
+        if (!skipInputObjectValidation)
+        {
+            for (const auto& objectPath : options.inputObjects)
+            {
+                checkResult = requireRegularFile(objectPath, "input object");
+                if (checkResult.hasError)
+                {
+                    return checkResult;
+                }
+            }
+        }
+
+        return LinkerValidationResult{};
     }
 } // namespace linker
 } // namespace bolt

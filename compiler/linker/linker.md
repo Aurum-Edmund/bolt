@@ -15,6 +15,7 @@ The linker component (`bolt-ld`) is responsible for turning Stage‑0 object fil
 3. **Import Metadata Integration**
    - Bundle resolved import metadata emitted during MIR lowering so that the runtime can validate module boundaries at load time.
    - Emit diagnostics if referenced modules lack corresponding objects or archives.
+   - Stage-0 now copies the supplied import bundle alongside the artifact as `<output>.imports` once the platform linker succeeds.
 
 4. **Artifact Production**
    - Produce developer-friendly COFF/PE executables (`.exe`) and static libraries (`.lib`) for Windows iteration.
@@ -44,6 +45,10 @@ The Stage-0 wrapper now exposes a deterministic set of options that mirror the p
 | `--dry-run` | Resolves inputs without launching the platform linker. |
 
 Basic validation ensures required arguments are present, targets are recognised, and unsupported artifact kinds are rejected. The wrapper now materialises command plans for the Windows toolchain—`link.exe` for executables and `lib.exe` for static libraries (both optionally resolved from `${sysroot}/bin/`)—and the freestanding Air flow (`ld.lld`, optionally from `${sysroot}/bin/ld.lld`).
+
+Before spawning the platform linker, the wrapper validates that every referenced file or directory exists (linker scripts, import bundles, runtime roots, library search directories, and—outside of `--dry-run` runs—each input object). Missing paths produce actionable diagnostics rather than letting the host linker fail later.
+
+When an import bundle is provided and the platform linker succeeds, Stage-0 copies the metadata to `<output>.imports`. Dry runs report the destination path instead of touching the filesystem.
 
 > **Note:** Upstream LLVM distributes the Air-capable linker as `ld.lld`. Earlier drafts referenced `link.air`, but that filename collides with the `.air` kernel artifacts described in the specification. Stage‑0 therefore resolves `ld.lld` directly; if your Air SDK exposes a renamed wrapper (for example `link.air`), create an `ld.lld` copy or symlink alongside it so the planner discovers the executable without ambiguity. Planned commands are printed when `--verbose` or `--dry-run` is provided. Stage‑0 still requires the host linker to be present on the PATH; if it is missing the wrapper reports an actionable diagnostic rather than silently succeeding.
 

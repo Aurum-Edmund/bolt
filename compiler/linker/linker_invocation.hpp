@@ -23,7 +23,15 @@ namespace linker
         std::string errorMessage;
     };
 
+    struct LinkerValidationResult
+    {
+        bool hasError{false};
+        std::string errorMessage;
+    };
+
     LinkerPlanResult planLinkerInvocation(const CommandLineOptions& options);
+
+    LinkerValidationResult validateLinkerInputs(const CommandLineOptions& options, bool skipInputObjectValidation);
 }
 } // namespace bolt
 
