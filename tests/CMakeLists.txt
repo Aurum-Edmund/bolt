@@ -3,6 +3,7 @@ set(BOLT_UNIT_TEST_SOURCES
     unit/frontend/ParserTest.cpp
     unit/high_level_ir/BinderTest.cpp
     unit/high_level_ir/ImportResolverTest.cpp
+    unit/high_level_ir/ModuleLocatorTest.cpp
     unit/driver/CommandLineParserTest.cpp
     unit/driver/ImportBundleWriterTest.cpp
     unit/middle_ir/LoweringTest.cpp

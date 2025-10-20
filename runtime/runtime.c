@@ -61,6 +61,86 @@ static void bolt_atomic_apply_acquire(boltAtomicOrder order)
     _ReadWriteBarrier();
 }
 
+uint8_t bolt_atomic_load_u8(const volatile uint8_t* object, boltAtomicOrder order)
+{
+    char value = _InterlockedCompareExchange8((volatile char*)object, 0, 0);
+    bolt_atomic_apply_acquire(order);
+    return (uint8_t)value;
+}
+
+void bolt_atomic_store_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order)
+{
+    bolt_atomic_apply_release(order);
+    _InterlockedExchange8((volatile char*)object, (char)value);
+}
+
+uint8_t bolt_atomic_exchange_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order)
+{
+    bolt_atomic_apply_release(order);
+    char previous = _InterlockedExchange8((volatile char*)object, (char)value);
+    bolt_atomic_apply_acquire(order);
+    return (uint8_t)previous;
+}
+
+bool bolt_atomic_compare_exchange_u8(volatile uint8_t* object,
+    uint8_t* expected,
+    uint8_t desired,
+    boltAtomicOrder successOrder,
+    boltAtomicOrder failureOrder)
+{
+    bolt_atomic_apply_release(successOrder);
+    char prior = _InterlockedCompareExchange8((volatile char*)object, (char)desired, (char)(*expected));
+    if (prior == (char)(*expected))
+    {
+        bolt_atomic_apply_acquire(successOrder);
+        return true;
+    }
+
+    bolt_atomic_apply_acquire(failureOrder);
+    *expected = (uint8_t)prior;
+    return false;
+}
+
+uint16_t bolt_atomic_load_u16(const volatile uint16_t* object, boltAtomicOrder order)
+{
+    short value = _InterlockedCompareExchange16((volatile short*)object, 0, 0);
+    bolt_atomic_apply_acquire(order);
+    return (uint16_t)value;
+}
+
+void bolt_atomic_store_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order)
+{
+    bolt_atomic_apply_release(order);
+    _InterlockedExchange16((volatile short*)object, (short)value);
+}
+
+uint16_t bolt_atomic_exchange_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order)
+{
+    bolt_atomic_apply_release(order);
+    short previous = _InterlockedExchange16((volatile short*)object, (short)value);
+    bolt_atomic_apply_acquire(order);
+    return (uint16_t)previous;
+}
+
+bool bolt_atomic_compare_exchange_u16(volatile uint16_t* object,
+    uint16_t* expected,
+    uint16_t desired,
+    boltAtomicOrder successOrder,
+    boltAtomicOrder failureOrder)
+{
+    bolt_atomic_apply_release(successOrder);
+    short prior = _InterlockedCompareExchange16((volatile short*)object, (short)desired, (short)(*expected));
+    if (prior == (short)(*expected))
+    {
+        bolt_atomic_apply_acquire(successOrder);
+        return true;
+    }
+
+    bolt_atomic_apply_acquire(failureOrder);
+    *expected = (uint16_t)prior;
+    return false;
+}
+
 uint32_t bolt_atomic_load_u32(const volatile uint32_t* object, boltAtomicOrder order)
 {
     uint32_t value = (uint32_t)_InterlockedCompareExchange((volatile long*)object, 0L, 0L);
@@ -176,6 +256,70 @@ static memory_order bolt_atomic_failure_order(boltAtomicOrder order)
     default:
         return memory_order_seq_cst;
     }
+}
+
+uint8_t bolt_atomic_load_u8(const volatile uint8_t* object, boltAtomicOrder order)
+{
+    const volatile _Atomic uint8_t* atomicObject = (const volatile _Atomic uint8_t*)object;
+    return atomic_load_explicit(atomicObject, bolt_atomic_to_memory_order(order));
+}
+
+void bolt_atomic_store_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order)
+{
+    volatile _Atomic uint8_t* atomicObject = (volatile _Atomic uint8_t*)object;
+    atomic_store_explicit(atomicObject, value, bolt_atomic_to_memory_order(order));
+}
+
+uint8_t bolt_atomic_exchange_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order)
+{
+    volatile _Atomic uint8_t* atomicObject = (volatile _Atomic uint8_t*)object;
+    return atomic_exchange_explicit(atomicObject, value, bolt_atomic_to_memory_order(order));
+}
+
+bool bolt_atomic_compare_exchange_u8(volatile uint8_t* object,
+    uint8_t* expected,
+    uint8_t desired,
+    boltAtomicOrder successOrder,
+    boltAtomicOrder failureOrder)
+{
+    volatile _Atomic uint8_t* atomicObject = (volatile _Atomic uint8_t*)object;
+    return atomic_compare_exchange_strong_explicit(atomicObject,
+        expected,
+        desired,
+        bolt_atomic_to_memory_order(successOrder),
+        bolt_atomic_failure_order(failureOrder));
+}
+
+uint16_t bolt_atomic_load_u16(const volatile uint16_t* object, boltAtomicOrder order)
+{
+    const volatile _Atomic uint16_t* atomicObject = (const volatile _Atomic uint16_t*)object;
+    return atomic_load_explicit(atomicObject, bolt_atomic_to_memory_order(order));
+}
+
+void bolt_atomic_store_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order)
+{
+    volatile _Atomic uint16_t* atomicObject = (volatile _Atomic uint16_t*)object;
+    atomic_store_explicit(atomicObject, value, bolt_atomic_to_memory_order(order));
+}
+
+uint16_t bolt_atomic_exchange_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order)
+{
+    volatile _Atomic uint16_t* atomicObject = (volatile _Atomic uint16_t*)object;
+    return atomic_exchange_explicit(atomicObject, value, bolt_atomic_to_memory_order(order));
+}
+
+bool bolt_atomic_compare_exchange_u16(volatile uint16_t* object,
+    uint16_t* expected,
+    uint16_t desired,
+    boltAtomicOrder successOrder,
+    boltAtomicOrder failureOrder)
+{
+    volatile _Atomic uint16_t* atomicObject = (volatile _Atomic uint16_t*)object;
+    return atomic_compare_exchange_strong_explicit(atomicObject,
+        expected,
+        desired,
+        bolt_atomic_to_memory_order(successOrder),
+        bolt_atomic_failure_order(failureOrder));
 }
 
 uint32_t bolt_atomic_load_u32(const volatile uint32_t* object, boltAtomicOrder order)

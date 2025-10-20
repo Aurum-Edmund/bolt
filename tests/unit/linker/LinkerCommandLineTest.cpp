@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdlib>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -10,6 +11,60 @@ using namespace bolt::linker;
 
 namespace
 {
+    class ScopedEnvironmentVariable
+    {
+    public:
+        ScopedEnvironmentVariable(std::string name, std::string value)
+            : m_name(std::move(name))
+        {
+            if (const char* existing = std::getenv(m_name.c_str()))
+            {
+                m_hadOriginal = true;
+                m_originalValue = existing;
+            }
+
+            apply(value.c_str());
+        }
+
+        ~ScopedEnvironmentVariable()
+        {
+            if (m_hadOriginal)
+            {
+                apply(m_originalValue.c_str());
+            }
+            else
+            {
+                clear();
+            }
+        }
+
+        ScopedEnvironmentVariable(const ScopedEnvironmentVariable&) = delete;
+        ScopedEnvironmentVariable& operator=(const ScopedEnvironmentVariable&) = delete;
+
+    private:
+        void apply(const char* value)
+        {
+#if defined(_WIN32)
+            _putenv_s(m_name.c_str(), value);
+#else
+            ::setenv(m_name.c_str(), value, 1);
+#endif
+        }
+
+        void clear()
+        {
+#if defined(_WIN32)
+            _putenv_s(m_name.c_str(), "");
+#else
+            ::unsetenv(m_name.c_str());
+#endif
+        }
+
+        std::string m_name;
+        std::string m_originalValue;
+        bool m_hadOriginal{false};
+    };
+
     CommandLineParseResult parse(std::initializer_list<std::string> arguments)
     {
         std::vector<std::string> ownedArguments{arguments};
@@ -148,6 +203,30 @@ TEST(LinkerCommandLineTest, RejectsNoRuntimeForBoltArchives)
 
     EXPECT_TRUE(result.hasError);
     EXPECT_EQ(result.errorMessage, "--no-runtime is only meaningful for executables or Air images.");
+}
+
+TEST(LinkerCommandLineTest, UsesEnvironmentDefaultsForSysrootAndRuntimeRoot)
+{
+    ScopedEnvironmentVariable sysroot{"BOLT_SYSROOT", "/env/sysroot"};
+    ScopedEnvironmentVariable runtime{"BOLT_RUNTIME_ROOT", "/env/runtime"};
+
+    auto result = parse({"bolt-ld", "-o", "app.exe", "main.obj"});
+
+    ASSERT_FALSE(result.hasError);
+    EXPECT_EQ(result.options.sysrootPath, std::filesystem::path{"/env/sysroot"});
+    EXPECT_EQ(result.options.runtimeRootPath, std::filesystem::path{"/env/runtime"});
+}
+
+TEST(LinkerCommandLineTest, CommandLineOverridesEnvironmentDefaults)
+{
+    ScopedEnvironmentVariable sysroot{"BOLT_SYSROOT", "/env/sysroot"};
+    ScopedEnvironmentVariable runtime{"BOLT_RUNTIME_ROOT", "/env/runtime"};
+
+    auto result = parse({"bolt-ld", "--sysroot=/explicit/sysroot", "--runtime-root", "/explicit/runtime", "-o", "app.exe", "main.obj"});
+
+    ASSERT_FALSE(result.hasError);
+    EXPECT_EQ(result.options.sysrootPath, std::filesystem::path{"/explicit/sysroot"});
+    EXPECT_EQ(result.options.runtimeRootPath, std::filesystem::path{"/explicit/runtime"});
 }
 
 TEST(LinkerCommandLineTest, RejectsUnknownEmitKind)

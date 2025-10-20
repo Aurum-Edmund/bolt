@@ -12,7 +12,6 @@
 ## Kanban
 
 ### To Do
-- Import module locator (filesystem discovery and module map) with missing-module diagnostics.
 - High-level IR type system expansion (algebraic data types, generics, references).
 - Middle-IR SSA construction and Live enforcement passes.
 - Backend scaffolding: instruction selection tables and linear scan register allocator.
@@ -46,7 +45,9 @@
 - Linker documentation clarifies that Stage-0 resolves `ld.lld` directly and records guidance for SDKs that ship alternate wrapper names so environments stay compatible.
 - Linker wrapper validates linker scripts, import bundles, runtime roots, and object inputs ahead of invocation, and stages import bundles to `<output>.imports` after successful links (dry runs report the planned destination).
 - Linker wrapper now assembles Bolt archives with `llvm-ar`, rejects `-L`/`-l` flags for deterministic `.zap` creation, and includes unit coverage for the new planner and validation behaviour.
+- Module locator scans import roots, caches discovered modules, and reports `BOLT-E2225`/`BOLT-E2226` diagnostics for missing roots or duplicate modules before import resolution, with unit coverage locking down discovery and error handling.
 - Parser, binder, and MIR tests exercise `link` functions across modules with multiple blueprints and assert blueprint field metadata so the static replacement modifier stays regression-safe.
+- Parser emits fix-it hints for missing semicolons on package/module/import declarations and the driver reports the suggested edits alongside parser diagnostics.
 - Linker CLI auto-selects the Air triple for `--emit=air`/`--emit=zap` when no target is provided and rejects incompatible emit/target combinations with explicit diagnostics.
 - Driver emits JSON import bundles via `--emit-import-bundle`, enforcing single-module usage and covering the manifest format in unit tests.
 - Linker CLI exposes `--entry` overrides, passing custom entry symbols through Windows (`/ENTRY`) and Air (`-e`) command planners with documentation and unit tests updated accordingly.
@@ -56,7 +57,8 @@
 - Linker wrapper requires runtime roots for Air images, auto-injects the Bolt runtime archive for Air/Windows executables, and reports missing runtime libraries up front with dedicated unit coverage.
 - Runtime root detection searches `lib/` and triple-qualified folders so packaged SDK layouts resolve Bolt runtime archives without manual intervention, with docs/tests covering the expanded lookup.
 - Linker CLI now honors `--no-runtime`, skipping runtime archive validation/injection for executables and Air images while planners, validators, and docs capture the override behavior.
-- Runtime library now ships atomic load/store/exchange/compare-exchange helpers for 32-bit and 64-bit values with cross-platform unit coverage, paving the way for MIR SSA and Live passes that require atomic intrinsics.
+- Runtime library now ships atomic load/store/exchange/compare-exchange helpers for 8-bit, 16-bit, 32-bit, and 64-bit values with cross-platform unit coverage, paving the way for MIR SSA and Live passes that require atomic intrinsics.
+- Linker CLI now falls back to `BOLT_SYSROOT`/`BOLT_RUNTIME_ROOT` environment defaults when the corresponding flags are omitted, keeping scripted builds ergonomic without overriding explicit command-line configuration.
 
 ---
 

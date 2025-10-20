@@ -50,10 +50,13 @@
 - Linker wrapper now requires a runtime root for Air images, auto-detects the Bolt runtime archive, and injects it for Air and Windows executables with unit coverage guarding missing-runtime diagnostics.
 - Runtime root discovery now probes `lib/` and triple-qualified subdirectories so packaged SDK layouts resolve Bolt runtime archives without extra flags, with updated unit coverage and documentation.
 - Linker CLI now exposes `--no-runtime`, allowing executables and Air images to bypass Bolt runtime injection while keeping planners and validators aware of the override, with fresh unit coverage and documentation updates.
-- Runtime library now provides atomic load/store/exchange/compare-exchange helpers for 32-bit and 64-bit values with MSVC interlocked fallbacks and cross-platform unit coverage, preparing Stage-0 for future SSA and Live passes that require atomic intrinsics.
+- Runtime library now provides atomic load/store/exchange/compare-exchange helpers for 8-bit, 16-bit, 32-bit, and 64-bit values with MSVC interlocked fallbacks and cross-platform unit coverage, preparing Stage-0 for future SSA and Live passes that require atomic intrinsics.
+- Module locator now scans import roots, caches discovered modules, and surfaces `BOLT-E2225`/`BOLT-E2226` diagnostics for missing roots or duplicate modules; the driver reports discoveries ahead of import resolution and new unit tests cover discovery, duplicates, and invalid roots.
+- Parser now attaches fix-it hints to missing semicolon diagnostics on package/module/import declarations, and the driver surfaces the suggestions alongside parser errors.
+- Linker CLI now honours `BOLT_SYSROOT` and `BOLT_RUNTIME_ROOT` defaults when explicit command-line values are absent, keeping scripted builds ergonomic without sacrificing deterministic flag handling.
 
 ## Progress Metric
-- **Estimated Stage-0 completion:** ~69?%
+- **Estimated Stage-0 completion:** ~74?%
 
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).

@@ -44,6 +44,26 @@ typedef enum boltAtomicOrder
     boltAtomicOrderSequentiallyConsistent
 } boltAtomicOrder;
 
+/* Atomic 8-bit helpers */
+uint8_t bolt_atomic_load_u8(const volatile uint8_t* object, boltAtomicOrder order);
+void bolt_atomic_store_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order);
+uint8_t bolt_atomic_exchange_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order);
+bool bolt_atomic_compare_exchange_u8(volatile uint8_t* object,
+    uint8_t* expected,
+    uint8_t desired,
+    boltAtomicOrder successOrder,
+    boltAtomicOrder failureOrder);
+
+/* Atomic 16-bit helpers */
+uint16_t bolt_atomic_load_u16(const volatile uint16_t* object, boltAtomicOrder order);
+void bolt_atomic_store_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order);
+uint16_t bolt_atomic_exchange_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order);
+bool bolt_atomic_compare_exchange_u16(volatile uint16_t* object,
+    uint16_t* expected,
+    uint16_t desired,
+    boltAtomicOrder successOrder,
+    boltAtomicOrder failureOrder);
+
 /* Atomic 32-bit helpers */
 uint32_t bolt_atomic_load_u32(const volatile uint32_t* object, boltAtomicOrder order);
 void bolt_atomic_store_u32(volatile uint32_t* object, uint32_t value, boltAtomicOrder order);

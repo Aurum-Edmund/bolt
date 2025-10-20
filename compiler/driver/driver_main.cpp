@@ -186,6 +186,10 @@ namespace bolt
                               << "L" << diagnostic.span.begin.line << ":C" << diagnostic.span.begin.column
                               << " -> "
                               << diagnostic.message << '\n';
+                    if (diagnostic.fixItHint.has_value())
+                    {
+                        std::cerr << "    fix-it: " << *diagnostic.fixItHint << '\n';
+                    }
                 }
                 exitCode = 1;
             }
@@ -219,6 +223,10 @@ namespace bolt
                                   << "L" << diagnostic.span.begin.line << ":C" << diagnostic.span.begin.column
                                   << " -> "
                                   << diagnostic.message << '\n';
+                        if (diagnostic.fixItHint.has_value())
+                        {
+                            std::cerr << "    fix-it: " << *diagnostic.fixItHint << '\n';
+                        }
                     }
                     exitCode = 1;
                 }
@@ -302,98 +310,135 @@ namespace bolt
                         if (!searchRoots.empty())
                         {
                             moduleLocator.setSearchRoots(searchRoots);
-                        }
+                            hir::ModuleLocatorDiscoveryResult discovery = moduleLocator.discoverModules();
 
-                        std::string canonicalModulePath = boundModule.moduleName;
-                        if (!boundModule.packageName.empty())
-                        {
-                            moduleLocator.registerModule(boundModule.packageName, inputPathFs);
-                            if (boundModule.packageName != boundModule.moduleName)
+                            if (!discovery.discoveredModules.empty())
                             {
-                                canonicalModulePath = boundModule.packageName + "::" + boundModule.moduleName;
+                                std::cout << "[notice] Module locator discovered "
+                                          << discovery.discoveredModules.size()
+                                          << " module(s) from import roots.\n";
                             }
-                        }
-                        moduleLocator.registerModule(boundModule.moduleName, inputPathFs);
-                        moduleLocator.registerModule(canonicalModulePath, inputPathFs);
 
-                        hir::ImportResolver importResolver;
-                        importResolver.setModuleLocator(&moduleLocator);
-                        hir::ImportResolutionResult resolution = importResolver.resolve(boundModule);
-                        const auto& importDiagnostics = importResolver.diagnostics();
-
-                        if (!importDiagnostics.empty())
-                        {
-                            for (const auto& diagnostic : importDiagnostics)
+                            if (!discovery.issues.empty())
                             {
-                                std::cerr << diagnostic.code << ' '
-                                          << "L" << diagnostic.span.begin.line << ":C" << diagnostic.span.begin.column
-                                          << " -> "
-                                          << diagnostic.message << '\n';
-                            }
-                            exitCode = 1;
-                        }
-                        else
-                        {
-                            std::vector<std::string> pendingImports;
-                            std::vector<std::string> resolvedImports;
-                            for (const auto& entry : resolution.imports)
-                            {
-                                if (entry.status == hir::ImportStatus::Pending)
+                                for (const auto& issue : discovery.issues)
                                 {
-                                    pendingImports.emplace_back(entry.modulePath);
+                                    std::cerr << "BOLT-E2225 ModuleLocatorImportRoot: "
+                                              << issue.message
+                                              << " -> '" << issue.path.string() << "'\n";
                                 }
-                                else if (entry.status == hir::ImportStatus::Resolved)
+                                exitCode = 1;
+                            }
+
+                            if (!discovery.duplicates.empty())
+                            {
+                                for (const auto& duplicate : discovery.duplicates)
                                 {
-                                    if (entry.resolvedFilePath.has_value())
+                                    std::cerr << "BOLT-E2226 ModuleLocatorDuplicate: Module '"
+                                              << duplicate.canonicalPath
+                                              << "' resolves to both '"
+                                              << duplicate.existingPath.string()
+                                              << "' and '"
+                                              << duplicate.duplicatePath.string()
+                                              << "'.\n";
+                                }
+                                exitCode = 1;
+                            }
+                        }
+
+                        if (exitCode == 0)
+                        {
+                            std::string canonicalModulePath = boundModule.moduleName;
+                            if (!boundModule.packageName.empty())
+                            {
+                                moduleLocator.registerModule(boundModule.packageName, inputPathFs);
+                                if (boundModule.packageName != boundModule.moduleName)
+                                {
+                                    canonicalModulePath = boundModule.packageName + "::" + boundModule.moduleName;
+                                }
+                            }
+                            moduleLocator.registerModule(boundModule.moduleName, inputPathFs);
+                            moduleLocator.registerModule(canonicalModulePath, inputPathFs);
+
+                            hir::ImportResolver importResolver;
+                            importResolver.setModuleLocator(&moduleLocator);
+                            hir::ImportResolutionResult resolution = importResolver.resolve(boundModule);
+                            const auto& importDiagnostics = importResolver.diagnostics();
+
+                            if (!importDiagnostics.empty())
+                            {
+                                for (const auto& diagnostic : importDiagnostics)
+                                {
+                                    std::cerr << diagnostic.code << ' '
+                                              << "L" << diagnostic.span.begin.line << ":C" << diagnostic.span.begin.column
+                                              << " -> "
+                                              << diagnostic.message << '\n';
+                                }
+                                exitCode = 1;
+                            }
+                            else
+                            {
+                                std::vector<std::string> pendingImports;
+                                std::vector<std::string> resolvedImports;
+                                for (const auto& entry : resolution.imports)
+                                {
+                                    if (entry.status == hir::ImportStatus::Pending)
                                     {
-                                        resolvedImports.emplace_back(entry.modulePath + " -> " + *entry.resolvedFilePath);
+                                        pendingImports.emplace_back(entry.modulePath);
+                                    }
+                                    else if (entry.status == hir::ImportStatus::Resolved)
+                                    {
+                                        if (entry.resolvedFilePath.has_value())
+                                        {
+                                            resolvedImports.emplace_back(entry.modulePath + " -> " + *entry.resolvedFilePath);
+                                        }
+                                        else
+                                        {
+                                            resolvedImports.emplace_back(entry.modulePath);
+                                        }
+                                    }
+                                }
+
+                                if (!resolvedImports.empty())
+                                {
+                                    std::cout << "[notice] Resolved imports (" << resolvedImports.size() << "):\n";
+                                    for (const auto& entry : resolvedImports)
+                                    {
+                                        std::cout << "    " << entry << '\n';
+                                    }
+                                }
+
+                                if (!pendingImports.empty())
+                                {
+                                    std::cout << "[notice] Pending import resolution for "
+                                              << pendingImports.size() << " module(s):\n";
+                                    for (const auto& name : pendingImports)
+                                    {
+                                        std::cout << "    " << name << '\n';
+                                    }
+                                }
+
+                                bool pipelineSuccess = runMirPipeline(boundModule, resolution, options);
+
+                                if (pipelineSuccess && options.importBundleOutputPath.has_value())
+                                {
+                                    std::string errorMessage;
+                                    if (!writeImportBundle(*options.importBundleOutputPath, boundModule, resolution, errorMessage))
+                                    {
+                                        std::cerr << "BOLT-E3003 ImportBundleWriteFailed: " << errorMessage << "\n";
+                                        pipelineSuccess = false;
                                     }
                                     else
                                     {
-                                        resolvedImports.emplace_back(entry.modulePath);
+                                        std::cout << "[notice] Import bundle written to "
+                                                  << *options.importBundleOutputPath << "\n";
                                     }
                                 }
-                            }
 
-                            if (!resolvedImports.empty())
-                            {
-                                std::cout << "[notice] Resolved imports (" << resolvedImports.size() << "):\n";
-                                for (const auto& entry : resolvedImports)
+                                if (!pipelineSuccess)
                                 {
-                                    std::cout << "    " << entry << '\n';
+                                    exitCode = 1;
                                 }
-                            }
-
-                            if (!pendingImports.empty())
-                            {
-                                std::cout << "[notice] Pending import resolution for "
-                                          << pendingImports.size() << " module(s):\n";
-                                for (const auto& name : pendingImports)
-                                {
-                                    std::cout << "    " << name << '\n';
-                                }
-                            }
-
-                            bool pipelineSuccess = runMirPipeline(boundModule, resolution, options);
-
-                            if (pipelineSuccess && options.importBundleOutputPath.has_value())
-                            {
-                                std::string errorMessage;
-                                if (!writeImportBundle(*options.importBundleOutputPath, boundModule, resolution, errorMessage))
-                                {
-                                    std::cerr << "BOLT-E3003 ImportBundleWriteFailed: " << errorMessage << "\n";
-                                    pipelineSuccess = false;
-                                }
-                                else
-                                {
-                                    std::cout << "[notice] Import bundle written to "
-                                              << *options.importBundleOutputPath << "\n";
-                                }
-                            }
-
-                            if (!pipelineSuccess)
-                            {
-                                exitCode = 1;
                             }
                         }
                     }

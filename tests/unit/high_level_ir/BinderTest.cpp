@@ -136,7 +136,7 @@ public blueprint Timer {
     {
         const std::string source = R"(package demo.tests; module demo.tests;
 import demo.alpha;
-import demo.beta.gamma
+import demo.beta.gamma;
 
 public integer function sample() {
     return 0;

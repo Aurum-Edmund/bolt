@@ -1,5 +1,6 @@
 #include "cli_options.hpp"
 
+#include <cstdlib>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -394,6 +395,31 @@ namespace linker
                 result.hasError = true;
                 result.errorMessage = "--no-runtime is only meaningful for executables or Air images.";
                 return result;
+            }
+        }
+
+        if (!result.hasError && !result.showHelp && !result.showVersion)
+        {
+            if (result.options.sysrootPath.empty())
+            {
+                if (const char* sysrootEnv = std::getenv("BOLT_SYSROOT"))
+                {
+                    if (*sysrootEnv != '\0')
+                    {
+                        result.options.sysrootPath = std::filesystem::path{sysrootEnv};
+                    }
+                }
+            }
+
+            if (result.options.runtimeRootPath.empty())
+            {
+                if (const char* runtimeEnv = std::getenv("BOLT_RUNTIME_ROOT"))
+                {
+                    if (*runtimeEnv != '\0')
+                    {
+                        result.options.runtimeRootPath = std::filesystem::path{runtimeEnv};
+                    }
+                }
             }
         }
 

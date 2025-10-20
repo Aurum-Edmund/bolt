@@ -75,7 +75,57 @@ import demo.alpha;
         EXPECT_FALSE(diagnostics.empty());
         EXPECT_EQ(diagnostics.front().code, "BOLT-E2108");
         ASSERT_EQ(unit.imports.size(), 1u);
-       EXPECT_EQ(unit.imports.front().modulePath, "demo.alpha");
+        EXPECT_EQ(unit.imports.front().modulePath, "demo.alpha");
+    }
+
+    TEST(ParserTest, ReportsMissingImportSemicolonWithFixIt)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+import demo.alpha
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        (void)parseSource(source, diagnostics);
+
+        const auto missingSemicolon = std::find_if(
+            diagnostics.begin(),
+            diagnostics.end(),
+            [](const Diagnostic& diag) { return diag.code == "BOLT-E2123"; });
+
+        ASSERT_NE(missingSemicolon, diagnostics.end());
+        ASSERT_TRUE(missingSemicolon->fixItHint.has_value());
+        EXPECT_NE(missingSemicolon->fixItHint->find("Insert ';'"), std::string::npos);
+    }
+
+    TEST(ParserTest, ReportsModuleHeaderSemicolonFixIts)
+    {
+        const std::string source = R"(package demo.tests
+module demo.tests
+
+integer function demo() {
+    return 0;
+}
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        (void)parseSource(source, diagnostics);
+
+        const auto packageFixIt = std::find_if(
+            diagnostics.begin(),
+            diagnostics.end(),
+            [](const Diagnostic& diag) { return diag.code == "BOLT-E2104"; });
+        ASSERT_NE(packageFixIt, diagnostics.end());
+        ASSERT_TRUE(packageFixIt->fixItHint.has_value());
+        EXPECT_NE(packageFixIt->fixItHint->find("Insert ';'"), std::string::npos);
+
+        const auto moduleFixIt = std::find_if(
+            diagnostics.begin(),
+            diagnostics.end(),
+            [](const Diagnostic& diag) { return diag.code == "BOLT-E2106"; });
+        ASSERT_NE(moduleFixIt, diagnostics.end());
+        ASSERT_TRUE(moduleFixIt->fixItHint.has_value());
+        EXPECT_NE(moduleFixIt->fixItHint->find("Insert ';'"), std::string::npos);
     }
 
     TEST(ParserTest, RejectsLegacyParameterSyntax)

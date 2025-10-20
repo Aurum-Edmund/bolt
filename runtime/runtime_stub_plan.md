@@ -28,8 +28,8 @@ Stage‑0 requires a minimal freestanding runtime so compiled Bolt programs can 
 
 ## Current Progress
 
-- Implemented portable atomic helper APIs (`bolt_atomic_load/store/exchange/compare_exchange`) for 32-bit and 64-bit values,
-  using C11 atomics on hosted builds and Windows interlocked fallbacks when compiling with MSVC. Unit tests in
-  `tests/unit/runtime/RuntimeHelpersTest.cpp` cover load/store, exchange, and compare-exchange behaviour.
+- Implemented portable atomic helper APIs (`bolt_atomic_load/store/exchange/compare_exchange`) for 8-bit, 16-bit, 32-bit, and
+  64-bit values, using C11 atomics on hosted builds and Windows interlocked fallbacks when compiling with MSVC. Unit tests in
+  `tests/unit/runtime/RuntimeHelpersTest.cpp` cover load/store, exchange, and compare-exchange behaviour for each width.
 
 
