@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 
 #include <filesystem>
+#include <chrono>
+#include <system_error>
+#include <fstream>
 
 #include "import_resolver.hpp"
 #include "module_locator.hpp"
@@ -9,6 +12,20 @@ namespace bolt::hir
 {
 namespace
 {
+    struct ScopedDirectory
+    {
+        std::filesystem::path path;
+        explicit ScopedDirectory(std::filesystem::path dir) : path(std::move(dir)) {}
+        ~ScopedDirectory()
+        {
+            if (!path.empty())
+            {
+                std::error_code ec;
+                std::filesystem::remove_all(path, ec);
+            }
+        }
+    };
+
     static SourceSpan makeSpan(std::uint32_t line, std::uint32_t column)
     {
         SourceSpan span;
@@ -110,5 +127,41 @@ namespace
         ASSERT_EQ(diagnostics.size(), 1u);
         EXPECT_EQ(diagnostics.front().code, "BOLT-E2220");
     }
+
+    TEST(ImportResolverTest, ResolvesUsingSearchRoots)
+    {
+        auto tempRoot = std::filesystem::temp_directory_path() / ("bolt-modlocator-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+        ScopedDirectory cleanup{tempRoot};
+        std::filesystem::create_directories(tempRoot / "demo" / "utils");
+        const auto moduleFile = tempRoot / "demo" / "utils" / "core.bolt";
+        {
+            std::ofstream stream(moduleFile);
+            stream << "// synthetic module";
+        }
+
+        Module module = makeModule("demo.tests", "demo.tests");
+
+        Import importDecl;
+        importDecl.modulePath = "demo.utils.core";
+        importDecl.span = makeSpan(7, 3);
+        module.imports.emplace_back(importDecl);
+
+        ModuleLocator locator;
+        locator.setSearchRoots({tempRoot});
+
+        ImportResolver resolver;
+        resolver.setModuleLocator(&locator);
+        ImportResolutionResult result = resolver.resolve(module);
+
+        ASSERT_EQ(result.imports.size(), 1u);
+        const auto& resolved = result.imports.front();
+        EXPECT_EQ(resolved.status, ImportStatus::Resolved);
+        ASSERT_TRUE(resolved.resolvedFilePath.has_value());
+        EXPECT_NE(resolved.resolvedFilePath->find("demo"), std::string::npos);
+        EXPECT_TRUE(resolver.diagnostics().empty());
+    }
 }
 } // namespace bolt::hir
+
+
+

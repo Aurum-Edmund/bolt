@@ -490,6 +490,34 @@ namespace bolt::frontend
     {
         Parameter parameter{};
 
+        if (check(TokenKind::Identifier) && lookAhead(1).kind == TokenKind::Colon)
+        {
+            const Token& legacyName = advance();
+            advance();
+
+            Diagnostic diag;
+            diag.code = "BOLT-E2115";
+            diag.message = "Parameters must use type-first syntax (for example, 'integer value').";
+            diag.span = legacyName.span;
+            m_diagnostics.emplace_back(std::move(diag));
+
+            TypeCapture legacyType = parseTypeUntil({TokenKind::Comma, TokenKind::RightParen});
+            if (legacyType.valid)
+            {
+                parameter.typeName = legacyType.text;
+                parameter.typeSpan = legacyType.span;
+                parameter.span = mergeSpans(legacyName.span, legacyType.span);
+            }
+            else
+            {
+                parameter.typeSpan = legacyName.span;
+                parameter.span = legacyName.span;
+            }
+
+            parameter.name = legacyName.text;
+            return parameter;
+        }
+
         TypeCapture typeCapture = parseTypeBeforeName({TokenKind::Comma, TokenKind::RightParen});
         if (!typeCapture.valid)
         {
@@ -539,6 +567,34 @@ namespace bolt::frontend
     BlueprintField Parser::parseField()
     {
         BlueprintField field{};
+
+        if (check(TokenKind::Identifier) && lookAhead(1).kind == TokenKind::Colon)
+        {
+            const Token& legacyName = advance();
+            advance();
+
+            Diagnostic diag;
+            diag.code = "BOLT-E2153";
+            diag.message = "Fields must use type-first syntax (for example, 'integer value').";
+            diag.span = legacyName.span;
+            m_diagnostics.emplace_back(std::move(diag));
+
+            TypeCapture legacyType = parseTypeUntil({TokenKind::Semicolon, TokenKind::RightBrace, TokenKind::LeftBracket});
+            if (legacyType.valid)
+            {
+                field.typeName = legacyType.text;
+                field.typeSpan = legacyType.span;
+                field.span = mergeSpans(legacyName.span, legacyType.span);
+            }
+            else
+            {
+                field.typeSpan = legacyName.span;
+                field.span = legacyName.span;
+            }
+
+            field.name = legacyName.text;
+            return field;
+        }
 
         TypeCapture typeCapture = parseTypeBeforeName({TokenKind::Semicolon, TokenKind::RightBrace, TokenKind::LeftBracket});
         if (!typeCapture.valid)

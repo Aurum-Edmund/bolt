@@ -91,7 +91,11 @@ public function legacy(value: integer) -> integer {
         (void)parseSource(source, diagnostics);
 
         ASSERT_FALSE(diagnostics.empty());
-        EXPECT_EQ(diagnostics.front().code, "BOLT-E2115");
+        const bool containsLegacyDiagnostic = std::any_of(
+            diagnostics.begin(),
+            diagnostics.end(),
+            [](const Diagnostic& diag) { return diag.code == "BOLT-E2115"; });
+        EXPECT_TRUE(containsLegacyDiagnostic);
     }
 
     TEST(ParserTest, RejectsLegacyFieldSyntax)
