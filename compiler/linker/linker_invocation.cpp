@@ -96,6 +96,16 @@ namespace linker
             return std::filesystem::path{"ld.lld"};
         }
 
+        std::filesystem::path resolveAirArchiverExecutable(const CommandLineOptions& options)
+        {
+            if (!options.sysrootPath.empty())
+            {
+                return options.sysrootPath / "bin" / "llvm-ar";
+            }
+
+            return std::filesystem::path{"llvm-ar"};
+        }
+
         LinkerPlanResult planWindowsExecutableInvocation(const CommandLineOptions& options)
         {
             LinkerPlanResult result;
@@ -232,6 +242,49 @@ namespace linker
             result.invocation = std::move(invocation);
             return result;
         }
+
+        LinkerPlanResult planAirArchiveInvocation(const CommandLineOptions& options)
+        {
+            LinkerPlanResult result;
+
+            if (options.emitKind != EmitKind::BoltArchive)
+            {
+                result.hasError = true;
+                result.errorMessage = "emit kind is not supported for Air archiver planning.";
+                return result;
+            }
+
+            if (!options.librarySearchPaths.empty())
+            {
+                result.hasError = true;
+                result.errorMessage
+                    = "library search paths (-L) are not supported when emitting Bolt archives.";
+                return result;
+            }
+
+            if (!options.libraries.empty())
+            {
+                result.hasError = true;
+                result.errorMessage
+                    = "link libraries (-l) are not supported when emitting Bolt archives; "
+                      "list the archive inputs explicitly.";
+                return result;
+            }
+
+            LinkerInvocation invocation;
+            invocation.executable = resolveAirArchiverExecutable(options);
+
+            invocation.arguments.emplace_back("rcs");
+            invocation.arguments.emplace_back(options.outputPath.string());
+
+            for (const auto& object : options.inputObjects)
+            {
+                invocation.arguments.emplace_back(formatPathArgument(object));
+            }
+
+            result.invocation = std::move(invocation);
+            return result;
+        }
     } // namespace
 
     LinkerPlanResult planLinkerInvocation(const CommandLineOptions& options)
@@ -256,7 +309,20 @@ namespace linker
 
         if (options.targetTriple == "x86_64-air-bolt")
         {
-            return planAirInvocation(options);
+            if (options.emitKind == EmitKind::AirImage)
+            {
+                return planAirInvocation(options);
+            }
+
+            if (options.emitKind == EmitKind::BoltArchive)
+            {
+                return planAirArchiveInvocation(options);
+            }
+
+            LinkerPlanResult result;
+            result.hasError = true;
+            result.errorMessage = "emit kind is not supported for Air linker planning.";
+            return result;
         }
 
         LinkerPlanResult result;
@@ -320,6 +386,21 @@ namespace linker
             if (checkResult.hasError)
             {
                 return checkResult;
+            }
+        }
+
+        if (options.emitKind == EmitKind::BoltArchive)
+        {
+            if (!options.librarySearchPaths.empty())
+            {
+                return createValidationError(
+                    "library search paths (-L) are not supported when emitting Bolt archives.");
+            }
+
+            if (!options.libraries.empty())
+            {
+                return createValidationError(
+                    "link libraries (-l) are not supported when emitting Bolt archives; list the archive inputs explicitly.");
             }
         }
 

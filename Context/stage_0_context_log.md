@@ -38,12 +38,13 @@
 - Documented that Stage-0 now resolves `ld.lld` directly to avoid collisions with `.air` kernel artifacts, and captured guidance for SDKs that still ship an alternate wrapper name.
 - Linker wrapper now synthesizes Windows static library invocations via `lib.exe`, allowing Stage-0 builds to package runtime or module archives alongside executable outputs.
 - Linker wrapper now validates linker inputs (scripts, import bundles, runtime roots, search paths, objects) ahead of invocation and copies successful import bundles to `<output>.imports`, with dry runs reporting the staging path.
+- Linker wrapper now assembles Bolt archives with `llvm-ar`, rejects `-L`/`-l` flags for deterministic `.zap` creation, and ships unit coverage for the new planner and validation paths.
 - Parser, binder, and MIR lowering suites now cover `link` functions alongside multiple blueprints, ensuring the static replacement modifier remains stable across stages.
 - Blueprint regression coverage now asserts blueprint field metadata in parser, binder, and MIR lowering tests to guard shared `link` helpers across aggregates.
 - Linker CLI now defaults to `x86_64-air-bolt` when `--emit=air` or `--emit=zap` are selected without an explicit target and rejects incompatible target/emit combinations with direct diagnostics.
 
 ## Progress Metric
-- **Estimated Stage-0 completion:** ~59?%
+- **Estimated Stage-0 completion:** ~60?%
 
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).

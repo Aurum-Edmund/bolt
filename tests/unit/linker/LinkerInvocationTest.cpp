@@ -204,6 +204,50 @@ TEST(LinkerInvocationTest, PlansAirImageInvocation)
     }
 }
 
+TEST(LinkerInvocationTest, PlansAirBoltArchiveInvocation)
+{
+    CommandLineOptions options;
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::BoltArchive;
+    options.outputPath = "libbolt.zap";
+    options.inputObjects = {"module.o", "runtime.o"};
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_FALSE(plan.hasError);
+    EXPECT_EQ(plan.invocation.executable, std::filesystem::path{"llvm-ar"});
+
+    std::vector<std::string> expected{
+        "rcs",
+        "libbolt.zap",
+        "module.o",
+        "runtime.o",
+    };
+
+    ASSERT_EQ(plan.invocation.arguments.size(), expected.size());
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        EXPECT_EQ(plan.invocation.arguments[index], expected[index]) << "mismatch at index " << index;
+    }
+}
+
+TEST(LinkerInvocationTest, RejectsBoltArchiveWithLibraryFlags)
+{
+    CommandLineOptions options;
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::BoltArchive;
+    options.outputPath = "libbolt.zap";
+    options.inputObjects = {"module.o"};
+    options.librarySearchPaths = {"/sdk/lib"};
+    options.libraries = {"bolt-runtime"};
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_TRUE(plan.hasError);
+    EXPECT_EQ(plan.errorMessage,
+        "library search paths (-L) are not supported when emitting Bolt archives.");
+}
+
 TEST_F(LinkerValidationTest, ReportsMissingImportBundle)
 {
     auto options = createValidOptions();
@@ -252,5 +296,19 @@ TEST_F(LinkerValidationTest, AcceptsValidConfiguration)
 
     auto result = validateLinkerInputs(options, false);
     EXPECT_FALSE(result.hasError);
+}
+
+TEST_F(LinkerValidationTest, RejectsBoltArchiveLibraryFlags)
+{
+    auto options = createValidOptions();
+    options.emitKind = EmitKind::BoltArchive;
+    options.librarySearchPaths = {createDirectory("lib")};
+    options.libraries = {"bolt-runtime"};
+
+    auto result = validateLinkerInputs(options, false);
+
+    ASSERT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage,
+        "library search paths (-L) are not supported when emitting Bolt archives.");
 }
 
