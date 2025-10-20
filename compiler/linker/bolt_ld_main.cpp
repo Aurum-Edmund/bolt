@@ -1,9 +1,22 @@
 #include "cli_options.hpp"
 #include "linker_invocation.hpp"
 
-#include <iostream>
+#include <cerrno>
+#include <cstring>
 #include <filesystem>
-#include <cstdlib>
+#include <iostream>
+#include <string>
+#include <vector>
+
+#if defined(_WIN32)
+#    include <process.h>
+#else
+#    include <spawn.h>
+#    include <sys/wait.h>
+#    include <unistd.h>
+
+extern char** environ;
+#endif
 
 #ifndef BOLT_LD_VERSION
 #define BOLT_LD_VERSION "Stage0"
@@ -60,11 +73,72 @@ namespace linker
 
     static void printInvocation(const LinkerInvocation& invocation)
     {
-        std::cout << "[bolt-ld] platform linker: " << invocation.executable << "\n";
+        std::cout << "[bolt-ld] platform linker: " << quoteIfNeeded(invocation.executable.string()) << "\n";
         for (const auto& argument : invocation.arguments)
         {
-            std::cout << "[bolt-ld]   " << argument << "\n";
+            std::cout << "[bolt-ld]   " << quoteIfNeeded(argument) << "\n";
         }
+    }
+
+    static int executeLinker(const LinkerInvocation& invocation)
+    {
+        std::vector<std::string> argumentStorage;
+        argumentStorage.reserve(invocation.arguments.size() + 1);
+        argumentStorage.push_back(invocation.executable.string());
+        for (const auto& argument : invocation.arguments)
+        {
+            argumentStorage.push_back(argument);
+        }
+
+        std::vector<char*> argv;
+        argv.reserve(argumentStorage.size() + 1);
+        for (auto& entry : argumentStorage)
+        {
+            argv.push_back(entry.data());
+        }
+        argv.push_back(nullptr);
+
+#if defined(_WIN32)
+        int exitCode = _spawnvp(_P_WAIT, argv[0], argv.data());
+        if (exitCode == -1)
+        {
+            std::cerr << "bolt-ld: failed to launch platform linker '" << invocation.executable
+                      << "': " << std::strerror(errno) << "\n";
+            return 1;
+        }
+        return exitCode;
+#else
+        pid_t pid = 0;
+        int spawnResult = posix_spawnp(&pid, argv[0], nullptr, nullptr, argv.data(), environ);
+        if (spawnResult != 0)
+        {
+            std::cerr << "bolt-ld: failed to launch platform linker '" << invocation.executable
+                      << "': " << std::strerror(spawnResult) << "\n";
+            return 1;
+        }
+
+        int status = 0;
+        if (waitpid(pid, &status, 0) == -1)
+        {
+            std::cerr << "bolt-ld: failed to wait for platform linker '" << invocation.executable
+                      << "': " << std::strerror(errno) << "\n";
+            return 1;
+        }
+
+        if (WIFEXITED(status))
+        {
+            return WEXITSTATUS(status);
+        }
+
+        if (WIFSIGNALED(status))
+        {
+            int signal = WTERMSIG(status);
+            std::cerr << "bolt-ld: platform linker terminated by signal " << signal << ".\n";
+            return 128 + signal;
+        }
+
+        return status;
+#endif
     }
 
     static int runLinker(const CommandLineOptions& options)
@@ -74,7 +148,7 @@ namespace linker
 
         if (!options.outputPath.empty())
         {
-            std::cout << "[bolt-ld] output: " << options.outputPath << "\n";
+            std::cout << "[bolt-ld] link library: " << library << "\n";
         }
 
         if (!options.linkerScriptPath.empty())
@@ -142,14 +216,7 @@ namespace linker
             return 1;
         }
 
-        std::string command = quoteIfNeeded(plan.invocation.executable.string());
-        for (const auto& argument : plan.invocation.arguments)
-        {
-            command.push_back(' ');
-            command += quoteIfNeeded(argument);
-        }
-
-        auto exitCode = std::system(command.c_str());
+        auto exitCode = executeLinker(plan.invocation);
         if (exitCode != 0)
         {
             std::cerr << "bolt-ld: platform linker exited with code " << exitCode << ".\n";
