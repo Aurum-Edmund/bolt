@@ -50,3 +50,5 @@ BOLT_NORETURN void _start(void)
     bolt_panic_abort("start returned");
 }
 #endif
+
+#undef BOLT_NORETURN
