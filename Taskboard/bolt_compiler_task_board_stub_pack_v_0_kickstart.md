@@ -50,6 +50,7 @@
 - Linker CLI auto-selects the Air triple for `--emit=air`/`--emit=zap` when no target is provided and rejects incompatible emit/target combinations with explicit diagnostics.
 - Driver emits JSON import bundles via `--emit-import-bundle`, enforcing single-module usage and covering the manifest format in unit tests.
 - Linker CLI exposes `--entry` overrides, passing custom entry symbols through Windows (`/ENTRY`) and Air (`-e`) command planners with documentation and unit tests updated accordingly.
+- Repository housekeeping keeps the local `master` branch aligned with the active Stage-0 work tip to avoid divergence during follow-up sessions.
 
 ---
 
