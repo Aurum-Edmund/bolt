@@ -27,7 +27,8 @@
 - Added parser regression tests that reject legacy colon-style parameters and blueprint fields to prevent syntax regressions.
 - Driver CLI now accepts repeatable `--import-root` flags; module locator uses them and coverage added in unit tests.
 - Runtime stub plan expanded with `_start` flow, testing strategy, and linker integration notes to guide upcoming implementation.
-- Live enforcement pass now enforces baseline invariants for Live-qualified functions, reports structured diagnostics (`BOLT-E4101`), and surfaces them through the driver for user-facing context.
+- Live enforcement pass now enforces baseline invariants for Live-qualified functions, reports structured diagnostics (`BOLT-E4101`), surfaces them through the driver, and validates that Live-qualified basic blocks end with terminators.
+- Front-end parser sources normalized to Unix newlines to eliminate stray include warnings during builds.
 
 ## Progress Metric
 - **Estimated Stage-0 completion:** ~55?%
@@ -35,7 +36,6 @@
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).
 - Expand MIR Live enforcement beyond baseline structural checks and implement SSA conversion passes.
-- Implement MIR Live enforcement and SSA conversion passes.
 
 ## Notes
 - Use the task board (`../Taskboard/bolt_compiler_task_board_stub_pack_v_0_kickstart.md`) to log task state and checklist progress.

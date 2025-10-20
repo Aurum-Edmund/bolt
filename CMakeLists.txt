@@ -16,10 +16,22 @@ add_subdirectory(compiler/linker)
 add_subdirectory(compiler/driver)
 
 if (BOLT_ENABLE_TESTS)
+    include(FetchContent)
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-    add_subdirectory(third_party/googletest)
+
+    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/googletest/CMakeLists.txt")
+        add_subdirectory(third_party/googletest)
+    else ()
+        message(STATUS "Fetching googletest dependency")
+        FetchContent_Declare(
+            googletest
+            URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+        )
+        FetchContent_MakeAvailable(googletest)
+    endif ()
+
     enable_testing()
     add_subdirectory(tests)
 endif ()
