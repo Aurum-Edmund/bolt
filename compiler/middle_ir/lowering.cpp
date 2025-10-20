@@ -4,6 +4,7 @@
 
 #include <sstream>
 #include <string>
+#include <utility>
 
 namespace bolt::mir
 {
@@ -105,6 +106,9 @@ namespace bolt::mir
 
             if (hirFunction.hasReturnType)
             {
+                mirFunction.hasReturnType = true;
+                mirFunction.returnType = hirFunction.returnType.text;
+                mirFunction.returnIsLive = hirFunction.returnIsLive;
                 std::string detail = "return " + hirFunction.returnType.text;
                 if (hirFunction.returnIsLive)
                 {
@@ -115,6 +119,11 @@ namespace bolt::mir
 
             for (const auto& parameter : hirFunction.parameters)
             {
+                Function::Parameter mirParameter{};
+                mirParameter.typeName = parameter.type.text;
+                mirParameter.name = parameter.name;
+                mirParameter.isLive = parameter.isLive;
+                mirFunction.parameters.emplace_back(std::move(mirParameter));
                 std::string detail = "param ";
                 detail += parameter.type.text;
                 detail += ' ';

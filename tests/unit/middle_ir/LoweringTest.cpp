@@ -99,6 +99,59 @@ public blueprint Timer {
         EXPECT_EQ(terminator.kind, InstructionKind::Return);
         EXPECT_EQ(terminator.detail, "blueprint");
     }
+
+    TEST(LoweringTest, EmitsLinkFunctionAndBlueprints)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint FirstBlueprint {
+    integer firstField;
+}
+
+public blueprint SecondBlueprint {
+    integer secondField;
+}
+
+public link integer function staticFunctionTest(integer value) {
+    return value;
+}
+)";
+
+        auto hirModule = buildHir(source);
+        Module mirModule = lowerFromHir(hirModule);
+        ASSERT_TRUE(verify(mirModule));
+
+        ASSERT_EQ(mirModule.functions.size(), 3u);
+
+        const auto& function = mirModule.functions[0];
+        EXPECT_EQ(function.name, "staticFunctionTest");
+        ASSERT_EQ(function.blocks.size(), 1u);
+        const auto& functionBlock = function.blocks.front();
+        ASSERT_EQ(functionBlock.instructions.size(), 4u);
+        EXPECT_EQ(functionBlock.instructions[0].detail, "modifiers: public link");
+        EXPECT_EQ(functionBlock.instructions[1].detail, "return integer");
+        EXPECT_EQ(functionBlock.instructions[2].detail, "param integer value");
+        EXPECT_EQ(functionBlock.instructions.back().detail, "function");
+        EXPECT_EQ(functionBlock.instructions.back().kind, InstructionKind::Return);
+
+        const auto& firstBlueprint = mirModule.functions[1];
+        EXPECT_EQ(firstBlueprint.name, "blueprint.FirstBlueprint");
+        ASSERT_EQ(firstBlueprint.blocks.size(), 1u);
+        const auto& firstBlock = firstBlueprint.blocks.front();
+        ASSERT_GE(firstBlock.instructions.size(), 3u);
+        EXPECT_EQ(firstBlock.instructions[0].detail, "modifiers: public");
+        EXPECT_EQ(firstBlock.instructions[1].detail, "field integer firstField");
+        EXPECT_EQ(firstBlock.instructions.back().kind, InstructionKind::Return);
+
+        const auto& secondBlueprint = mirModule.functions[2];
+        EXPECT_EQ(secondBlueprint.name, "blueprint.SecondBlueprint");
+        ASSERT_EQ(secondBlueprint.blocks.size(), 1u);
+        const auto& secondBlock = secondBlueprint.blocks.front();
+        ASSERT_GE(secondBlock.instructions.size(), 3u);
+        EXPECT_EQ(secondBlock.instructions[0].detail, "modifiers: public");
+        EXPECT_EQ(secondBlock.instructions[1].detail, "field integer secondField");
+        EXPECT_EQ(secondBlock.instructions.back().kind, InstructionKind::Return);
+    }
 }
 } // namespace bolt::mir
 
