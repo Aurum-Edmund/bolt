@@ -148,7 +148,7 @@ namespace linker
 
         if (!options.outputPath.empty())
         {
-            std::cout << "[bolt-ld] output: " << options.outputPath << "\n";
+            std::cout << "[bolt-ld] link library: " << library << "\n";
         }
 
         if (!options.linkerScriptPath.empty())
