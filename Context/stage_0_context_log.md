@@ -36,10 +36,10 @@
 - Implement MIR Live enforcement and SSA conversion passes.
 
 ## Notes
-- Use the task board (`Taskboard/bolt_compiler_task_board_stub_pack_v_0_kickstart.md`) to log task state and checklist progress.
+- Use the task board (`../Taskboard/bolt_compiler_task_board_stub_pack_v_0_kickstart.md`) to log task state and checklist progress.
 - Keep this context log updated when significant milestones or decisions occur to support future chat continuity.
 - All identifiers must follow Bolt naming rules (full words, lowerCamelCase attributes). Tests should run via `cmake --preset build-windows-release` and `ctest -C Debug`.
 - Milestone M1 is **not yet complete**; dependencies for module discovery/resolution remain outstanding.
 - Suggestion tracked: add compiler fix-it hints for missing semicolons to ease developer workflow.
 
-Refer to the [Bolt Compiler Task Board (Stage-0)](bolt_compiler_task_board_stub_pack_v_0_kickstart.md) for detailed Kanban status, milestones, and supporting notes.
+Refer to the [Bolt Compiler Task Board (Stage-0)](../Taskboard/bolt_compiler_task_board_stub_pack_v_0_kickstart.md) for detailed Kanban status, milestones, and supporting notes.
