@@ -121,3 +121,37 @@ TEST(LinkerCommandLineTest, RejectsUnknownTarget)
     EXPECT_EQ(result.errorMessage, "unsupported target 'ppc-none'.");
 }
 
+TEST(LinkerCommandLineTest, DefaultsAirTargetWhenEmitAirIsRequested)
+{
+    auto result = parse({"bolt-ld", "--emit=air", "-o", "kernel.air", "kernel.o"});
+
+    ASSERT_FALSE(result.hasError);
+    EXPECT_EQ(result.options.emitKind, EmitKind::AirImage);
+    EXPECT_EQ(result.options.targetTriple, "x86_64-air-bolt");
+}
+
+TEST(LinkerCommandLineTest, DefaultsAirTargetWhenEmitZapIsRequested)
+{
+    auto result = parse({"bolt-ld", "--emit=zap", "-o", "library.zap", "module.o"});
+
+    ASSERT_FALSE(result.hasError);
+    EXPECT_EQ(result.options.emitKind, EmitKind::BoltArchive);
+    EXPECT_EQ(result.options.targetTriple, "x86_64-air-bolt");
+}
+
+TEST(LinkerCommandLineTest, RejectsWindowsTargetForAirEmit)
+{
+    auto result = parse({"bolt-ld", "--emit=air", "--target=x86_64-pc-windows-msvc", "-o", "kernel.air", "kernel.o"});
+
+    EXPECT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "emit kind 'air' requires target 'x86_64-air-bolt'.");
+}
+
+TEST(LinkerCommandLineTest, RejectsAirTargetForExecutableEmit)
+{
+    auto result = parse({"bolt-ld", "--target=x86_64-air-bolt", "-o", "app.exe", "main.obj"});
+
+    EXPECT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "emit kind 'exe' is not supported for target 'x86_64-air-bolt'.");
+}
+

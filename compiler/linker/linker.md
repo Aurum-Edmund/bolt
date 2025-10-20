@@ -44,7 +44,7 @@ The Stage-0 wrapper now exposes a deterministic set of options that mirror the p
 | `--verbose` | Emits the constructed linker command line resolved by the wrapper before launching the platform linker. |
 | `--dry-run` | Resolves inputs without launching the platform linker. |
 
-Basic validation ensures required arguments are present, targets are recognised, and unsupported artifact kinds are rejected. The wrapper now materialises command plans for the Windows toolchain—`link.exe` for executables and `lib.exe` for static libraries (both optionally resolved from `${sysroot}/bin/`)—and the freestanding Air flow (`ld.lld`, optionally from `${sysroot}/bin/ld.lld`).
+Basic validation ensures required arguments are present, targets are recognised, and unsupported artifact kinds are rejected. When `--emit=air` or `--emit=zap` is selected without an explicit `--target`, the wrapper now defaults to the Air triple (`x86_64-air-bolt`) so freestanding builds stay ergonomic. Explicit but incompatible target/emit pairs (for example `--emit=air --target=x86_64-pc-windows-msvc` or `--target=x86_64-air-bolt --emit=exe`) produce immediate diagnostics. The wrapper now materialises command plans for the Windows toolchain—`link.exe` for executables and `lib.exe` for static libraries (both optionally resolved from `${sysroot}/bin/`)—and the freestanding Air flow (`ld.lld`, optionally from `${sysroot}/bin/ld.lld`).
 
 Before spawning the platform linker, the wrapper validates that every referenced file or directory exists (linker scripts, import bundles, runtime roots, library search directories, and—outside of `--dry-run` runs—each input object). Missing paths produce actionable diagnostics rather than letting the host linker fail later.
 

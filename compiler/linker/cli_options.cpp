@@ -1,6 +1,7 @@
 #include "cli_options.hpp"
 
 #include <optional>
+#include <string>
 #include <string_view>
 
 namespace bolt
@@ -120,6 +121,8 @@ namespace linker
             return result;
         }
 
+        bool targetExplicitlySet = false;
+
         for (int index = 1; index < argc; ++index)
         {
             std::string_view argument{argv[index]};
@@ -181,6 +184,7 @@ namespace linker
                 }
 
                 result.options.targetTriple = std::string{*targetValue};
+                targetExplicitlySet = true;
                 continue;
             }
 
@@ -278,6 +282,41 @@ namespace linker
                 result.hasError = true;
                 result.errorMessage = "at least one input object is required.";
                 return result;
+            }
+
+            const auto& target = result.options.targetTriple;
+            const bool targetsWindows = target == "x86_64-pc-windows-msvc";
+            const bool targetsAir = target == "x86_64-air-bolt";
+
+            switch (result.options.emitKind)
+            {
+            case EmitKind::Executable:
+            case EmitKind::StaticLibrary:
+                if (targetsAir)
+                {
+                    result.hasError = true;
+                    result.errorMessage = std::string{"emit kind '"} + toString(result.options.emitKind)
+                        + "' is not supported for target '" + target + "'.";
+                    return result;
+                }
+                break;
+
+            case EmitKind::AirImage:
+            case EmitKind::BoltArchive:
+                if (!targetsAir)
+                {
+                    if (!targetExplicitlySet && targetsWindows)
+                    {
+                        result.options.targetTriple = "x86_64-air-bolt";
+                        break;
+                    }
+
+                    result.hasError = true;
+                    result.errorMessage = std::string{"emit kind '"} + toString(result.options.emitKind)
+                        + "' requires target 'x86_64-air-bolt'.";
+                    return result;
+                }
+                break;
             }
         }
 
