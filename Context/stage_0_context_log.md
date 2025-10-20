@@ -41,6 +41,5 @@
 - All identifiers must follow Bolt naming rules (full words, lowerCamelCase attributes). Tests should run via `cmake --preset build-windows-release` and `ctest -C Debug`.
 - Milestone M1 is **not yet complete**; dependencies for module discovery/resolution remain outstanding.
 - Suggestion tracked: add compiler fix-it hints for missing semicolons to ease developer workflow.
-- Repository housekeeping: consolidated local branches so `master` remains the primary tracked branch.
 
 Refer to the [Bolt Compiler Task Board (Stage-0)](../Taskboard/bolt_compiler_task_board_stub_pack_v_0_kickstart.md) for detailed Kanban status, milestones, and supporting notes.
