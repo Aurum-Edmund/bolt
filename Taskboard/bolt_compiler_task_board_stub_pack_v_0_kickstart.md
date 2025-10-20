@@ -64,6 +64,7 @@
 - Linker CLI and planner now honor `--map`, validating destination directories and forwarding map generation to Windows (`/MAP`) and Air (`--Map=`) toolchains with fresh documentation and unit coverage.
 - Import resolver now threads canonical module paths through MIR resolved-import metadata, driver notices, and JSON import bundles with dedicated regression coverage guarding the canonical flow.
 - MIR pass library exposes a control-flow graph builder that records block predecessors and successors from terminator metadata, with linear and branching unit tests priming SSA construction.
+- MIR pass library now ships a dominator tree builder with immediate-dominator edges, dominance queries, and regression tests to unblock the SSA conversion pass stack.
 
 ---
 

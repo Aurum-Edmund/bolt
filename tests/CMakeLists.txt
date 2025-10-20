@@ -10,6 +10,7 @@ set(BOLT_UNIT_TEST_SOURCES
     unit/middle_ir/MirCanonicalTest.cpp
     unit/middle_ir/LiveEnforcementTest.cpp
     unit/middle_ir/ControlFlowGraphTest.cpp
+    unit/middle_ir/DominatorTreeTest.cpp
     unit/runtime/RuntimeHelpersTest.cpp
     unit/linker/LinkerCommandLineTest.cpp
     unit/linker/LinkerInvocationTest.cpp

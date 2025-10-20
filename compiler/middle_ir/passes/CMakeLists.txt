@@ -1,6 +1,7 @@
 set(BOLT_MIR_PASSES_SOURCES
     live_enforcement.cpp
     control_flow_graph.cpp
+    dominator_tree.cpp
 )
 
 add_library(bolt_mir_passes STATIC ${BOLT_MIR_PASSES_SOURCES})
