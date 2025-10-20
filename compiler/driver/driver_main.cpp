@@ -67,11 +67,17 @@ namespace bolt
 
     bool runMirPipeline(const hir::Module& module, const hir::ImportResolutionResult& resolvedImports, const CommandLineOptions& options)
     {
-                mir::Module mirModule = mir::lowerFromHir(module);
+        mir::Module mirModule = mir::lowerFromHir(module);
 
-        if (!mir::enforceLive(mirModule))
+        std::vector<mir::LiveDiagnostic> liveDiagnostics;
+        if (!mir::enforceLive(mirModule, liveDiagnostics))
         {
             std::cerr << "BOLT-E4100 MirLiveEnforcementFailed: module '" << module.moduleName << "'.\n";
+            for (const auto& diagnostic : liveDiagnostics)
+            {
+                std::cerr << diagnostic.code << " LiveInvariantViolation in function '" << diagnostic.functionName
+                          << "': " << diagnostic.detail << "\n";
+            }
             return false;
         }
         mirModule.resolvedImports.clear();
