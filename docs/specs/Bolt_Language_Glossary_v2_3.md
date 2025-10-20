@@ -76,9 +76,10 @@ blueprint UartControl {
 ## Numeric Type Aliases
 - integer is the default signed thirty-two bit scalar (alias for integer32).
 - loat aliases loat32; double aliases loat64.
-- Use explicit width forms (for example, integer16, integer64, loat32) when exact sizing or interop requirements demand it.
-- Compiler diagnostics and canonical MIR output prefer the alias form unless a width-specific type is declared.
-- Documentation snippets may present the shorthand public integer function sample(integer value) { ... } to illustrate the alias while the Stage-0 parser continues to accept unction sample(...) -> integer.
+- Use explicit width forms (for example, integer16, integer64, ## Memory Model and live value
+**live value (volatile):**
+- Front-end analysis records live qualifiers alongside type metadata so MIR/LIR passes can honour ordering and visibility guarantees.
+unction sample(...) -> integer.
 
 ---
 
@@ -162,7 +163,7 @@ profile kernelFreestanding {
 ### Declarations and Namespaces
 | Legacy Term | Modern Term | Definition |
 |---|---|---|
-| `module` | — | Declares a package or namespace boundary. |
+| `volatile` | **live value** | Side-effecting read or write; not optimized away. |
 | `include` | **import** | Brings external symbols into scope. |
 | `namespace` | **Code Namespace (Domain)** | Groups related symbols and prevents collisions. |
 | `typedef` | **alias** | Alternate name for an existing type. |
@@ -250,7 +251,7 @@ function earlyEntry() { /* ... */ }
 
 [systemRequest(identifier=1)]
 integer function systemWrite(integer fileDescriptor, &byte buffer, unsignedInteger length)
-```
+- **live value** — A qualifier that forces loads and stores to be side-effecting and visible to hardware or other agents.
 
 **Reserved words (additions):** `interruptHandler`, `bareFunction`, `inSection`, `aligned`, `pageAligned`, `packed`, `bits`, `systemRequest`, `intrinsic`, `profile`.
 
