@@ -7,5 +7,5 @@ out/
 *.pdb
 *.log
 site/
-Context/
-Taskboard/
+# Allow tracked task board metadata.
+# Taskboard/
