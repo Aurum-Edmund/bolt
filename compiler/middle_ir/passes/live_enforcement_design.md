@@ -7,12 +7,14 @@ Goal: ensure that MIR respects the Live qualifier semantics before SSA and backe
 2. For each function:
    - Validate that any instruction that consumes a Live parameter/return is preserved.
    - Insert fence markers around memory fences to prevent reordering.
-   - Emit diagnostics (BOLT-E4101) when a Live value is stored in a non-Live field or dropped.
+   - Emit diagnostics (BOLT-E4101) when a Live value is stored in a non-Live field, dropped, or when Live-qualified blocks are missing terminators.
 3. Produce a report summarising Live usage for downstream passes.
 
 ## Data Requirements
-- HIR metadata (isLive, eturnIsLive).
-- MIR instruction metadata (to be extended) indicating Live usage and fence points.
+- HIR metadata describing which parameters, return values, and fields carry the `Live` qualifier. Lowering should surface the flag in MIR metadata until dedicated slots exist.
+- Basic block predecessor and successor relationships so the pass can walk control-flow when validating Live usage.
+- MIR instruction annotations indicating Live operands and fence points to drive ordering decisions without relying on string parsing.
+- Integrate with backend scheduling to preserve Live ordering.
 
 ## Future Work
 - Track Live values through SSA renaming.
