@@ -4,6 +4,7 @@
 
 #include <sstream>
 #include <string>
+#include <utility>
 
 namespace bolt::mir
 {
@@ -105,23 +106,31 @@ namespace bolt::mir
 
             if (hirFunction.hasReturnType)
             {
+                mirFunction.hasReturnType = true;
+                mirFunction.returnType = hirFunction.returnType.text;
+                mirFunction.returnIsLive = hirFunction.returnIsLive;
                 std::string detail = "return " + hirFunction.returnType.text;
                 if (hirFunction.returnIsLive)
                 {
-                    detail += " [Live]";
+                    detail += " [live]";
                 }
                 appendDetail(builder, entryBlock, std::move(detail));
             }
 
             for (const auto& parameter : hirFunction.parameters)
             {
+                Function::Parameter mirParameter{};
+                mirParameter.typeName = parameter.type.text;
+                mirParameter.name = parameter.name;
+                mirParameter.isLive = parameter.isLive;
+                mirFunction.parameters.emplace_back(std::move(mirParameter));
                 std::string detail = "param ";
                 detail += parameter.type.text;
                 detail += ' ';
                 detail += parameter.name;
                 if (parameter.isLive)
                 {
-                    detail += " [Live]";
+                    detail += " [live]";
                 }
                 appendDetail(builder, entryBlock, std::move(detail));
             }
@@ -153,7 +162,7 @@ namespace bolt::mir
                 stream << "field " << field.type.text << ' ' << field.name;
                 if (field.isLive)
                 {
-                    stream << " [Live]";
+                    stream << " [live]";
                 }
                 if (field.bitWidth.has_value())
                 {
