@@ -1,11 +1,12 @@
 package examples;
 module add;
 
-public function add(first: integer32, second: integer32) -> integer32 {
+public integer function add(integer first, integer second) {
     return first + second;
 }
 
-public function start() -> integer32 {
+public integer function start() {
     return add(2, 3);
 }
+
 

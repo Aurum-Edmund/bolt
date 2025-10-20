@@ -115,7 +115,10 @@ namespace bolt::mir
 
             for (const auto& parameter : hirFunction.parameters)
             {
-                std::string detail = "param " + parameter.name + ": " + parameter.type.text;
+                std::string detail = "param ";
+                detail += parameter.type.text;
+                detail += ' ';
+                detail += parameter.name;
                 if (parameter.isLive)
                 {
                     detail += " [Live]";
@@ -147,7 +150,7 @@ namespace bolt::mir
             for (const auto& field : blueprint.fields)
             {
                 std::ostringstream stream;
-                stream << "field " << field.name << ": " << field.type.text;
+                stream << "field " << field.type.text << ' ' << field.name;
                 if (field.isLive)
                 {
                     stream << " [Live]";

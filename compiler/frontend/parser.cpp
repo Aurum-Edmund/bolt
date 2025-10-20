@@ -1,6 +1,5 @@
-#include "parser.hpp"
-
-#include <sstream>
+#include "parser.hpp"`r`n`r`n#include <sstream>`r`n#include <cctype>
+#include <cctype>
 
 namespace bolt::frontend
 {
@@ -58,14 +57,6 @@ namespace bolt::frontend
                 continue;
             }
 
-            if (match(TokenKind::KeywordFunction))
-            {
-                FunctionDeclaration fn = parseFunction(std::move(modifiers));
-                fn.attributes = std::move(attributes);
-                unit.functions.emplace_back(std::move(fn));
-                continue;
-            }
-
             if (match(TokenKind::KeywordBlueprint))
             {
                 BlueprintDeclaration bp = parseBlueprint(std::move(modifiers));
@@ -74,27 +65,28 @@ namespace bolt::frontend
                 continue;
             }
 
-            if (!attributes.empty() || !modifiers.empty())
+            TypeCapture returnTypeCapture = parseTypeUntil({TokenKind::KeywordFunction});
+            if (!check(TokenKind::KeywordFunction))
             {
                 Diagnostic diag;
-                diag.code = "BOLT-E2101";
-                diag.message = "Expected function or blueprint after modifiers or attributes.";
-                diag.span = !attributes.empty() ? attributes.front().span : peek().span;
-                m_diagnostics.emplace_back(std::move(diag));
-            }
-            else
-            {
-                Diagnostic diag;
-                diag.code = "BOLT-E2101";
-                diag.message = "Unexpected token at top level.";
+                diag.code = "BOLT-E2115";
+                diag.message = "Expected return type followed by 'function' declaration.";
                 diag.span = peek().span;
                 m_diagnostics.emplace_back(std::move(diag));
+
+                if (!isAtEnd())
+                {
+                    advance();
+                }
+                continue;
             }
 
-            if (!isAtEnd())
-            {
-                advance();
-            }
+            consume(TokenKind::KeywordFunction, "BOLT-E2116", "Expected 'function' keyword after return type.");
+
+            FunctionDeclaration fn = parseFunction(std::move(modifiers), returnTypeCapture);
+            fn.attributes = std::move(attributes);
+            unit.functions.emplace_back(std::move(fn));
+            continue;
         }
 
         return unit;
@@ -123,6 +115,16 @@ namespace bolt::frontend
         }
 
         const std::size_t index = (m_current == 0) ? 0 : (m_current - 1);
+        return m_tokens[index];
+    }
+
+    const Token& Parser::lookAhead(std::size_t offset) const
+    {
+        const std::size_t index = m_current + offset;
+        if (index >= m_tokens.size())
+        {
+            return m_tokens.back();
+        }
         return m_tokens[index];
     }
 
@@ -289,10 +291,24 @@ namespace bolt::frontend
         return modifiers;
     }
 
-    FunctionDeclaration Parser::parseFunction(std::vector<std::string> modifiers)
+    FunctionDeclaration Parser::parseFunction(std::vector<std::string> modifiers, TypeCapture returnTypeCapture)
     {
         FunctionDeclaration fn{};
         fn.modifiers = std::move(modifiers);
+
+        if (returnTypeCapture.valid)
+        {
+            fn.returnType = returnTypeCapture.text;
+            fn.returnTypeSpan = returnTypeCapture.span;
+        }
+        else
+        {
+            Diagnostic diag;
+            diag.code = "BOLT-E2117";
+            diag.message = "Expected return type before 'function'.";
+            diag.span = previous().span;
+            m_diagnostics.emplace_back(std::move(diag));
+        }
 
         const Token& nameToken = consume(TokenKind::Identifier, "BOLT-E2110", "Expected function name.");
         fn.name = nameToken.text;
@@ -314,20 +330,12 @@ namespace bolt::frontend
 
         if (match(TokenKind::Arrow))
         {
-            TypeCapture typeCapture = parseTypeUntil({TokenKind::LeftBrace});
-            if (!typeCapture.valid)
-            {
-                Diagnostic diag;
-                diag.code = "BOLT-E2113";
-                diag.message = "Expected return type after '->'.";
-                diag.span = peek().span;
-                m_diagnostics.emplace_back(std::move(diag));
-            }
-            else
-            {
-                fn.returnType = typeCapture.text;
-                fn.returnTypeSpan = typeCapture.span;
-            }
+            Diagnostic diag;
+            diag.code = "BOLT-E2118";
+            diag.message = "Return types must appear before 'function'.";
+            diag.span = previous().span;
+            m_diagnostics.emplace_back(std::move(diag));
+            (void)parseTypeUntil({TokenKind::LeftBrace});
         }
 
         const Token& bodyStart = consume(TokenKind::LeftBrace, "BOLT-E2114", "Expected '{' to begin function body.");
@@ -481,27 +489,48 @@ namespace bolt::frontend
     Parameter Parser::parseParameter()
     {
         Parameter parameter{};
-        const Token& nameToken = consume(TokenKind::Identifier, "BOLT-E2140", "Expected parameter name.");
-        parameter.name = nameToken.text;
 
-        consume(TokenKind::Colon, "BOLT-E2141", "Expected ':' after parameter name.");
-
-        TypeCapture typeCapture = parseTypeUntil({TokenKind::Comma, TokenKind::RightParen});
+        TypeCapture typeCapture = parseTypeBeforeName({TokenKind::Comma, TokenKind::RightParen});
         if (!typeCapture.valid)
         {
             Diagnostic diag;
             diag.code = "BOLT-E2142";
-            diag.message = "Expected parameter type.";
+            diag.message = "Expected parameter type before name.";
             diag.span = peek().span;
             m_diagnostics.emplace_back(std::move(diag));
-            parameter.span = nameToken.span;
-            parameter.typeSpan = nameToken.span;
         }
         else
         {
             parameter.typeName = typeCapture.text;
-            parameter.span = mergeSpans(nameToken.span, typeCapture.span);
             parameter.typeSpan = typeCapture.span;
+        }
+
+        const Token* nameToken = nullptr;
+        if (check(TokenKind::Identifier))
+        {
+            nameToken = &advance();
+            parameter.name = nameToken->text;
+        }
+        else
+        {
+            Diagnostic diag;
+            diag.code = "BOLT-E2143";
+            diag.message = "Expected parameter name after type.";
+            diag.span = peek().span;
+            m_diagnostics.emplace_back(std::move(diag));
+        }
+
+        if (typeCapture.valid && nameToken != nullptr)
+        {
+            parameter.span = mergeSpans(typeCapture.span, nameToken->span);
+        }
+        else if (nameToken != nullptr)
+        {
+            parameter.span = nameToken->span;
+        }
+        else if (typeCapture.valid)
+        {
+            parameter.span = typeCapture.span;
         }
 
         return parameter;
@@ -510,27 +539,48 @@ namespace bolt::frontend
     BlueprintField Parser::parseField()
     {
         BlueprintField field{};
-        const Token& nameToken = consume(TokenKind::Identifier, "BOLT-E2150", "Expected field name.");
-        field.name = nameToken.text;
 
-        consume(TokenKind::Colon, "BOLT-E2151", "Expected ':' after field name.");
-
-        TypeCapture typeCapture = parseTypeUntil({TokenKind::Semicolon, TokenKind::RightBrace, TokenKind::LeftBracket});
+        TypeCapture typeCapture = parseTypeBeforeName({TokenKind::Semicolon, TokenKind::RightBrace, TokenKind::LeftBracket});
         if (!typeCapture.valid)
         {
             Diagnostic diag;
             diag.code = "BOLT-E2152";
-            diag.message = "Expected field type.";
+            diag.message = "Expected field type before name.";
             diag.span = peek().span;
             m_diagnostics.emplace_back(std::move(diag));
-            field.span = nameToken.span;
-            field.typeSpan = nameToken.span;
         }
         else
         {
             field.typeName = typeCapture.text;
-            field.span = mergeSpans(nameToken.span, typeCapture.span);
             field.typeSpan = typeCapture.span;
+        }
+
+        const Token* nameToken = nullptr;
+        if (check(TokenKind::Identifier))
+        {
+            nameToken = &advance();
+            field.name = nameToken->text;
+        }
+        else
+        {
+            Diagnostic diag;
+            diag.code = "BOLT-E2153";
+            diag.message = "Expected field name after type.";
+            diag.span = peek().span;
+            m_diagnostics.emplace_back(std::move(diag));
+        }
+
+        if (typeCapture.valid && nameToken != nullptr)
+        {
+            field.span = mergeSpans(typeCapture.span, nameToken->span);
+        }
+        else if (nameToken != nullptr)
+        {
+            field.span = nameToken->span;
+        }
+        else if (typeCapture.valid)
+        {
+            field.span = typeCapture.span;
         }
 
         return field;
@@ -594,6 +644,81 @@ namespace bolt::frontend
             span.end = b.end;
         }
         return span;
+    }
+
+    Parser::TypeCapture Parser::parseTypeBeforeName(std::initializer_list<TokenKind> terminators)
+    {
+        TypeCapture capture{};
+        bool lastWasPunctuation = true;
+        int angleDepth = 0;
+
+        while (!isAtEnd())
+        {
+            const Token& token = peek();
+
+            if (token.kind == TokenKind::Identifier)
+            {
+                const Token& next = lookAhead(1);
+                if (next.kind == TokenKind::Comma
+                    || next.kind == TokenKind::RightParen
+                    || next.kind == TokenKind::Semicolon
+                    || next.kind == TokenKind::RightBrace
+                    || next.kind == TokenKind::Equals
+                    || next.kind == TokenKind::LeftBracket
+                    || next.kind == TokenKind::EndOfFile)
+                {
+                    break;
+                }
+            }
+
+            if (isTerminator(token.kind, terminators, angleDepth))
+            {
+                break;
+            }
+
+            const Token& consumed = advance();
+
+            if (consumed.kind == TokenKind::LessThan)
+            {
+                ++angleDepth;
+            }
+            else if (consumed.kind == TokenKind::GreaterThan && angleDepth > 0)
+            {
+                --angleDepth;
+            }
+
+            if (consumed.text.empty())
+            {
+                continue;
+            }
+
+            const bool punctuation = consumed.kind == TokenKind::LessThan
+                                     || consumed.kind == TokenKind::GreaterThan
+                                     || consumed.kind == TokenKind::Dot
+                                     || consumed.kind == TokenKind::Ampersand
+                                     || consumed.kind == TokenKind::Asterisk
+                                     || consumed.kind == TokenKind::LeftBracket
+                                     || consumed.kind == TokenKind::RightBracket
+                                     || consumed.kind == TokenKind::Comma
+                                     || consumed.kind == TokenKind::Colon;
+
+            if (!capture.valid)
+            {
+                capture.span.begin = consumed.span.begin;
+            }
+
+            if (!capture.text.empty() && !punctuation && !lastWasPunctuation)
+            {
+                capture.text.push_back(' ');
+            }
+
+            capture.text.append(consumed.text);
+            capture.span.end = consumed.span.end;
+            capture.valid = true;
+            lastWasPunctuation = punctuation;
+        }
+
+        return capture;
     }
 
     Parser::TypeCapture Parser::parseTypeUntil(std::initializer_list<TokenKind> terminators)
@@ -660,4 +785,5 @@ namespace bolt::frontend
         return capture;
     }
 } // namespace bolt::frontend
+
 

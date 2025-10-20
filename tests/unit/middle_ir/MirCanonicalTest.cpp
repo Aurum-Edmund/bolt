@@ -34,11 +34,12 @@ namespace
     {
         const std::string source = R"(package demo.tests; module demo.tests;
 
-public function alpha() {
+public integer function alpha() {
+    return 0;
 }
 
-public function beta(integer32 value) {
-    return;
+public integer function beta(integer value) {
+    return value;
 }
 )";
 
@@ -55,16 +56,21 @@ public function beta(integer32 value) {
             "function alpha\n"
             "  block 0 entry\n"
             "    inst 0 7 modifiers: public\n"
-            "    inst 1 1 function\n"
+            "    inst 1 7 return integer\n"
+            "    inst 2 1 function\n"
             "function beta\n"
             "  block 0 entry\n"
             "    inst 0 7 modifiers: public\n"
-            "    inst 1 7 param value: integer32\n"
-            "    inst 2 1 function\n";
+            "    inst 1 7 return integer\n"
+            "    inst 2 7 param integer value\n"
+            "    inst 3 1 function\n";
 
         EXPECT_EQ(canonical, expected);
         EXPECT_EQ(hash, canonicalHash(mirModule)); // stability check
     }
 }
 } // namespace bolt::mir
+
+
+
 

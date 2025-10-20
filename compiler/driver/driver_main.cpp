@@ -8,7 +8,8 @@
 #include "../middle_ir/printer.hpp"
 #include "../middle_ir/lowering.hpp"
 #include "../middle_ir/verifier.hpp"
-#include "../middle_ir/canonical.hpp"\n#include "../middle_ir/passes/live_enforcement.hpp"
+#include "../middle_ir/canonical.hpp"
+#include "../middle_ir/passes/live_enforcement.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -474,6 +475,7 @@ int main(int argc, char** argv)
 
     return bolt::runCompiler(options.value());
 }
+
 
 
 

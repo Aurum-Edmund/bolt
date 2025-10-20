@@ -5,12 +5,13 @@ function blueprint.UartControl
   block 0 entry
     inst 0 7 modifiers: public
     inst 1 7 attr packed
-    inst 2 7 field enable: unsignedInteger bits=1
-    inst 3 7 field parity: unsignedInteger bits=2
-    inst 4 7 field stopBits: unsignedInteger bits=2
-    inst 5 7 field reserved: unsignedInteger bits=27
+    inst 2 7 field unsignedInteger enable bits=1
+    inst 3 7 field unsignedInteger parity bits=2
+    inst 4 7 field unsignedInteger stopBits bits=2
+    inst 5 7 field unsignedInteger reserved bits=27
     inst 6 1 blueprint
 function blueprintDemo
   block 0 entry
     inst 0 7 modifiers: public
-    inst 1 1 function
+    inst 1 7 return integer
+    inst 2 1 function

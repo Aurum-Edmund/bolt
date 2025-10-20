@@ -22,6 +22,7 @@ namespace bolt::frontend
         const Token& peek() const;
         const Token& previous() const;
         const Token& advance();
+        const Token& lookAhead(std::size_t offset) const;
         bool isAtEnd() const;
         bool check(TokenKind kind) const;
         bool match(TokenKind kind);
@@ -29,10 +30,17 @@ namespace bolt::frontend
         [[nodiscard]] SourceSpan spanFrom(const Token& begin, const Token& end) const;
         bool isTerminator(TokenKind kind, std::initializer_list<TokenKind> terminators, int angleDepth) const;
 
+        struct TypeCapture
+        {
+            std::string text;
+            SourceSpan span{};
+            bool valid{false};
+        };
+
         ModuleDeclaration parseModule();
         ImportDeclaration parseImport();
         std::vector<std::string> parseModifiers();
-        FunctionDeclaration parseFunction(std::vector<std::string> modifiers);
+        FunctionDeclaration parseFunction(std::vector<std::string> modifiers, TypeCapture returnTypeCapture);
         BlueprintDeclaration parseBlueprint(std::vector<std::string> modifiers);
         std::vector<Attribute> parseAttributes();
         Attribute parseAttribute();
@@ -42,14 +50,8 @@ namespace bolt::frontend
         std::pair<std::string, SourceSpan> parseQualifiedName(std::string_view code, std::string_view message);
         SourceSpan mergeSpans(const SourceSpan& a, const SourceSpan& b) const;
 
-        struct TypeCapture
-        {
-            std::string text;
-            SourceSpan span{};
-            bool valid{false};
-        };
-
         TypeCapture parseTypeUntil(std::initializer_list<TokenKind> terminators);
+        TypeCapture parseTypeBeforeName(std::initializer_list<TokenKind> terminators);
 
     private:
         const std::vector<Token>& m_tokens;

@@ -19,7 +19,6 @@ target_link_libraries(boltcc
         bolt_front_end
         bolt_hir
         bolt_mir
-        bolt_runtime
 )
 
 if (MSVC)
@@ -30,6 +29,11 @@ if (MSVC)
             /EHsc-
             /GR-
     )
+    target_link_libraries(boltcc
+        PRIVATE
+            ucrtd
+            vcruntimed
+    )
 else ()
     target_compile_options(boltcc
         PRIVATE
@@ -38,4 +42,6 @@ else ()
             -Wpedantic
     )
 endif ()
+
+
 

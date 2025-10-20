@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <unordered_set>
 
 namespace bolt::hir
@@ -20,6 +21,51 @@ namespace bolt::hir
         bool containsAttribute(const std::array<std::string_view, N>& allowed, std::string_view name)
         {
             return std::find(allowed.begin(), allowed.end(), name) != allowed.end();
+        }
+
+        std::string normalizeTypeToken(std::string_view token)
+        {
+            if (token == "integer32")
+            {
+                return "integer";
+            }
+            if (token == "float32")
+            {
+                return "float";
+            }
+            if (token == "float64")
+            {
+                return "double";
+            }
+            return std::string{token};
+        }
+
+        std::string normalizeTypeText(std::string_view text)
+        {
+            std::string result;
+            result.reserve(text.size());
+
+            std::size_t index = 0;
+            while (index < text.size())
+            {
+                const unsigned char ch = static_cast<unsigned char>(text[index]);
+                if (std::isalnum(ch))
+                {
+                    const std::size_t start = index;
+                    while (index < text.size() && std::isalnum(static_cast<unsigned char>(text[index])))
+                    {
+                        ++index;
+                    }
+                    result += normalizeTypeToken(text.substr(start, index - start));
+                }
+                else
+                {
+                    result.push_back(static_cast<char>(ch));
+                    ++index;
+                }
+            }
+
+            return result;
         }
     } // namespace
 
@@ -391,6 +437,7 @@ void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std:
             param.type.span = parameter.typeSpan;
             param.span = parameter.span;
             applyLiveQualifier(param.type, param.isLive, "parameter '" + param.name + "' in function '" + converted.name + "'", param.type.span);
+            param.type.text = normalizeTypeText(param.type.text);
             converted.parameters.emplace_back(std::move(param));
         }
 
@@ -417,6 +464,7 @@ void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std:
             }
             converted.hasReturnType = true;
             applyLiveQualifier(converted.returnType, converted.returnIsLive, "return type of function '" + converted.name + "'", converted.returnType.span);
+            converted.returnType.text = normalizeTypeText(converted.returnType.text);
         }
 
         return converted;
@@ -486,6 +534,7 @@ void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std:
         }
 
         applyLiveQualifier(converted.type, converted.isLive, "field '" + converted.name + "' in blueprint '" + blueprintName + "'", converted.type.span);
+        converted.type.text = normalizeTypeText(converted.type.text);
         return converted;
     }
 

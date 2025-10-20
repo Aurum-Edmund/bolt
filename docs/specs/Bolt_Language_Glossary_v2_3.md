@@ -55,23 +55,30 @@ Identifier      := letter { letter | digit }
 **Examples**
 ```bolt
 [interruptHandler]
-function timerInterrupt() { /* ... */ }
+integer function timerInterrupt() { /* ... */ }
 
 [bareFunction]
 [inSection(".text.boot"), aligned(4096)]
-function earlyEntry() { assembly { "cli"; "hlt" } }
+integer function earlyEntry() { assembly { "cli"; "hlt" } }
 
 [systemRequest(identifier=1)]
-function systemWrite(fileDescriptor: integer32, buffer: &byte, length: unsignedInteger) -> integer32
+integer function systemWrite(integer fileDescriptor, &byte buffer, unsignedInteger length)
 
 [packed]
 blueprint UartControl {
-    [bits(1)]  enable:    unsignedInteger
-    [bits(2)]  parity:    unsignedInteger
-    [bits(2)]  stopBits:  unsignedInteger
-    [bits(27)] reserved:  unsignedInteger
+    [bits(1)]  unsignedInteger enable
+    [bits(2)]  unsignedInteger parity
+    [bits(2)]  unsignedInteger stopBits
+    [bits(27)] unsignedInteger reserved
 }
 ```
+
+## Numeric Type Aliases
+- integer is the default signed thirty-two bit scalar (alias for integer32).
+- loat aliases loat32; double aliases loat64.
+- Use explicit width forms (for example, integer16, integer64, loat32) when exact sizing or interop requirements demand it.
+- Compiler diagnostics and canonical MIR output prefer the alias form unless a width-specific type is declared.
+- Documentation snippets may present the shorthand public integer function sample(integer value) { ... } to illustrate the alias while the Stage-0 parser continues to accept unction sample(...) -> integer.
 
 ---
 
@@ -234,7 +241,7 @@ import system.io
 blueprint Page { data: [byte; 4096] }
 
 [interruptHandler]
-function timerInterrupt() { /* ... */ }
+integer function timerInterrupt() { /* ... */ }
 
 [bareFunction]
 [inSection(".text.boot")]
@@ -242,7 +249,7 @@ function timerInterrupt() { /* ... */ }
 function earlyEntry() { /* ... */ }
 
 [systemRequest(identifier=1)]
-function systemWrite(fileDescriptor: integer32, buffer: &byte, length: unsignedInteger) -> integer32
+integer function systemWrite(integer fileDescriptor, &byte buffer, unsignedInteger length)
 ```
 
 **Reserved words (additions):** `interruptHandler`, `bareFunction`, `inSection`, `aligned`, `pageAligned`, `packed`, `bits`, `systemRequest`, `intrinsic`, `profile`.
@@ -309,4 +316,5 @@ function systemWrite(fileDescriptor: integer32, buffer: &byte, length: unsignedI
 - **bounds checks** — Optional runtime checks for memory accesses that can be enabled in debug builds and disabled in release builds.
 
 End of v2.3 — Kernel-Ready (no underscores, full words, with complete definitions).
+
 

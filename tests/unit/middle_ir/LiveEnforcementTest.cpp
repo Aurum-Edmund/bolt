@@ -34,8 +34,8 @@ namespace
     {
         const std::string source = R"(package demo.tests; module demo.tests;
 
-public function demo() {
-    return;
+public integer function demo() {
+    return 0;
 }
 )";
 
@@ -45,3 +45,4 @@ public function demo() {
     }
 }
 } // namespace bolt::mir
+

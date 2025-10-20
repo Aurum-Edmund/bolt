@@ -3,6 +3,8 @@
 #include "lexer.hpp"
 #include "parser.hpp"
 
+#include <algorithm>
+
 namespace bolt::frontend
 {
 namespace
@@ -22,8 +24,8 @@ namespace
     {
         const std::string source = R"(package demo.tests; module demo.tests;
 
-public function sample(integer32 value) -> integer32 {
-    return;
+public integer function sample(integer value) {
+    return 0;
 }
 )";
 
@@ -37,7 +39,7 @@ public function sample(integer32 value) -> integer32 {
         ASSERT_EQ(fn.parameters.size(), 1u);
         EXPECT_EQ(fn.parameters.front().name, "value");
         EXPECT_TRUE(fn.returnType.has_value());
-        EXPECT_EQ(*fn.returnType, "integer32");
+        EXPECT_EQ(*fn.returnType, "integer");
     }
 
     TEST(ParserTest, ParsesImportStatement)
@@ -46,8 +48,8 @@ public function sample(integer32 value) -> integer32 {
 
 import demo.utils.core;
 
-public function dummy() {
-    return;
+integer function dummy() {
+    return 0;
 }
 )";
 
@@ -73,8 +75,47 @@ import demo.alpha;
         EXPECT_FALSE(diagnostics.empty());
         EXPECT_EQ(diagnostics.front().code, "BOLT-E2108");
         ASSERT_EQ(unit.imports.size(), 1u);
-        EXPECT_EQ(unit.imports.front().modulePath, "demo.alpha");
+       EXPECT_EQ(unit.imports.front().modulePath, "demo.alpha");
+    }
+
+    TEST(ParserTest, RejectsLegacyParameterSyntax)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public function legacy(value: integer) -> integer {
+    return 0;
+}
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        (void)parseSource(source, diagnostics);
+
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2115");
+    }
+
+    TEST(ParserTest, RejectsLegacyFieldSyntax)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint Timer {
+    start: integer32;
+}
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        (void)parseSource(source, diagnostics);
+
+        ASSERT_FALSE(diagnostics.empty());
+        const bool containsFieldError = std::any_of(
+            diagnostics.begin(),
+            diagnostics.end(),
+            [](const Diagnostic& diag) { return diag.code == "BOLT-E2153"; });
+        EXPECT_TRUE(containsFieldError);
     }
 }
 } // namespace bolt::frontend
+
+
+
 

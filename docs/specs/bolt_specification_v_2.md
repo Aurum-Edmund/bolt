@@ -23,6 +23,12 @@
 | Enumeration | **enumeration** | Finite set of variants. |
 | Alias | **alias** | Alternate name for an existing type. |
 
+### Numeric Type Aliases
+- `integer` is the default signed thirty-two bit scalar (alias for `integer32`).
+- `float` maps to `float32` and `double` maps to `float64`.
+- Explicit width forms (`integer16`, `integer64`, `float32`, `float64`, and so on) remain available when precise sizing matters.
+- Tooling canonicalizes parameters and fields using the alias form and prints them as `<type> <name>` unless an explicit width is requested, matching the source declaration order (`integer value`).
+
 ### 3. Attributes
 Attributes precede declarations using bracketed syntax. Multiple lines allowed.
 ```bolt
@@ -35,8 +41,8 @@ function earlyEntry() { /* startup */ }
 
 [packed]
 blueprint RegisterBlock {
-    [bits(1)] enable: unsignedInteger
-    [bits(31)] reserved: unsignedInteger
+    [bits(1)] unsignedInteger enable
+    [bits(31)] unsignedInteger reserved
 }
 ```
 **Supported attributes:** interruptHandler, bareFunction, inSection(name), aligned(bytes), pageAligned, packed, bits(width), systemRequest(identifier), intrinsic(name)
@@ -144,7 +150,7 @@ Blueprint Engine {
         rpm = 800
     }
 
-    function rev(increase: Integer) {
+    function rev(Integer increase) {
         rpm = Math.clamp(rpm + increase, 0, maxRpm)
     }
 }
@@ -153,7 +159,7 @@ Blueprint Engine {
 ### Example System Request
 ```bolt
 [systemRequest(identifier=1)]
-function systemWrite(fd: integer32, buffer: &byte, length: unsignedInteger) -> integer32
+integer function systemWrite(integer fd, &byte buffer, unsignedInteger length)
 ```
 
 ───────────────────────────────
@@ -172,4 +178,7 @@ function systemWrite(fd: integer32, buffer: &byte, length: unsignedInteger) -> i
 
 ───────────────────────────────
 **Status:** Canonical, kernel-ready specification. All terms, syntax, and compiler semantics align with Bolt Language v2.3 and Compiler Glossary v1.3.
+
+
+
 

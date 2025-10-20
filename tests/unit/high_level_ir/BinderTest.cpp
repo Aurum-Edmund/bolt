@@ -31,8 +31,8 @@ namespace
 
 [aligned(16)]
 [systemRequest(identifier=2)]
-public function request(param: Live integer32) -> Live integer32 {
-    return;
+public Live integer32 function request(Live integer32 param) {
+    return param;
 }
 )";
 
@@ -55,10 +55,10 @@ public function request(param: Live integer32) -> Live integer32 {
         EXPECT_EQ(*fn.systemRequestId, 2u);
         EXPECT_TRUE(fn.kernelMarkers.empty());
         EXPECT_TRUE(fn.returnIsLive);
-        EXPECT_EQ(fn.returnType.text, "integer32");
+        EXPECT_EQ(fn.returnType.text, "integer");
         ASSERT_EQ(fn.parameters.size(), 1u);
         EXPECT_EQ(fn.parameters.front().name, "param");
-        EXPECT_EQ(fn.parameters.front().type.text, "integer32");
+        EXPECT_EQ(fn.parameters.front().type.text, "integer");
         EXPECT_TRUE(fn.parameters.front().isLive);
     }
 
@@ -68,7 +68,7 @@ public function request(param: Live integer32) -> Live integer32 {
 
 [aligned(16)]
 [aligned(8)]
-function badAlign() {
+integer function badAlign() {
 }
 )";
 
@@ -90,9 +90,9 @@ function badAlign() {
 [packed]
 [aligned(64)]
 public blueprint Timer {
-    start: Live integer32;
-    [bits(8)] mode: integer32;
-    [aligned(16)] [bits(4)] priority: integer32;
+    Live integer32 start;
+    [bits(8)] integer32 mode;
+    [aligned(16)] [bits(4)] integer32 priority;
 }
 )";
 
@@ -116,7 +116,7 @@ public blueprint Timer {
 
         const auto& startField = bp.fields[0];
         EXPECT_EQ(startField.name, "start");
-        EXPECT_EQ(startField.type.text, "integer32");
+        EXPECT_EQ(startField.type.text, "integer");
         EXPECT_TRUE(startField.isLive);
         EXPECT_FALSE(startField.bitWidth.has_value());
 
@@ -138,8 +138,8 @@ public blueprint Timer {
 import demo.alpha;
 import demo.beta.gamma
 
-public function sample() {
-    return;
+public integer function sample() {
+    return 0;
 }
 )";
 
@@ -179,3 +179,8 @@ import demo.alpha;
     }
 }
 } // namespace bolt::hir
+
+
+
+
+

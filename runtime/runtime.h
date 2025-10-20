@@ -36,4 +36,3 @@ void* bolt_memory_fill(void* destination, int value, size_t bytes);
 }
 #endif
 
-#undef BOLT_NORETURN
