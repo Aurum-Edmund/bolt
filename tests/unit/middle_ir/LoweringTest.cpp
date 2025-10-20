@@ -132,6 +132,7 @@ public link integer function staticFunctionTest(integer value) {
         EXPECT_EQ(functionBlock.instructions[1].detail, "return integer");
         EXPECT_EQ(functionBlock.instructions[2].detail, "param integer value");
         EXPECT_EQ(functionBlock.instructions.back().detail, "function");
+        EXPECT_EQ(functionBlock.instructions.back().kind, InstructionKind::Return);
 
         const auto& firstBlueprint = mirModule.functions[1];
         EXPECT_EQ(firstBlueprint.name, "blueprint.FirstBlueprint");
@@ -140,6 +141,7 @@ public link integer function staticFunctionTest(integer value) {
         ASSERT_GE(firstBlock.instructions.size(), 3u);
         EXPECT_EQ(firstBlock.instructions[0].detail, "modifiers: public");
         EXPECT_EQ(firstBlock.instructions[1].detail, "field integer firstField");
+        EXPECT_EQ(firstBlock.instructions.back().kind, InstructionKind::Return);
 
         const auto& secondBlueprint = mirModule.functions[2];
         EXPECT_EQ(secondBlueprint.name, "blueprint.SecondBlueprint");
@@ -148,6 +150,7 @@ public link integer function staticFunctionTest(integer value) {
         ASSERT_GE(secondBlock.instructions.size(), 3u);
         EXPECT_EQ(secondBlock.instructions[0].detail, "modifiers: public");
         EXPECT_EQ(secondBlock.instructions[1].detail, "field integer secondField");
+        EXPECT_EQ(secondBlock.instructions.back().kind, InstructionKind::Return);
     }
 }
 } // namespace bolt::mir

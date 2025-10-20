@@ -207,6 +207,18 @@ public link integer function staticFunctionTest(integer value) {
         EXPECT_EQ(module.blueprints[0].name, "FirstBlueprint");
         EXPECT_EQ(module.blueprints[1].name, "SecondBlueprint");
 
+        ASSERT_EQ(module.blueprints[0].modifiers.size(), 1u);
+        EXPECT_EQ(module.blueprints[0].modifiers.front(), "public");
+        ASSERT_EQ(module.blueprints[0].fields.size(), 1u);
+        EXPECT_EQ(module.blueprints[0].fields.front().type.text, "integer");
+        EXPECT_EQ(module.blueprints[0].fields.front().name, "firstField");
+
+        ASSERT_EQ(module.blueprints[1].modifiers.size(), 1u);
+        EXPECT_EQ(module.blueprints[1].modifiers.front(), "public");
+        ASSERT_EQ(module.blueprints[1].fields.size(), 1u);
+        EXPECT_EQ(module.blueprints[1].fields.front().type.text, "integer");
+        EXPECT_EQ(module.blueprints[1].fields.front().name, "secondField");
+
         ASSERT_EQ(module.functions.size(), 1u);
         const auto& fn = module.functions.front();
         EXPECT_EQ(fn.name, "staticFunctionTest");
