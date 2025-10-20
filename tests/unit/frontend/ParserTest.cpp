@@ -117,6 +117,44 @@ public blueprint Timer {
             [](const Diagnostic& diag) { return diag.code == "BOLT-E2153"; });
         EXPECT_TRUE(containsFieldError);
     }
+
+    TEST(ParserTest, ParsesLinkFunctionAlongsideMultipleBlueprints)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint FirstBlueprint {
+    integer firstField;
+}
+
+public blueprint SecondBlueprint {
+    integer secondField;
+}
+
+public link integer function staticFunctionTest(integer value) {
+    return value;
+}
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        CompilationUnit unit = parseSource(source, diagnostics);
+
+        EXPECT_TRUE(diagnostics.empty());
+        ASSERT_EQ(unit.blueprints.size(), 2u);
+        EXPECT_EQ(unit.blueprints[0].name, "FirstBlueprint");
+        EXPECT_EQ(unit.blueprints[1].name, "SecondBlueprint");
+
+        ASSERT_EQ(unit.functions.size(), 1u);
+        const auto& fn = unit.functions.front();
+        EXPECT_EQ(fn.name, "staticFunctionTest");
+        ASSERT_EQ(fn.modifiers.size(), 2u);
+        EXPECT_EQ(fn.modifiers[0], "public");
+        EXPECT_EQ(fn.modifiers[1], "link");
+        ASSERT_TRUE(fn.returnType.has_value());
+        EXPECT_EQ(*fn.returnType, "integer");
+        ASSERT_EQ(fn.parameters.size(), 1u);
+        EXPECT_EQ(fn.parameters.front().typeName, "integer");
+        EXPECT_EQ(fn.parameters.front().name, "value");
+    }
 }
 } // namespace bolt::frontend
 

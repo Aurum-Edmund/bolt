@@ -38,6 +38,7 @@
 - Documented that Stage-0 now resolves `ld.lld` directly to avoid collisions with `.air` kernel artifacts, and captured guidance for SDKs that still ship an alternate wrapper name.
 - Linker wrapper now synthesizes Windows static library invocations via `lib.exe`, allowing Stage-0 builds to package runtime or module archives alongside executable outputs.
 - Linker wrapper now validates linker inputs (scripts, import bundles, runtime roots, search paths, objects) ahead of invocation and copies successful import bundles to `<output>.imports`, with dry runs reporting the staging path.
+- Parser, binder, and MIR lowering suites now cover `link` functions alongside multiple blueprints, ensuring the static replacement modifier remains stable across stages.
 
 ## Progress Metric
 - **Estimated Stage-0 completion:** ~55?%

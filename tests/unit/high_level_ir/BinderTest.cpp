@@ -177,6 +177,48 @@ import demo.alpha;
         EXPECT_EQ(module.imports[0].modulePath, "demo.alpha");
         EXPECT_EQ(module.imports[1].modulePath, "demo.beta");
     }
+
+    TEST(BinderTest, RecordsLinkFunctionAcrossMultipleBlueprints)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint FirstBlueprint {
+    integer firstField;
+}
+
+public blueprint SecondBlueprint {
+    integer secondField;
+}
+
+public link integer function staticFunctionTest(integer value) {
+    return value;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty()) << "Parser diagnostics detected";
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty()) << "Binder diagnostics detected";
+
+        ASSERT_EQ(module.blueprints.size(), 2u);
+        EXPECT_EQ(module.blueprints[0].name, "FirstBlueprint");
+        EXPECT_EQ(module.blueprints[1].name, "SecondBlueprint");
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        const auto& fn = module.functions.front();
+        EXPECT_EQ(fn.name, "staticFunctionTest");
+        ASSERT_EQ(fn.modifiers.size(), 2u);
+        EXPECT_EQ(fn.modifiers[0], "public");
+        EXPECT_EQ(fn.modifiers[1], "link");
+        EXPECT_TRUE(fn.hasReturnType);
+        EXPECT_EQ(fn.returnType.text, "integer");
+        ASSERT_EQ(fn.parameters.size(), 1u);
+        EXPECT_EQ(fn.parameters.front().type.text, "integer");
+        EXPECT_EQ(fn.parameters.front().name, "value");
+    }
 }
 } // namespace bolt::hir
 
