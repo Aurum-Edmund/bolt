@@ -26,4 +26,10 @@ Stage‑0 requires a minimal freestanding runtime so compiled Bolt programs can 
 3. Wire runtime objects into the build (`CMakeLists.txt`) and ensure driver/linker include them automatically.
 4. Add smoke tests that link `examples/add.bolt` against the runtime and verify return code/panic behaviour.
 
+## Current Progress
+
+- Implemented portable atomic helper APIs (`bolt_atomic_load/store/exchange/compare_exchange`) for 32-bit and 64-bit values,
+  using C11 atomics on hosted builds and Windows interlocked fallbacks when compiling with MSVC. Unit tests in
+  `tests/unit/runtime/RuntimeHelpersTest.cpp` cover load/store, exchange, and compare-exchange behaviour.
+
 
