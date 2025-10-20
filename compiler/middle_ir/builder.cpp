@@ -12,6 +12,10 @@ namespace bolt::mir
         m_module.functions.emplace_back();
         Function& fn = m_module.functions.back();
         fn.name = std::string{name};
+        fn.parameters.clear();
+        fn.hasReturnType = false;
+        fn.returnType.clear();
+        fn.returnIsLive = false;
         fn.blocks.clear();
         fn.nextBlockId = 0;
         fn.nextValueId = 0;
