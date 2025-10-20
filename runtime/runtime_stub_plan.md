@@ -31,5 +31,9 @@ Stage‑0 requires a minimal freestanding runtime so compiled Bolt programs can 
 - Implemented portable atomic helper APIs (`bolt_atomic_load/store/exchange/compare_exchange`) for 8-bit, 16-bit, 32-bit, and
   64-bit values, using C11 atomics on hosted builds and Windows interlocked fallbacks when compiling with MSVC. Unit tests in
   `tests/unit/runtime/RuntimeHelpersTest.cpp` cover load/store, exchange, and compare-exchange behaviour for each width.
+- Added `bolt_atomic_fetch_add`/`bolt_atomic_fetch_sub` helpers for all supported widths so MIR can lower arithmetic atomics;
+  unit tests cover both operations to guard future regressions.
+- Added `bolt_atomic_fetch_and`/`bolt_atomic_fetch_or`/`bolt_atomic_fetch_xor` helpers for all supported widths so bitwise atomics
+  required by Stage-0 lowering are available with matching unit coverage.
 
 

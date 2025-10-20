@@ -44,6 +44,10 @@ namespace bolt::mir
             {
                 printIndent(stream, 2);
                 stream << entry.modulePath;
+                if (entry.canonicalModulePath.has_value())
+                {
+                    stream << " [" << *entry.canonicalModulePath << "]";
+                }
                 if (entry.filePath.has_value())
                 {
                     stream << " -> " << *entry.filePath;

@@ -82,6 +82,7 @@ namespace bolt::mir
         struct ResolvedImport
         {
             std::string modulePath;
+            std::optional<std::string> canonicalModulePath;
             std::optional<std::string> filePath;
         };
         std::vector<ResolvedImport> resolvedImports;

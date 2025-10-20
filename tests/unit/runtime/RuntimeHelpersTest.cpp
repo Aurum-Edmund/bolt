@@ -97,6 +97,40 @@ TEST(RuntimeAtomicTest, ExchangeReturnsPrevious32BitValue)
     EXPECT_EQ(73U, bolt_atomic_load_u32(&value, boltAtomicOrderAcquire));
 }
 
+TEST(RuntimeAtomicTest, FetchAddReturnsPrevious32BitValue)
+{
+    alignas(4) volatile std::uint32_t value = 10U;
+    std::uint32_t previous = bolt_atomic_fetch_add_u32(&value, 5U, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(10U, previous);
+    EXPECT_EQ(15U, bolt_atomic_load_u32(&value, boltAtomicOrderAcquire));
+}
+
+TEST(RuntimeAtomicTest, FetchSubReturnsPrevious32BitValue)
+{
+    alignas(4) volatile std::uint32_t value = 40U;
+    std::uint32_t previous = bolt_atomic_fetch_sub_u32(&value, 8U, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(40U, previous);
+    EXPECT_EQ(32U, bolt_atomic_load_u32(&value, boltAtomicOrderAcquire));
+}
+
+TEST(RuntimeAtomicTest, FetchBitwiseOperations32Bit)
+{
+    alignas(4) volatile std::uint32_t value = 0xFFFF00FFU;
+
+    std::uint32_t previous
+        = bolt_atomic_fetch_and_u32(&value, 0x0FFF0FF0U, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0xFFFF00FFU, previous);
+    EXPECT_EQ(0x0FFF00F0U, bolt_atomic_load_u32(&value, boltAtomicOrderAcquire));
+
+    previous = bolt_atomic_fetch_or_u32(&value, 0x0000000FU, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x0FFF00F0U, previous);
+    EXPECT_EQ(0x0FFF00FFU, bolt_atomic_load_u32(&value, boltAtomicOrderAcquire));
+
+    previous = bolt_atomic_fetch_xor_u32(&value, 0x00000FF0U, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x0FFF00FFU, previous);
+    EXPECT_EQ(0x0FFF0F0FU, bolt_atomic_load_u32(&value, boltAtomicOrderAcquire));
+}
+
 TEST(RuntimeAtomicTest, ExchangeReturnsPrevious8BitValue)
 {
     alignas(1) volatile std::uint8_t value = 0x12U;
@@ -106,6 +140,42 @@ TEST(RuntimeAtomicTest, ExchangeReturnsPrevious8BitValue)
     EXPECT_EQ(0x34U, bolt_atomic_load_u8(&value, boltAtomicOrderAcquire));
 }
 
+TEST(RuntimeAtomicTest, FetchAddReturnsPrevious8BitValue)
+{
+    alignas(1) volatile std::uint8_t value = 0x10U;
+    std::uint8_t previous
+        = bolt_atomic_fetch_add_u8(&value, 0x05U, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x10U, previous);
+    EXPECT_EQ(0x15U, bolt_atomic_load_u8(&value, boltAtomicOrderAcquire));
+}
+
+TEST(RuntimeAtomicTest, FetchSubReturnsPrevious8BitValue)
+{
+    alignas(1) volatile std::uint8_t value = 0x32U;
+    std::uint8_t previous
+        = bolt_atomic_fetch_sub_u8(&value, 0x10U, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x32U, previous);
+    EXPECT_EQ(0x22U, bolt_atomic_load_u8(&value, boltAtomicOrderAcquire));
+}
+
+TEST(RuntimeAtomicTest, FetchBitwiseOperations8Bit)
+{
+    alignas(1) volatile std::uint8_t value = 0xF3U;
+
+    std::uint8_t previous
+        = bolt_atomic_fetch_and_u8(&value, 0x9CU, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0xF3U, previous);
+    EXPECT_EQ(0x90U, bolt_atomic_load_u8(&value, boltAtomicOrderAcquire));
+
+    previous = bolt_atomic_fetch_or_u8(&value, 0x03U, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x90U, previous);
+    EXPECT_EQ(0x93U, bolt_atomic_load_u8(&value, boltAtomicOrderAcquire));
+
+    previous = bolt_atomic_fetch_xor_u8(&value, 0x3CU, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x93U, previous);
+    EXPECT_EQ(0xAFU, bolt_atomic_load_u8(&value, boltAtomicOrderAcquire));
+}
+
 TEST(RuntimeAtomicTest, ExchangeReturnsPrevious16BitValue)
 {
     alignas(2) volatile std::uint16_t value = 0x1357U;
@@ -113,6 +183,42 @@ TEST(RuntimeAtomicTest, ExchangeReturnsPrevious16BitValue)
         = bolt_atomic_exchange_u16(&value, 0x2468U, boltAtomicOrderSequentiallyConsistent);
     EXPECT_EQ(0x1357U, previous);
     EXPECT_EQ(0x2468U, bolt_atomic_load_u16(&value, boltAtomicOrderAcquire));
+}
+
+TEST(RuntimeAtomicTest, FetchAddReturnsPrevious16BitValue)
+{
+    alignas(2) volatile std::uint16_t value = 0x0100U;
+    std::uint16_t previous
+        = bolt_atomic_fetch_add_u16(&value, 0x0020U, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x0100U, previous);
+    EXPECT_EQ(0x0120U, bolt_atomic_load_u16(&value, boltAtomicOrderAcquire));
+}
+
+TEST(RuntimeAtomicTest, FetchSubReturnsPrevious16BitValue)
+{
+    alignas(2) volatile std::uint16_t value = 0x0200U;
+    std::uint16_t previous
+        = bolt_atomic_fetch_sub_u16(&value, 0x0010U, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x0200U, previous);
+    EXPECT_EQ(0x01F0U, bolt_atomic_load_u16(&value, boltAtomicOrderAcquire));
+}
+
+TEST(RuntimeAtomicTest, FetchBitwiseOperations16Bit)
+{
+    alignas(2) volatile std::uint16_t value = 0xFF00U;
+
+    std::uint16_t previous
+        = bolt_atomic_fetch_and_u16(&value, 0x0FF0U, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0xFF00U, previous);
+    EXPECT_EQ(0x0F00U, bolt_atomic_load_u16(&value, boltAtomicOrderAcquire));
+
+    previous = bolt_atomic_fetch_or_u16(&value, 0x000FU, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x0F00U, previous);
+    EXPECT_EQ(0x0F0FU, bolt_atomic_load_u16(&value, boltAtomicOrderAcquire));
+
+    previous = bolt_atomic_fetch_xor_u16(&value, 0x00F0U, boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x0F0FU, previous);
+    EXPECT_EQ(0x0FFFU, bolt_atomic_load_u16(&value, boltAtomicOrderAcquire));
 }
 
 TEST(RuntimeAtomicTest, CompareExchangeUpdatesExpectedOnFailure32Bit)
@@ -241,6 +347,49 @@ TEST(RuntimeAtomicTest, ExchangeReturnsPrevious64BitValue)
         = bolt_atomic_exchange_u64(&value, 0x8877665544332211ULL, boltAtomicOrderSequentiallyConsistent);
     EXPECT_EQ(0x1122334455667788ULL, previous);
     EXPECT_EQ(0x8877665544332211ULL, bolt_atomic_load_u64(&value, boltAtomicOrderAcquire));
+}
+
+TEST(RuntimeAtomicTest, FetchAddReturnsPrevious64BitValue)
+{
+    alignas(8) volatile std::uint64_t value = 0x0000000000001000ULL;
+    std::uint64_t previous = bolt_atomic_fetch_add_u64(&value,
+        0x0000000000000100ULL,
+        boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x0000000000001000ULL, previous);
+    EXPECT_EQ(0x0000000000001100ULL, bolt_atomic_load_u64(&value, boltAtomicOrderAcquire));
+}
+
+TEST(RuntimeAtomicTest, FetchSubReturnsPrevious64BitValue)
+{
+    alignas(8) volatile std::uint64_t value = 0x0000000000002000ULL;
+    std::uint64_t previous = bolt_atomic_fetch_sub_u64(&value,
+        0x0000000000000010ULL,
+        boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x0000000000002000ULL, previous);
+    EXPECT_EQ(0x0000000000001FF0ULL, bolt_atomic_load_u64(&value, boltAtomicOrderAcquire));
+}
+
+TEST(RuntimeAtomicTest, FetchBitwiseOperations64Bit)
+{
+    alignas(8) volatile std::uint64_t value = 0xFFFF0000FFFF0000ULL;
+
+    std::uint64_t previous = bolt_atomic_fetch_and_u64(&value,
+        0x0FFF0FFF0FFF0FFFULL,
+        boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0xFFFF0000FFFF0000ULL, previous);
+    EXPECT_EQ(0x0FFF00000FFF0000ULL, bolt_atomic_load_u64(&value, boltAtomicOrderAcquire));
+
+    previous = bolt_atomic_fetch_or_u64(&value,
+        0x00000000000000FFULL,
+        boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x0FFF00000FFF0000ULL, previous);
+    EXPECT_EQ(0x0FFF00000FFF00FFULL, bolt_atomic_load_u64(&value, boltAtomicOrderAcquire));
+
+    previous = bolt_atomic_fetch_xor_u64(&value,
+        0x0000000000000FF0ULL,
+        boltAtomicOrderAcquireRelease);
+    EXPECT_EQ(0x0FFF00000FFF00FFULL, previous);
+    EXPECT_EQ(0x0FFF00000FFF0F0FULL, bolt_atomic_load_u64(&value, boltAtomicOrderAcquire));
 }
 
 TEST(RuntimeAtomicTest, CompareExchangeBehavesFor64BitValues)

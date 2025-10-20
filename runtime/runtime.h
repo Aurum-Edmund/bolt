@@ -48,6 +48,11 @@ typedef enum boltAtomicOrder
 uint8_t bolt_atomic_load_u8(const volatile uint8_t* object, boltAtomicOrder order);
 void bolt_atomic_store_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order);
 uint8_t bolt_atomic_exchange_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order);
+uint8_t bolt_atomic_fetch_add_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order);
+uint8_t bolt_atomic_fetch_sub_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order);
+uint8_t bolt_atomic_fetch_and_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order);
+uint8_t bolt_atomic_fetch_or_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order);
+uint8_t bolt_atomic_fetch_xor_u8(volatile uint8_t* object, uint8_t value, boltAtomicOrder order);
 bool bolt_atomic_compare_exchange_u8(volatile uint8_t* object,
     uint8_t* expected,
     uint8_t desired,
@@ -58,6 +63,11 @@ bool bolt_atomic_compare_exchange_u8(volatile uint8_t* object,
 uint16_t bolt_atomic_load_u16(const volatile uint16_t* object, boltAtomicOrder order);
 void bolt_atomic_store_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order);
 uint16_t bolt_atomic_exchange_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order);
+uint16_t bolt_atomic_fetch_add_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order);
+uint16_t bolt_atomic_fetch_sub_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order);
+uint16_t bolt_atomic_fetch_and_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order);
+uint16_t bolt_atomic_fetch_or_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order);
+uint16_t bolt_atomic_fetch_xor_u16(volatile uint16_t* object, uint16_t value, boltAtomicOrder order);
 bool bolt_atomic_compare_exchange_u16(volatile uint16_t* object,
     uint16_t* expected,
     uint16_t desired,
@@ -68,6 +78,11 @@ bool bolt_atomic_compare_exchange_u16(volatile uint16_t* object,
 uint32_t bolt_atomic_load_u32(const volatile uint32_t* object, boltAtomicOrder order);
 void bolt_atomic_store_u32(volatile uint32_t* object, uint32_t value, boltAtomicOrder order);
 uint32_t bolt_atomic_exchange_u32(volatile uint32_t* object, uint32_t value, boltAtomicOrder order);
+uint32_t bolt_atomic_fetch_add_u32(volatile uint32_t* object, uint32_t value, boltAtomicOrder order);
+uint32_t bolt_atomic_fetch_sub_u32(volatile uint32_t* object, uint32_t value, boltAtomicOrder order);
+uint32_t bolt_atomic_fetch_and_u32(volatile uint32_t* object, uint32_t value, boltAtomicOrder order);
+uint32_t bolt_atomic_fetch_or_u32(volatile uint32_t* object, uint32_t value, boltAtomicOrder order);
+uint32_t bolt_atomic_fetch_xor_u32(volatile uint32_t* object, uint32_t value, boltAtomicOrder order);
 bool bolt_atomic_compare_exchange_u32(volatile uint32_t* object,
     uint32_t* expected,
     uint32_t desired,
@@ -78,6 +93,11 @@ bool bolt_atomic_compare_exchange_u32(volatile uint32_t* object,
 uint64_t bolt_atomic_load_u64(const volatile uint64_t* object, boltAtomicOrder order);
 void bolt_atomic_store_u64(volatile uint64_t* object, uint64_t value, boltAtomicOrder order);
 uint64_t bolt_atomic_exchange_u64(volatile uint64_t* object, uint64_t value, boltAtomicOrder order);
+uint64_t bolt_atomic_fetch_add_u64(volatile uint64_t* object, uint64_t value, boltAtomicOrder order);
+uint64_t bolt_atomic_fetch_sub_u64(volatile uint64_t* object, uint64_t value, boltAtomicOrder order);
+uint64_t bolt_atomic_fetch_and_u64(volatile uint64_t* object, uint64_t value, boltAtomicOrder order);
+uint64_t bolt_atomic_fetch_or_u64(volatile uint64_t* object, uint64_t value, boltAtomicOrder order);
+uint64_t bolt_atomic_fetch_xor_u64(volatile uint64_t* object, uint64_t value, boltAtomicOrder order);
 bool bolt_atomic_compare_exchange_u64(volatile uint64_t* object,
     uint64_t* expected,
     uint64_t desired,

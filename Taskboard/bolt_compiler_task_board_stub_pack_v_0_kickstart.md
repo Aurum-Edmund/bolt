@@ -58,8 +58,11 @@
 - Runtime root detection searches `lib/` and triple-qualified folders so packaged SDK layouts resolve Bolt runtime archives without manual intervention, with docs/tests covering the expanded lookup.
 - Linker CLI now honors `--no-runtime`, skipping runtime archive validation/injection for executables and Air images while planners, validators, and docs capture the override behavior.
 - Runtime library now ships atomic load/store/exchange/compare-exchange helpers for 8-bit, 16-bit, 32-bit, and 64-bit values with cross-platform unit coverage, paving the way for MIR SSA and live passes that require atomic intrinsics.
+- Runtime atomic helpers now include fetch-add and fetch-sub operations for all integer widths, with unit coverage keeping the expanded intrinsic surface stable ahead of MIR SSA work.
+- Runtime atomic helpers now include fetch-and/fetch-or/fetch-xor operations across all integer widths with dedicated unit tests so the bitwise atomic surface stays stable for upcoming MIR lowering.
 - Linker CLI now falls back to `BOLT_SYSROOT`/`BOLT_RUNTIME_ROOT` environment defaults when the corresponding flags are omitted, keeping scripted builds ergonomic without overriding explicit command-line configuration.
 - Linker CLI and planner now honor `--map`, validating destination directories and forwarding map generation to Windows (`/MAP`) and Air (`--Map=`) toolchains with fresh documentation and unit coverage.
+- Import resolver now threads canonical module paths through MIR resolved-import metadata, driver notices, and JSON import bundles with dedicated regression coverage guarding the canonical flow.
 
 ---
 

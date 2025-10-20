@@ -113,6 +113,12 @@ namespace bolt
             stream << "      \"module\": \"" << escapeJson(entry.modulePath) << "\",\n";
             stream << "      \"status\": \"" << escapeJson(toStatusString(entry.status)) << "\"";
 
+            if (entry.canonicalModulePath.has_value())
+            {
+                stream << ",\n";
+                stream << "      \"canonical\": \"" << escapeJson(*entry.canonicalModulePath) << "\"";
+            }
+
             if (entry.resolvedFilePath.has_value())
             {
                 stream << ",\n";

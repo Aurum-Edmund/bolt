@@ -89,6 +89,10 @@ namespace bolt
             {
                 mir::Module::ResolvedImport resolved;
                 resolved.modulePath = entry.modulePath;
+                if (entry.canonicalModulePath.has_value())
+                {
+                    resolved.canonicalModulePath = entry.canonicalModulePath;
+                }
                 if (entry.resolvedFilePath.has_value())
                 {
                     resolved.filePath = entry.resolvedFilePath;
@@ -388,14 +392,16 @@ namespace bolt
                                     }
                                     else if (entry.status == hir::ImportStatus::Resolved)
                                     {
+                                        std::string detail = entry.modulePath;
+                                        if (entry.canonicalModulePath.has_value())
+                                        {
+                                            detail += " [" + *entry.canonicalModulePath + "]";
+                                        }
                                         if (entry.resolvedFilePath.has_value())
                                         {
-                                            resolvedImports.emplace_back(entry.modulePath + " -> " + *entry.resolvedFilePath);
+                                            detail += " -> " + *entry.resolvedFilePath;
                                         }
-                                        else
-                                        {
-                                            resolvedImports.emplace_back(entry.modulePath);
-                                        }
+                                        resolvedImports.emplace_back(std::move(detail));
                                     }
                                 }
 

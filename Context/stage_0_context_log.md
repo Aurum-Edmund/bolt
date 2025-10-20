@@ -51,13 +51,16 @@
 - Runtime root discovery now probes `lib/` and triple-qualified subdirectories so packaged SDK layouts resolve Bolt runtime archives without extra flags, with updated unit coverage and documentation.
 - Linker CLI now exposes `--no-runtime`, allowing executables and Air images to bypass Bolt runtime injection while keeping planners and validators aware of the override, with fresh unit coverage and documentation updates.
 - Runtime library now provides atomic load/store/exchange/compare-exchange helpers for 8-bit, 16-bit, 32-bit, and 64-bit values with MSVC interlocked fallbacks and cross-platform unit coverage, preparing Stage-0 for future SSA and live passes that require atomic intrinsics.
+- Runtime atomic helper suite now includes fetch-add and fetch-sub operations for 8-bit, 16-bit, 32-bit, and 64-bit values with unit coverage, covering the next wave of MIR atomic requirements.
+- Runtime atomic helper suite now covers fetch-and, fetch-or, and fetch-xor operations for all supported widths with cross-platform unit coverage so the Stage-0 runtime exposes the full bitwise atomic set expected by upcoming MIR work.
 - Module locator now scans import roots, caches discovered modules, and surfaces `BOLT-E2225`/`BOLT-E2226` diagnostics for missing roots or duplicate modules; the driver reports discoveries ahead of import resolution and new unit tests cover discovery, duplicates, and invalid roots.
 - Parser now attaches fix-it hints to missing semicolon diagnostics on package/module/import declarations, and the driver surfaces the suggestions alongside parser errors.
 - Linker CLI now honours `BOLT_SYSROOT` and `BOLT_RUNTIME_ROOT` defaults when explicit command-line values are absent, keeping scripted builds ergonomic without sacrificing deterministic flag handling.
 - Linker CLI and planner now support `--map`, validating destinations and threading map file requests through Windows (`/MAP`) and Air (`--Map=`) invocations with expanded regression coverage.
+- Import resolver now records canonical module paths for resolved imports, threads them through MIR metadata, driver notices, and JSON import bundles, and ships regression coverage to guard the canonical wiring.
 
 ## Progress Metric
-- **Estimated Stage-0 completion:** ~76?%
+- **Estimated Stage-0 completion:** ~81?%
 
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).

@@ -36,6 +36,7 @@ namespace
         bolt::hir::ImportResolution resolved;
         resolved.modulePath = "demo.alpha";
         resolved.status = bolt::hir::ImportStatus::Resolved;
+        resolved.canonicalModulePath = std::string{"demo.alpha"};
         resolved.resolvedFilePath = std::string{"/modules/alpha.bolt"};
         resolution.imports.emplace_back(resolved);
 
@@ -61,6 +62,7 @@ namespace
     {
       "module": "demo.alpha",
       "status": "resolved",
+      "canonical": "demo.alpha",
       "file": "/modules/alpha.bolt"
     },
     {
