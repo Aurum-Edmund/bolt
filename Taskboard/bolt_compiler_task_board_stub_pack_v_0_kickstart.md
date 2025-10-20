@@ -39,6 +39,7 @@
 - Freestanding `_start` entry is now opt-in via `BOLT_RUNTIME_INCLUDE_FREESTANDING_START`, preventing conflicts when host tooling links against runtime helpers.
 - Runtime memory copy/fill helpers now ship with unit coverage validating nominal and zero-length behavior.
 - Driver CLI accepts `--import-root` entries and search roots flow into module locator (unit tested).
+- Linker wrapper exposes structured CLI parsing (emit kind, target, sysroot, runtime roots) with dedicated unit coverage.
 
 ---
 

@@ -1,4 +1,4 @@
-﻿set(BOLT_UNIT_TEST_SOURCES
+set(BOLT_UNIT_TEST_SOURCES
     unit/frontend/LexerTest.cpp
     unit/frontend/ParserTest.cpp
     unit/high_level_ir/BinderTest.cpp
@@ -8,6 +8,7 @@
     unit/middle_ir/MirCanonicalTest.cpp
     unit/middle_ir/LiveEnforcementTest.cpp
     unit/runtime/RuntimeHelpersTest.cpp
+    unit/linker/LinkerCommandLineTest.cpp
 )
 
 add_executable(bolt_unit_tests ${BOLT_UNIT_TEST_SOURCES})
@@ -20,10 +21,12 @@ target_link_libraries(bolt_unit_tests
         bolt_mir
         bolt_mir_passes
         bolt_runtime
+        bolt_linker_cli
 )
 
 target_include_directories(bolt_unit_tests
     PRIVATE
+        ${CMAKE_SOURCE_DIR}/compiler/linker
         ${CMAKE_SOURCE_DIR}/compiler/frontend
         ${CMAKE_SOURCE_DIR}/compiler/high_level_ir
         ${CMAKE_SOURCE_DIR}/compiler/middle_ir

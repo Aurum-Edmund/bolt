@@ -32,6 +32,7 @@
 - Runtime panic/entry helpers share the common `BOLT_NORETURN` macro from `runtime.h`, cleaning up duplicate definitions after merge resolution.
 - Freestanding `_start` entry point is now gated behind `BOLT_RUNTIME_INCLUDE_FREESTANDING_START` so host-linked tools can reuse runtime helpers without conflicting CRT entry symbols.
 - Runtime memory helpers now have unit tests covering byte copy, fill, and zero-length behavior to guard the freestanding runtime contract.
+- Linker wrapper now parses structured CLI options (emit kind, targets, sysroot/runtime roots) and ships with unit coverage to prepare for real platform invocations.
 
 ## Progress Metric
 - **Estimated Stage-0 completion:** ~55?%
