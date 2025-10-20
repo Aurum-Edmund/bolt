@@ -7,6 +7,7 @@
     unit/middle_ir/LoweringTest.cpp
     unit/middle_ir/MirCanonicalTest.cpp
     unit/middle_ir/LiveEnforcementTest.cpp
+    unit/runtime/RuntimeHelpersTest.cpp
 )
 
 add_executable(bolt_unit_tests ${BOLT_UNIT_TEST_SOURCES})
@@ -18,6 +19,7 @@ target_link_libraries(bolt_unit_tests
         bolt_hir
         bolt_mir
         bolt_mir_passes
+        bolt_runtime
 )
 
 target_include_directories(bolt_unit_tests
@@ -26,6 +28,7 @@ target_include_directories(bolt_unit_tests
         ${CMAKE_SOURCE_DIR}/compiler/high_level_ir
         ${CMAKE_SOURCE_DIR}/compiler/middle_ir
         ${CMAKE_SOURCE_DIR}/compiler/driver
+        ${CMAKE_SOURCE_DIR}/runtime
 )
 
 add_test(NAME bolt_unit_tests COMMAND bolt_unit_tests)

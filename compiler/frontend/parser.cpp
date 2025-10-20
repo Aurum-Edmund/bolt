@@ -1,4 +1,6 @@
-#include "parser.hpp"`r`n`r`n#include <sstream>`r`n#include <cctype>
+#include "parser.hpp"
+
+#include <sstream>
 #include <cctype>
 
 namespace bolt::frontend
