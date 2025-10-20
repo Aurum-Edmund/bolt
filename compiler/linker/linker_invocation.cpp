@@ -72,6 +72,16 @@ namespace linker
             return std::filesystem::path{"link.exe"};
         }
 
+        std::filesystem::path resolveWindowsLibraryManagerExecutable(const CommandLineOptions& options)
+        {
+            if (!options.sysrootPath.empty())
+            {
+                return options.sysrootPath / "bin" / "lib.exe";
+            }
+
+            return std::filesystem::path{"lib.exe"};
+        }
+
         std::filesystem::path resolveAirLinkerExecutable(const CommandLineOptions& options)
         {
             if (!options.sysrootPath.empty())
@@ -82,19 +92,50 @@ namespace linker
             return std::filesystem::path{"ld.lld"};
         }
 
-        LinkerPlanResult planWindowsInvocation(const CommandLineOptions& options)
+        LinkerPlanResult planWindowsExecutableInvocation(const CommandLineOptions& options)
         {
             LinkerPlanResult result;
 
-            if (options.emitKind != EmitKind::Executable)
-            {
-                result.hasError = true;
-                result.errorMessage = "emit kind is not supported for Windows linker planning.";
-                return result;
-            }
-
             LinkerInvocation invocation;
             invocation.executable = resolveWindowsLinkerExecutable(options);
+
+            invocation.arguments.emplace_back("/NOLOGO");
+
+            if (!options.outputPath.empty())
+            {
+                invocation.arguments.emplace_back("/OUT:" + options.outputPath.string());
+            }
+
+            if (!options.runtimeRootPath.empty())
+            {
+                invocation.arguments.emplace_back("/LIBPATH:" + options.runtimeRootPath.string());
+            }
+
+            for (const auto& searchPath : options.librarySearchPaths)
+            {
+                invocation.arguments.emplace_back("/LIBPATH:" + searchPath.string());
+            }
+
+            for (const auto& object : options.inputObjects)
+            {
+                invocation.arguments.emplace_back(formatPathArgument(object));
+            }
+
+            for (const auto& library : options.libraries)
+            {
+                invocation.arguments.emplace_back(formatWindowsLibraryName(library));
+            }
+
+            result.invocation = std::move(invocation);
+            return result;
+        }
+
+        LinkerPlanResult planWindowsStaticLibraryInvocation(const CommandLineOptions& options)
+        {
+            LinkerPlanResult result;
+
+            LinkerInvocation invocation;
+            invocation.executable = resolveWindowsLibraryManagerExecutable(options);
 
             invocation.arguments.emplace_back("/NOLOGO");
 
@@ -193,7 +234,20 @@ namespace linker
     {
         if (options.targetTriple == "x86_64-pc-windows-msvc")
         {
-            return planWindowsInvocation(options);
+            if (options.emitKind == EmitKind::Executable)
+            {
+                return planWindowsExecutableInvocation(options);
+            }
+
+            if (options.emitKind == EmitKind::StaticLibrary)
+            {
+                return planWindowsStaticLibraryInvocation(options);
+            }
+
+            LinkerPlanResult result;
+            result.hasError = true;
+            result.errorMessage = "emit kind is not supported for Windows linker planning.";
+            return result;
         }
 
         if (options.targetTriple == "x86_64-air-bolt")

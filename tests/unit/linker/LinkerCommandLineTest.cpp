@@ -105,6 +105,15 @@ TEST(LinkerCommandLineTest, RejectsUnknownEmitKind)
     EXPECT_EQ(result.errorMessage, "unknown emit kind 'bin'.");
 }
 
+TEST(LinkerCommandLineTest, ParsesStaticLibraryEmitKind)
+{
+    auto result = parse({"bolt-ld", "--emit=lib", "-o", "libbolt.lib", "main.obj"});
+
+    ASSERT_FALSE(result.hasError);
+    EXPECT_EQ(result.options.emitKind, EmitKind::StaticLibrary);
+    EXPECT_EQ(result.options.outputPath, std::filesystem::path{"libbolt.lib"});
+}
+
 TEST(LinkerCommandLineTest, RejectsUnknownTarget)
 {
     auto result = parse({"bolt-ld", "--target=ppc-none", "-o", "out.exe", "main.obj"});

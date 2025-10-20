@@ -36,6 +36,7 @@
 - Linker wrapper now plans Windows invocations (`link.exe`), surfaces the computed command line when verbose/dry-run is enabled, and reports missing host linkers with diagnostics.
 - Linker wrapper now plans freestanding Air images through `ld.lld`, enforcing linker-script requirements and populating entry/runtime library parameters for the Stage-0 flow while matching the specification’s kernel artifact naming rules.
 - Documented that Stage-0 now resolves `ld.lld` directly to avoid collisions with `.air` kernel artifacts, and captured guidance for SDKs that still ship an alternate wrapper name.
+- Linker wrapper now synthesizes Windows static library invocations via `lib.exe`, allowing Stage-0 builds to package runtime or module archives alongside executable outputs.
 
 ## Progress Metric
 - **Estimated Stage-0 completion:** ~55?%
