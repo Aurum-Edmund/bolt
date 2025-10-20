@@ -228,6 +228,24 @@ namespace linker
                 continue;
             }
 
+            if (auto entryValue = parseOptionWithValue(argument, "--entry", index, argc, argv, result))
+            {
+                if (result.hasError)
+                {
+                    return result;
+                }
+
+                if (entryValue->empty())
+                {
+                    result.hasError = true;
+                    result.errorMessage = "--entry requires a symbol name.";
+                    return result;
+                }
+
+                result.options.entryPoint = std::string{*entryValue};
+                continue;
+            }
+
             if (auto outputValue = parseShortOptionWithValue(argument, 'o', index, argc, argv, result))
             {
                 if (result.hasError)

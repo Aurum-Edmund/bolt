@@ -72,6 +72,7 @@ TEST(LinkerCommandLineTest, ParsesExtendedOptions)
         "-L", "/opt/bolt/lib",
         "-lbolt-runtime",
         "-l", "m",
+        "--entry=start_kernel",
         "-o",
         "image.air",
         "app.o",
@@ -92,10 +93,18 @@ TEST(LinkerCommandLineTest, ParsesExtendedOptions)
     ASSERT_EQ(result.options.libraries.size(), 2u);
     EXPECT_EQ(result.options.libraries[0], "bolt-runtime");
     EXPECT_EQ(result.options.libraries[1], "m");
+    EXPECT_EQ(result.options.entryPoint, "start_kernel");
     ASSERT_EQ(result.options.inputObjects.size(), 2u);
     EXPECT_EQ(result.options.inputObjects[0], std::filesystem::path{"app.o"});
     EXPECT_EQ(result.options.inputObjects[1], std::filesystem::path{"runtime.o"});
     EXPECT_EQ(result.options.outputPath, std::filesystem::path{"image.air"});
+}
+
+TEST(LinkerCommandLineTest, RejectsEmptyEntrySymbol)
+{
+    auto result = parse({"bolt-ld", "--entry=", "-o", "app.exe", "main.obj"});
+    EXPECT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "--entry requires a symbol name.");
 }
 
 TEST(LinkerCommandLineTest, RejectsUnknownEmitKind)

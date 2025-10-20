@@ -40,6 +40,7 @@ namespace linker
                      "  --runtime-root=<path>     Locate runtime libraries and stubs from the provided directory.\n"
                      "  --linker-script=<path>    Use the given linker script when producing freestanding images.\n"
                      "  --import-bundle=<path>    Path to resolved import metadata to embed into the image.\n"
+                     "  --entry=<symbol>          Override the entry point symbol when linking.\n"
                      "  --verbose                 Print the computed linker command line.\n"
                      "  --dry-run                 Resolve options but skip invoking the platform linker.\n"
                      "  -L<path>                  Add a library search directory. (Also accepts '-L <path>').\n"
@@ -383,6 +384,48 @@ namespace linker
         for (const auto& library : options.libraries)
         {
             std::cout << "[bolt-ld] link library: " << library << "\n";
+        }
+
+        if (!options.linkerScriptPath.empty())
+        {
+            std::cout << "[bolt-ld] linker script: " << options.linkerScriptPath << "\n";
+        }
+
+        if (!options.importBundlePath.empty())
+        {
+            std::cout << "[bolt-ld] import bundle: " << options.importBundlePath << "\n";
+        }
+
+        if (!options.sysrootPath.empty())
+        {
+            std::cout << "[bolt-ld] sysroot: " << options.sysrootPath << "\n";
+        }
+
+        if (!options.runtimeRootPath.empty())
+        {
+            std::cout << "[bolt-ld] runtime root: " << options.runtimeRootPath << "\n";
+        }
+
+        for (const auto& searchPath : options.librarySearchPaths)
+        {
+            std::cout << "[bolt-ld] library search: " << searchPath << "\n";
+        }
+
+        for (const auto& library : options.libraries)
+        {
+            std::cout << "[bolt-ld] link library: " << library << "\n";
+        }
+
+        std::string effectiveEntry = options.entryPoint;
+        if (effectiveEntry.empty() && options.targetTriple == "x86_64-air-bolt"
+            && options.emitKind == EmitKind::AirImage)
+        {
+            effectiveEntry = "_start";
+        }
+
+        if (!effectiveEntry.empty())
+        {
+            std::cout << "[bolt-ld] entry: " << effectiveEntry << "\n";
         }
 
         if (!options.linkerScriptPath.empty())

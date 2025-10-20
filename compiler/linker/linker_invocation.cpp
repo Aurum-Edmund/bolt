@@ -120,6 +120,11 @@ namespace linker
                 invocation.arguments.emplace_back("/OUT:" + options.outputPath.string());
             }
 
+            if (!options.entryPoint.empty())
+            {
+                invocation.arguments.emplace_back("/ENTRY:" + options.entryPoint);
+            }
+
             if (!options.runtimeRootPath.empty())
             {
                 invocation.arguments.emplace_back("/LIBPATH:" + options.runtimeRootPath.string());
@@ -217,7 +222,8 @@ namespace linker
             invocation.arguments.emplace_back("-T");
             invocation.arguments.emplace_back(options.linkerScriptPath.string());
             invocation.arguments.emplace_back("-e");
-            invocation.arguments.emplace_back("_start");
+            const auto entrySymbol = options.entryPoint.empty() ? std::string{"_start"} : options.entryPoint;
+            invocation.arguments.emplace_back(entrySymbol);
 
             if (!options.runtimeRootPath.empty())
             {

@@ -26,6 +26,7 @@ namespace linker
         std::filesystem::path importBundlePath;
         std::filesystem::path sysrootPath;
         std::filesystem::path runtimeRootPath;
+        std::string entryPoint;
         std::string targetTriple{"x86_64-pc-windows-msvc"};
         EmitKind emitKind{EmitKind::Executable};
         bool verbose{false};

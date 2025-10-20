@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -103,6 +104,20 @@ TEST(LinkerInvocationTest, PlansWindowsExecutableInvocation)
     }
 }
 
+TEST(LinkerInvocationTest, PlansWindowsExecutableWithCustomEntry)
+{
+    auto options = createBaseOptions();
+    options.entryPoint = "BoltStart";
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_FALSE(plan.hasError);
+    ASSERT_FALSE(plan.invocation.arguments.empty());
+
+    EXPECT_NE(std::find(plan.invocation.arguments.begin(), plan.invocation.arguments.end(), "/ENTRY:BoltStart"),
+        plan.invocation.arguments.end());
+}
+
 TEST(LinkerInvocationTest, RejectsUnsupportedEmitKind)
 {
     auto options = createBaseOptions();
@@ -202,6 +217,27 @@ TEST(LinkerInvocationTest, PlansAirImageInvocation)
     {
         EXPECT_EQ(plan.invocation.arguments[index], expected[index]) << "mismatch at index " << index;
     }
+}
+
+TEST(LinkerInvocationTest, PlansAirImageWithCustomEntry)
+{
+    auto options = createBaseOptions();
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::AirImage;
+    options.outputPath = "kernel.air";
+    options.linkerScriptPath = "scripts/bolt_air.ld";
+    options.entryPoint = "boot";
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_FALSE(plan.hasError);
+    ASSERT_GE(plan.invocation.arguments.size(), 2u);
+
+    auto it = std::find(plan.invocation.arguments.begin(), plan.invocation.arguments.end(), "-e");
+    ASSERT_NE(it, plan.invocation.arguments.end());
+    ++it;
+    ASSERT_NE(it, plan.invocation.arguments.end());
+    EXPECT_EQ(*it, "boot");
 }
 
 TEST(LinkerInvocationTest, PlansAirBoltArchiveInvocation)
