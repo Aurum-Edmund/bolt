@@ -202,7 +202,67 @@ namespace linker
 
         if (!options.outputPath.empty())
         {
-            std::cout << "[bolt-ld] output: " << options.outputPath << "\n";
+            std::cout << "[bolt-ld] link library: " << library << "\n";
+        }
+
+        if (!options.linkerScriptPath.empty())
+        {
+            std::cout << "[bolt-ld] linker script: " << options.linkerScriptPath << "\n";
+        }
+
+        if (!options.importBundlePath.empty())
+        {
+            std::cout << "[bolt-ld] import bundle: " << options.importBundlePath << "\n";
+        }
+
+        if (!options.sysrootPath.empty())
+        {
+            std::cout << "[bolt-ld] sysroot: " << options.sysrootPath << "\n";
+        }
+
+        if (!options.runtimeRootPath.empty())
+        {
+            std::cout << "[bolt-ld] runtime root: " << options.runtimeRootPath << "\n";
+        }
+
+        for (const auto& searchPath : options.librarySearchPaths)
+        {
+            std::cout << "[bolt-ld] library search: " << searchPath << "\n";
+        }
+
+        for (const auto& library : options.libraries)
+        {
+            std::cout << "[bolt-ld] link library: " << library << "\n";
+        }
+
+        if (!options.linkerScriptPath.empty())
+        {
+            std::cout << "[bolt-ld] linker script: " << options.linkerScriptPath << "\n";
+        }
+
+        if (!options.importBundlePath.empty())
+        {
+            std::cout << "[bolt-ld] import bundle: " << options.importBundlePath << "\n";
+        }
+
+        if (!options.sysrootPath.empty())
+        {
+            std::cout << "[bolt-ld] sysroot: " << options.sysrootPath << "\n";
+        }
+
+        if (!options.runtimeRootPath.empty())
+        {
+            std::cout << "[bolt-ld] runtime root: " << options.runtimeRootPath << "\n";
+        }
+
+        for (const auto& searchPath : options.librarySearchPaths)
+        {
+            std::cout << "[bolt-ld] library search: " << searchPath << "\n";
+        }
+
+        for (const auto& library : options.libraries)
+        {
+            std::cout << "[bolt-ld] link library: " << library << "\n";
         }
 
         if (!options.linkerScriptPath.empty())
