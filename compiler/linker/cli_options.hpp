@@ -26,8 +26,11 @@ namespace linker
         std::filesystem::path importBundlePath;
         std::filesystem::path sysrootPath;
         std::filesystem::path runtimeRootPath;
+        std::filesystem::path linkerExecutableOverride;
+        std::filesystem::path archiverExecutableOverride;
         std::string entryPoint;
         std::string targetTriple{"x86_64-pc-windows-msvc"};
+        bool disableRuntimeInjection{false};
         EmitKind emitKind{EmitKind::Executable};
         bool verbose{false};
         bool dryRun{false};

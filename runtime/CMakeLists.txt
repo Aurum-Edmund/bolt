@@ -12,7 +12,7 @@ target_include_directories(bolt_runtime
 
 set_target_properties(bolt_runtime
     PROPERTIES
-        C_STANDARD 99
+        C_STANDARD 11
         C_STANDARD_REQUIRED ON
 )
 

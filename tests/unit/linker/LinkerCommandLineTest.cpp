@@ -66,6 +66,8 @@ TEST(LinkerCommandLineTest, ParsesExtendedOptions)
         "--runtime-root", "/runtime",
         "--linker-script", "air.ld",
         "--import-bundle", "imports.json",
+        "--linker", "/tools/custom-ld",
+        "--archiver=/tools/custom-ar",
         "--verbose",
         "--dry-run",
         "-Llib",
@@ -85,6 +87,8 @@ TEST(LinkerCommandLineTest, ParsesExtendedOptions)
     EXPECT_EQ(result.options.runtimeRootPath, std::filesystem::path{"/runtime"});
     EXPECT_EQ(result.options.linkerScriptPath, std::filesystem::path{"air.ld"});
     EXPECT_EQ(result.options.importBundlePath, std::filesystem::path{"imports.json"});
+    EXPECT_EQ(result.options.linkerExecutableOverride, std::filesystem::path{"/tools/custom-ld"});
+    EXPECT_EQ(result.options.archiverExecutableOverride, std::filesystem::path{"/tools/custom-ar"});
     EXPECT_TRUE(result.options.verbose);
     EXPECT_TRUE(result.options.dryRun);
     ASSERT_EQ(result.options.librarySearchPaths.size(), 2u);
@@ -98,6 +102,21 @@ TEST(LinkerCommandLineTest, ParsesExtendedOptions)
     EXPECT_EQ(result.options.inputObjects[0], std::filesystem::path{"app.o"});
     EXPECT_EQ(result.options.inputObjects[1], std::filesystem::path{"runtime.o"});
     EXPECT_EQ(result.options.outputPath, std::filesystem::path{"image.air"});
+    EXPECT_FALSE(result.options.disableRuntimeInjection);
+}
+
+TEST(LinkerCommandLineTest, RejectsEmptyLinkerOverride)
+{
+    auto result = parse({"bolt-ld", "--linker=", "-o", "app.exe", "main.obj"});
+    EXPECT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "--linker requires a path.");
+}
+
+TEST(LinkerCommandLineTest, RejectsEmptyArchiverOverride)
+{
+    auto result = parse({"bolt-ld", "--archiver=", "-o", "runtime.lib", "runtime.obj"});
+    EXPECT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "--archiver requires a path.");
 }
 
 TEST(LinkerCommandLineTest, RejectsEmptyEntrySymbol)
@@ -113,6 +132,22 @@ TEST(LinkerCommandLineTest, RejectsEntryForStaticLibraryEmit)
 
     EXPECT_TRUE(result.hasError);
     EXPECT_EQ(result.errorMessage, "--entry is only supported when emitting executables or Air images.");
+}
+
+TEST(LinkerCommandLineTest, ParsesNoRuntimeFlag)
+{
+    auto result = parse({"bolt-ld", "--no-runtime", "-o", "app.exe", "main.obj"});
+
+    ASSERT_FALSE(result.hasError);
+    EXPECT_TRUE(result.options.disableRuntimeInjection);
+}
+
+TEST(LinkerCommandLineTest, RejectsNoRuntimeForBoltArchives)
+{
+    auto result = parse({"bolt-ld", "--emit=zap", "--no-runtime", "-o", "runtime.zap", "runtime.o"});
+
+    EXPECT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "--no-runtime is only meaningful for executables or Air images.");
 }
 
 TEST(LinkerCommandLineTest, RejectsUnknownEmitKind)

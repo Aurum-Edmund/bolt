@@ -9,25 +9,61 @@
 #include <fstream>
 #include <system_error>
 #include <string>
+#include <vector>
 
 using namespace bolt::linker;
 
 namespace
 {
-    CommandLineOptions createBaseOptions()
+    std::string buildMissingRuntimeMessage(const std::filesystem::path& runtimeRoot,
+        std::initializer_list<const char*> candidateNames,
+        const std::string& targetTriple)
     {
-        CommandLineOptions options;
-        options.outputPath = "app.exe";
-        options.inputObjects = {"main.obj", "runtime.obj"};
-        options.librarySearchPaths = {"lib", "C:/Bolt/lib"};
-        options.libraries = {"bolt-runtime", "UserProvided.lib"};
-        options.runtimeRootPath = "C:/Bolt/runtime";
-        options.emitKind = EmitKind::Executable;
-        options.targetTriple = "x86_64-pc-windows-msvc";
-        return options;
+        std::vector<std::filesystem::path> searchRoots;
+        searchRoots.push_back(runtimeRoot);
+        searchRoots.push_back(runtimeRoot / "lib");
+        if (!targetTriple.empty())
+        {
+            searchRoots.push_back(runtimeRoot / targetTriple);
+            searchRoots.push_back(runtimeRoot / "lib" / targetTriple);
+        }
+
+        std::string searchRootsMessage;
+        bool firstRoot = true;
+        for (const auto& root : searchRoots)
+        {
+            if (!firstRoot)
+            {
+                searchRootsMessage += ", ";
+            }
+            firstRoot = false;
+
+            searchRootsMessage += "'";
+            searchRootsMessage += root.string();
+            searchRootsMessage += "'";
+        }
+
+        std::string candidateMessage;
+        bool firstCandidate = true;
+        for (const auto* name : candidateNames)
+        {
+            if (!firstCandidate)
+            {
+                candidateMessage += ", ";
+            }
+            firstCandidate = false;
+
+            candidateMessage += "'";
+            candidateMessage += name;
+            candidateMessage += "'";
+        }
+
+        return "runtime root '" + runtimeRoot.string()
+            + "' is missing required runtime archive (searched: " + searchRootsMessage
+            + "; expected one of: " + candidateMessage + ").";
     }
 
-    class LinkerValidationTest : public ::testing::Test
+    class LinkerTestWorkspace : public ::testing::Test
     {
     protected:
         void SetUp() override
@@ -60,6 +96,39 @@ namespace
             return path;
         }
 
+        std::filesystem::path workspace;
+    };
+
+    class LinkerInvocationPlanningTest : public LinkerTestWorkspace
+    {
+    protected:
+        CommandLineOptions createWindowsExecutableOptions()
+        {
+            CommandLineOptions options;
+            options.targetTriple = "x86_64-pc-windows-msvc";
+            options.emitKind = EmitKind::Executable;
+            auto outputDirectory = createDirectory("out");
+            options.outputPath = outputDirectory / "app.exe";
+            options.inputObjects = {createFile("obj/main.obj"), createFile("obj/runtime.obj")};
+            options.librarySearchPaths = {createDirectory("lib"), createDirectory("vendor/lib")};
+            options.libraries = {"UserProvided"};
+
+            auto runtimeDirectory = createDirectory("runtime");
+            createDirectory("runtime/lib");
+            windowsRuntimeLibrary = createFile("runtime/lib/bolt_runtime.lib");
+            airRuntimeLibrary = createFile("runtime/lib/libbolt_runtime.a");
+            options.runtimeRootPath = runtimeDirectory;
+
+            return options;
+        }
+
+        std::filesystem::path windowsRuntimeLibrary;
+        std::filesystem::path airRuntimeLibrary;
+    };
+
+    class LinkerValidationTest : public LinkerTestWorkspace
+    {
+    protected:
         CommandLineOptions createValidOptions()
         {
             CommandLineOptions options;
@@ -68,18 +137,18 @@ namespace
             auto outputDirectory = createDirectory("out");
             options.outputPath = outputDirectory / "app.exe";
             options.inputObjects = {createFile("obj/main.obj")};
-            options.runtimeRootPath = createDirectory("runtime");
+            auto runtimeDirectory = createDirectory("runtime");
+            options.runtimeRootPath = runtimeDirectory;
+            createFile("runtime/lib/bolt_runtime.lib");
             options.librarySearchPaths = {createDirectory("lib")};
             return options;
         }
-
-        std::filesystem::path workspace;
     };
 }
 
-TEST(LinkerInvocationTest, PlansWindowsExecutableInvocation)
+TEST_F(LinkerInvocationPlanningTest, PlansWindowsExecutableInvocation)
 {
-    auto options = createBaseOptions();
+    auto options = createWindowsExecutableOptions();
     auto plan = planLinkerInvocation(options);
 
     ASSERT_FALSE(plan.hasError);
@@ -87,13 +156,39 @@ TEST(LinkerInvocationTest, PlansWindowsExecutableInvocation)
 
     std::vector<std::string> expected{
         "/NOLOGO",
-        "/OUT:app.exe",
-        "/LIBPATH:C:/Bolt/runtime",
-        "/LIBPATH:lib",
-        "/LIBPATH:C:/Bolt/lib",
-        "main.obj",
-        "runtime.obj",
-        "bolt-runtime.lib",
+        std::string{"/OUT:"} + options.outputPath.string(),
+        std::string{"/LIBPATH:"} + options.runtimeRootPath.string(),
+        std::string{"/LIBPATH:"} + options.librarySearchPaths[0].string(),
+        std::string{"/LIBPATH:"} + options.librarySearchPaths[1].string(),
+        options.inputObjects[0].string(),
+        options.inputObjects[1].string(),
+        "UserProvided.lib",
+        windowsRuntimeLibrary.string(),
+    };
+
+    ASSERT_EQ(plan.invocation.arguments.size(), expected.size());
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        EXPECT_EQ(plan.invocation.arguments[index], expected[index]) << "mismatch at index " << index;
+    }
+}
+
+TEST_F(LinkerInvocationPlanningTest, SkipsRuntimeInjectionWhenDisabled)
+{
+    auto options = createWindowsExecutableOptions();
+    options.disableRuntimeInjection = true;
+    options.runtimeRootPath.clear();
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_FALSE(plan.hasError);
+    std::vector<std::string> expected{
+        "/NOLOGO",
+        std::string{"/OUT:"} + options.outputPath.string(),
+        std::string{"/LIBPATH:"} + options.librarySearchPaths[0].string(),
+        std::string{"/LIBPATH:"} + options.librarySearchPaths[1].string(),
+        options.inputObjects[0].string(),
+        options.inputObjects[1].string(),
         "UserProvided.lib",
     };
 
@@ -104,9 +199,20 @@ TEST(LinkerInvocationTest, PlansWindowsExecutableInvocation)
     }
 }
 
-TEST(LinkerInvocationTest, PlansWindowsExecutableWithCustomEntry)
+TEST_F(LinkerInvocationPlanningTest, UsesCustomLinkerExecutableForWindows)
 {
-    auto options = createBaseOptions();
+    auto options = createWindowsExecutableOptions();
+    options.linkerExecutableOverride = "C:/Tools/custom-link.exe";
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_FALSE(plan.hasError);
+    EXPECT_EQ(plan.invocation.executable, std::filesystem::path{"C:/Tools/custom-link.exe"});
+}
+
+TEST_F(LinkerInvocationPlanningTest, PlansWindowsExecutableWithCustomEntry)
+{
+    auto options = createWindowsExecutableOptions();
     options.entryPoint = "BoltStart";
 
     auto plan = planLinkerInvocation(options);
@@ -118,9 +224,9 @@ TEST(LinkerInvocationTest, PlansWindowsExecutableWithCustomEntry)
         plan.invocation.arguments.end());
 }
 
-TEST(LinkerInvocationTest, RejectsUnsupportedEmitKind)
+TEST_F(LinkerInvocationPlanningTest, RejectsUnsupportedEmitKind)
 {
-    auto options = createBaseOptions();
+    auto options = createWindowsExecutableOptions();
     options.emitKind = EmitKind::BoltArchive;
 
     auto plan = planLinkerInvocation(options);
@@ -128,11 +234,11 @@ TEST(LinkerInvocationTest, RejectsUnsupportedEmitKind)
     EXPECT_EQ(plan.errorMessage, "emit kind is not supported for Windows linker planning.");
 }
 
-TEST(LinkerInvocationTest, PlansWindowsStaticLibraryInvocation)
+TEST_F(LinkerInvocationPlanningTest, PlansWindowsStaticLibraryInvocation)
 {
-    auto options = createBaseOptions();
+    auto options = createWindowsExecutableOptions();
     options.emitKind = EmitKind::StaticLibrary;
-    options.outputPath = "runtime.lib";
+    options.outputPath = options.outputPath.parent_path() / "runtime.lib";
 
     auto plan = planLinkerInvocation(options);
 
@@ -141,13 +247,12 @@ TEST(LinkerInvocationTest, PlansWindowsStaticLibraryInvocation)
 
     std::vector<std::string> expected{
         "/NOLOGO",
-        "/OUT:runtime.lib",
-        "/LIBPATH:C:/Bolt/runtime",
-        "/LIBPATH:lib",
-        "/LIBPATH:C:/Bolt/lib",
-        "main.obj",
-        "runtime.obj",
-        "bolt-runtime.lib",
+        std::string{"/OUT:"} + options.outputPath.string(),
+        std::string{"/LIBPATH:"} + options.runtimeRootPath.string(),
+        std::string{"/LIBPATH:"} + options.librarySearchPaths[0].string(),
+        std::string{"/LIBPATH:"} + options.librarySearchPaths[1].string(),
+        options.inputObjects[0].string(),
+        options.inputObjects[1].string(),
         "UserProvided.lib",
     };
 
@@ -158,9 +263,22 @@ TEST(LinkerInvocationTest, PlansWindowsStaticLibraryInvocation)
     }
 }
 
-TEST(LinkerInvocationTest, RejectsAirTargetWithoutAirEmitKind)
+TEST_F(LinkerInvocationPlanningTest, UsesCustomArchiverForWindowsLibraries)
 {
-    auto options = createBaseOptions();
+    auto options = createWindowsExecutableOptions();
+    options.emitKind = EmitKind::StaticLibrary;
+    options.outputPath = options.outputPath.parent_path() / "runtime.lib";
+    options.archiverExecutableOverride = "C:/Tools/custom-lib.exe";
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_FALSE(plan.hasError);
+    EXPECT_EQ(plan.invocation.executable, std::filesystem::path{"C:/Tools/custom-lib.exe"});
+}
+
+TEST_F(LinkerInvocationPlanningTest, RejectsAirTargetWithoutAirEmitKind)
+{
+    auto options = createWindowsExecutableOptions();
     options.targetTriple = "x86_64-air-bolt";
 
     auto plan = planLinkerInvocation(options);
@@ -168,9 +286,9 @@ TEST(LinkerInvocationTest, RejectsAirTargetWithoutAirEmitKind)
     EXPECT_EQ(plan.errorMessage, "emit kind is not supported for Air linker planning.");
 }
 
-TEST(LinkerInvocationTest, RejectsAirTargetWithoutLinkerScript)
+TEST_F(LinkerInvocationPlanningTest, RejectsAirTargetWithoutLinkerScript)
 {
-    auto options = createBaseOptions();
+    auto options = createWindowsExecutableOptions();
     options.targetTriple = "x86_64-air-bolt";
     options.emitKind = EmitKind::AirImage;
 
@@ -179,13 +297,100 @@ TEST(LinkerInvocationTest, RejectsAirTargetWithoutLinkerScript)
     EXPECT_EQ(plan.errorMessage, "linker script is required when targeting x86_64-air-bolt.");
 }
 
-TEST(LinkerInvocationTest, PlansAirImageInvocation)
+TEST_F(LinkerInvocationPlanningTest, RejectsWindowsExecutableWhenRuntimeLibraryMissing)
 {
-    auto options = createBaseOptions();
+    auto options = createWindowsExecutableOptions();
+    std::error_code ec;
+    std::filesystem::remove(windowsRuntimeLibrary, ec);
+    std::filesystem::remove(airRuntimeLibrary, ec);
+
+    auto plan = planLinkerInvocation(options);
+    ASSERT_TRUE(plan.hasError);
+    EXPECT_EQ(plan.errorMessage,
+        buildMissingRuntimeMessage(options.runtimeRootPath,
+            {"bolt_runtime.lib", "libbolt_runtime.a"},
+            options.targetTriple));
+}
+
+TEST_F(LinkerInvocationPlanningTest, RejectsAirInvocationWithoutRuntimeRoot)
+{
+    auto options = createWindowsExecutableOptions();
     options.targetTriple = "x86_64-air-bolt";
     options.emitKind = EmitKind::AirImage;
-    options.outputPath = "kernel.air";
-    options.linkerScriptPath = "scripts/bolt_air.ld";
+    options.outputPath = options.outputPath.parent_path() / "kernel.air";
+    options.linkerScriptPath = options.outputPath.parent_path() / "bolt_air.ld";
+    options.runtimeRootPath.clear();
+
+    auto plan = planLinkerInvocation(options);
+    ASSERT_TRUE(plan.hasError);
+    EXPECT_EQ(plan.errorMessage, "Air images require --runtime-root to locate runtime stubs.");
+}
+
+TEST_F(LinkerInvocationPlanningTest, PlansAirInvocationWithoutRuntimeWhenDisabled)
+{
+    auto options = createWindowsExecutableOptions();
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::AirImage;
+    options.outputPath = options.outputPath.parent_path() / "kernel.air";
+    options.linkerScriptPath = options.outputPath.parent_path() / "bolt_air.ld";
+    options.runtimeRootPath.clear();
+    options.disableRuntimeInjection = true;
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_FALSE(plan.hasError);
+    std::vector<std::string> expected{
+        "-nostdlib",
+        "-static",
+        "--gc-sections",
+        "--no-undefined",
+        "-o",
+        options.outputPath.string(),
+        "-T",
+        options.linkerScriptPath.string(),
+        "-e",
+        "_start",
+        std::string{"-L"} + options.librarySearchPaths[0].string(),
+        std::string{"-L"} + options.librarySearchPaths[1].string(),
+        options.inputObjects[0].string(),
+        options.inputObjects[1].string(),
+        "-lUserProvided",
+    };
+
+    ASSERT_EQ(plan.invocation.arguments.size(), expected.size());
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        EXPECT_EQ(plan.invocation.arguments[index], expected[index]) << "mismatch at index " << index;
+    }
+}
+
+TEST_F(LinkerInvocationPlanningTest, RejectsAirInvocationWhenRuntimeLibraryMissing)
+{
+    auto options = createWindowsExecutableOptions();
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::AirImage;
+    options.outputPath = options.outputPath.parent_path() / "kernel.air";
+    options.linkerScriptPath = options.outputPath.parent_path() / "bolt_air.ld";
+    std::error_code ec;
+    std::filesystem::remove(airRuntimeLibrary, ec);
+    std::filesystem::remove(windowsRuntimeLibrary, ec);
+
+    auto plan = planLinkerInvocation(options);
+    ASSERT_TRUE(plan.hasError);
+    EXPECT_EQ(plan.errorMessage,
+        buildMissingRuntimeMessage(options.runtimeRootPath,
+            {"libbolt_runtime.a", "bolt_runtime.lib"},
+            options.targetTriple));
+}
+
+TEST_F(LinkerInvocationPlanningTest, PlansAirImageInvocation)
+{
+    auto options = createWindowsExecutableOptions();
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::AirImage;
+    options.outputPath = options.outputPath.parent_path() / "kernel.air";
+    options.linkerScriptPath = options.outputPath.parent_path() / "bolt_air.ld";
+    options.entryPoint.clear();
 
     auto plan = planLinkerInvocation(options);
 
@@ -198,18 +403,18 @@ TEST(LinkerInvocationTest, PlansAirImageInvocation)
         "--gc-sections",
         "--no-undefined",
         "-o",
-        "kernel.air",
+        options.outputPath.string(),
         "-T",
-        "scripts/bolt_air.ld",
+        options.linkerScriptPath.string(),
         "-e",
         "_start",
-        "-LC:/Bolt/runtime",
-        "-Llib",
-        "-LC:/Bolt/lib",
-        "main.obj",
-        "runtime.obj",
-        "-lbolt-runtime",
-        "UserProvided.lib",
+        std::string{"-L"} + options.runtimeRootPath.string(),
+        std::string{"-L"} + options.librarySearchPaths[0].string(),
+        std::string{"-L"} + options.librarySearchPaths[1].string(),
+        options.inputObjects[0].string(),
+        options.inputObjects[1].string(),
+        "-lUserProvided",
+        airRuntimeLibrary.string(),
     };
 
     ASSERT_EQ(plan.invocation.arguments.size(), expected.size());
@@ -219,13 +424,28 @@ TEST(LinkerInvocationTest, PlansAirImageInvocation)
     }
 }
 
-TEST(LinkerInvocationTest, PlansAirImageWithCustomEntry)
+TEST_F(LinkerInvocationPlanningTest, UsesCustomLinkerExecutableForAirImages)
 {
-    auto options = createBaseOptions();
+    auto options = createWindowsExecutableOptions();
     options.targetTriple = "x86_64-air-bolt";
     options.emitKind = EmitKind::AirImage;
-    options.outputPath = "kernel.air";
-    options.linkerScriptPath = "scripts/bolt_air.ld";
+    options.outputPath = options.outputPath.parent_path() / "kernel.air";
+    options.linkerScriptPath = options.outputPath.parent_path() / "bolt_air.ld";
+    options.linkerExecutableOverride = "/opt/bolt/bin/custom-ld";
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_FALSE(plan.hasError);
+    EXPECT_EQ(plan.invocation.executable, std::filesystem::path{"/opt/bolt/bin/custom-ld"});
+}
+
+TEST_F(LinkerInvocationPlanningTest, PlansAirImageWithCustomEntry)
+{
+    auto options = createWindowsExecutableOptions();
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::AirImage;
+    options.outputPath = options.outputPath.parent_path() / "kernel.air";
+    options.linkerScriptPath = options.outputPath.parent_path() / "bolt_air.ld";
     options.entryPoint = "boot";
 
     auto plan = planLinkerInvocation(options);
@@ -267,6 +487,21 @@ TEST(LinkerInvocationTest, PlansAirBoltArchiveInvocation)
     }
 }
 
+TEST(LinkerInvocationTest, UsesCustomArchiverForBoltArchives)
+{
+    CommandLineOptions options;
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::BoltArchive;
+    options.outputPath = "libbolt.zap";
+    options.inputObjects = {"module.o", "runtime.o"};
+    options.archiverExecutableOverride = "/opt/bolt/bin/custom-ar";
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_FALSE(plan.hasError);
+    EXPECT_EQ(plan.invocation.executable, std::filesystem::path{"/opt/bolt/bin/custom-ar"});
+}
+
 TEST(LinkerInvocationTest, RejectsBoltArchiveWithLibraryFlags)
 {
     CommandLineOptions options;
@@ -294,6 +529,30 @@ TEST_F(LinkerValidationTest, ReportsMissingImportBundle)
     EXPECT_EQ(result.errorMessage, "import bundle '" + options.importBundlePath.string() + "' was not found.");
 }
 
+TEST_F(LinkerValidationTest, ReportsMissingLinkerOverride)
+{
+    auto options = createValidOptions();
+    options.linkerExecutableOverride = workspace / "missing-link.exe";
+
+    auto result = validateLinkerInputs(options, false);
+    ASSERT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage,
+        "linker executable '" + options.linkerExecutableOverride.string() + "' was not found.");
+}
+
+TEST_F(LinkerValidationTest, ReportsMissingArchiverOverride)
+{
+    auto options = createValidOptions();
+    options.emitKind = EmitKind::StaticLibrary;
+    options.outputPath = options.outputPath.parent_path() / "runtime.lib";
+    options.archiverExecutableOverride = workspace / "missing-lib.exe";
+
+    auto result = validateLinkerInputs(options, false);
+    ASSERT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage,
+        "archiver executable '" + options.archiverExecutableOverride.string() + "' was not found.");
+}
+
 TEST_F(LinkerValidationTest, ReportsRuntimeRootThatIsNotADirectory)
 {
     auto options = createValidOptions();
@@ -303,6 +562,77 @@ TEST_F(LinkerValidationTest, ReportsRuntimeRootThatIsNotADirectory)
     auto result = validateLinkerInputs(options, false);
     ASSERT_TRUE(result.hasError);
     EXPECT_EQ(result.errorMessage, "runtime root '" + filePath.string() + "' is not a directory.");
+}
+
+TEST_F(LinkerValidationTest, ReportsMissingRuntimeLibraryForWindowsExecutable)
+{
+    auto options = createValidOptions();
+    auto runtimeLibrary = options.runtimeRootPath / "lib" / "bolt_runtime.lib";
+    std::error_code ec;
+    std::filesystem::remove(runtimeLibrary, ec);
+
+    auto result = validateLinkerInputs(options, false);
+    ASSERT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage,
+        buildMissingRuntimeMessage(options.runtimeRootPath,
+            {"bolt_runtime.lib", "libbolt_runtime.a"},
+            options.targetTriple));
+}
+
+TEST_F(LinkerValidationTest, AllowsWindowsExecutableWithoutRuntimeWhenDisabled)
+{
+    auto options = createValidOptions();
+    options.disableRuntimeInjection = true;
+    auto runtimeLibrary = options.runtimeRootPath / "lib" / "bolt_runtime.lib";
+    std::error_code ec;
+    std::filesystem::remove(runtimeLibrary, ec);
+
+    auto result = validateLinkerInputs(options, false);
+    EXPECT_FALSE(result.hasError);
+}
+
+TEST_F(LinkerValidationTest, ReportsMissingRuntimeRootForAirImages)
+{
+    auto options = createValidOptions();
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::AirImage;
+    options.runtimeRootPath.clear();
+    options.linkerScriptPath = createFile("scripts/air.ld");
+
+    auto result = validateLinkerInputs(options, false);
+    ASSERT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "Air images require --runtime-root to locate runtime stubs.");
+}
+
+TEST_F(LinkerValidationTest, AllowsAirImageWithoutRuntimeWhenDisabled)
+{
+    auto options = createValidOptions();
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::AirImage;
+    options.runtimeRootPath.clear();
+    options.linkerScriptPath = createFile("scripts/air.ld");
+    options.disableRuntimeInjection = true;
+
+    auto result = validateLinkerInputs(options, false);
+    EXPECT_FALSE(result.hasError);
+}
+
+TEST_F(LinkerValidationTest, ReportsMissingRuntimeLibraryForAirImages)
+{
+    auto options = createValidOptions();
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::AirImage;
+    options.linkerScriptPath = createFile("scripts/air.ld");
+    auto runtimeLibrary = options.runtimeRootPath / "lib" / "bolt_runtime.lib";
+    std::error_code ec;
+    std::filesystem::remove(runtimeLibrary, ec);
+
+    auto result = validateLinkerInputs(options, false);
+    ASSERT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage,
+        buildMissingRuntimeMessage(options.runtimeRootPath,
+            {"libbolt_runtime.a", "bolt_runtime.lib"},
+            options.targetTriple));
 }
 
 TEST_F(LinkerValidationTest, ReportsMissingOutputDirectory)

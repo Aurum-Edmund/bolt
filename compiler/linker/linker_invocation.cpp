@@ -1,8 +1,12 @@
 #include "linker_invocation.hpp"
 
+#include <algorithm>
+#include <initializer_list>
+#include <optional>
 #include <system_error>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace bolt
 {
@@ -66,8 +70,145 @@ namespace linker
             return path.string();
         }
 
+        struct RuntimeLibraryLookupResult
+        {
+            std::optional<std::filesystem::path> path;
+            bool hasError{false};
+            std::string errorMessage;
+        };
+
+        std::optional<std::filesystem::path> findExistingFile(
+            const std::vector<std::filesystem::path>& searchRoots,
+            std::initializer_list<const char*> candidateNames)
+        {
+            for (const auto& root : searchRoots)
+            {
+                if (root.empty())
+                {
+                    continue;
+                }
+
+                for (const auto* name : candidateNames)
+                {
+                    if (name == nullptr || *name == '\0')
+                    {
+                        continue;
+                    }
+
+                    std::filesystem::path candidate = root / name;
+                    std::error_code error;
+                    if (std::filesystem::exists(candidate, error) && !error)
+                    {
+                        return candidate;
+                    }
+                }
+            }
+
+            return std::nullopt;
+        }
+
+        std::string joinSearchRoots(const std::vector<std::filesystem::path>& searchRoots)
+        {
+            std::string result;
+            bool first = true;
+            for (const auto& root : searchRoots)
+            {
+                if (root.empty())
+                {
+                    continue;
+                }
+
+                if (!first)
+                {
+                    result += ", ";
+                }
+                first = false;
+
+                result += "'";
+                result += root.string();
+                result += "'";
+            }
+            return result;
+        }
+
+        std::string joinCandidateNames(std::initializer_list<const char*> candidateNames)
+        {
+            std::string result;
+            bool first = true;
+            for (const auto* name : candidateNames)
+            {
+                if (name == nullptr || *name == '\0')
+                {
+                    continue;
+                }
+
+                if (!first)
+                {
+                    result += ", ";
+                }
+                first = false;
+
+                result += "'";
+                result += name;
+                result += "'";
+            }
+            return result;
+        }
+
+        RuntimeLibraryLookupResult locateRuntimeLibrary(const CommandLineOptions& options,
+            std::initializer_list<const char*> candidateNames,
+            bool requireRuntimeRoot,
+            std::string_view requirementDescription)
+        {
+            RuntimeLibraryLookupResult result;
+
+            if (options.disableRuntimeInjection)
+            {
+                return result;
+            }
+
+            if (options.runtimeRootPath.empty())
+            {
+                if (requireRuntimeRoot)
+                {
+                    result.hasError = true;
+                    result.errorMessage = std::string{requirementDescription}
+                        + " require --runtime-root to locate runtime stubs.";
+                }
+                return result;
+            }
+
+            std::vector<std::filesystem::path> searchRoots;
+            searchRoots.push_back(options.runtimeRootPath);
+            searchRoots.push_back(options.runtimeRootPath / "lib");
+            if (!options.targetTriple.empty())
+            {
+                searchRoots.push_back(options.runtimeRootPath / options.targetTriple);
+                searchRoots.push_back(options.runtimeRootPath / "lib" / options.targetTriple);
+            }
+
+            auto libraryPath = findExistingFile(searchRoots, candidateNames);
+            if (!libraryPath.has_value())
+            {
+                result.hasError = true;
+                result.errorMessage = "runtime root '" + options.runtimeRootPath.string()
+                    + "' is missing required runtime archive (searched: "
+                    + joinSearchRoots(searchRoots) + "; expected one of: "
+                    + joinCandidateNames(candidateNames) + ").";
+                return result;
+            }
+
+            result.path = std::move(*libraryPath);
+            return result;
+        }
+
         std::filesystem::path resolveWindowsLinkerExecutable(const CommandLineOptions& options)
         {
+            if (!options.linkerExecutableOverride.empty())
+            {
+                return options.linkerExecutableOverride;
+            }
+
             if (!options.sysrootPath.empty())
             {
                 return options.sysrootPath / "bin" / "link.exe";
@@ -78,6 +219,11 @@ namespace linker
 
         std::filesystem::path resolveWindowsLibraryManagerExecutable(const CommandLineOptions& options)
         {
+            if (!options.archiverExecutableOverride.empty())
+            {
+                return options.archiverExecutableOverride;
+            }
+
             if (!options.sysrootPath.empty())
             {
                 return options.sysrootPath / "bin" / "lib.exe";
@@ -88,6 +234,11 @@ namespace linker
 
         std::filesystem::path resolveAirLinkerExecutable(const CommandLineOptions& options)
         {
+            if (!options.linkerExecutableOverride.empty())
+            {
+                return options.linkerExecutableOverride;
+            }
+
             if (!options.sysrootPath.empty())
             {
                 return options.sysrootPath / "bin" / "ld.lld";
@@ -98,6 +249,11 @@ namespace linker
 
         std::filesystem::path resolveAirArchiverExecutable(const CommandLineOptions& options)
         {
+            if (!options.archiverExecutableOverride.empty())
+            {
+                return options.archiverExecutableOverride;
+            }
+
             if (!options.sysrootPath.empty())
             {
                 return options.sysrootPath / "bin" / "llvm-ar";
@@ -143,6 +299,30 @@ namespace linker
             for (const auto& library : options.libraries)
             {
                 invocation.arguments.emplace_back(formatWindowsLibraryName(library));
+            }
+
+            if (!options.disableRuntimeInjection)
+            {
+                auto runtimeLibrary = locateRuntimeLibrary(options,
+                    {"bolt_runtime.lib", "libbolt_runtime.a"},
+                    false,
+                    "Windows executables");
+                if (runtimeLibrary.hasError)
+                {
+                    result.hasError = true;
+                    result.errorMessage = runtimeLibrary.errorMessage;
+                    return result;
+                }
+
+                if (runtimeLibrary.path.has_value())
+                {
+                    const std::string runtimeArgument = formatPathArgument(*runtimeLibrary.path);
+                    if (std::find(invocation.arguments.begin(), invocation.arguments.end(), runtimeArgument)
+                        == invocation.arguments.end())
+                    {
+                        invocation.arguments.emplace_back(runtimeArgument);
+                    }
+                }
             }
 
             result.invocation = std::move(invocation);
@@ -243,6 +423,30 @@ namespace linker
             for (const auto& library : options.libraries)
             {
                 invocation.arguments.emplace_back(formatAirLibraryArgument(library));
+            }
+
+            if (!options.disableRuntimeInjection)
+            {
+                auto runtimeLibrary = locateRuntimeLibrary(options,
+                    {"libbolt_runtime.a", "bolt_runtime.lib"},
+                    true,
+                    "Air images");
+                if (runtimeLibrary.hasError)
+                {
+                    result.hasError = true;
+                    result.errorMessage = runtimeLibrary.errorMessage;
+                    return result;
+                }
+
+                if (runtimeLibrary.path.has_value())
+                {
+                    const std::string runtimeArgument = formatPathArgument(*runtimeLibrary.path);
+                    if (std::find(invocation.arguments.begin(), invocation.arguments.end(), runtimeArgument)
+                        == invocation.arguments.end())
+                    {
+                        invocation.arguments.emplace_back(runtimeArgument);
+                    }
+                }
             }
 
             result.invocation = std::move(invocation);
@@ -386,6 +590,24 @@ namespace linker
 
         auto checkResult = LinkerValidationResult{};
 
+        if (!options.linkerExecutableOverride.empty())
+        {
+            checkResult = requireRegularFile(options.linkerExecutableOverride, "linker executable");
+            if (checkResult.hasError)
+            {
+                return checkResult;
+            }
+        }
+
+        if (!options.archiverExecutableOverride.empty())
+        {
+            checkResult = requireRegularFile(options.archiverExecutableOverride, "archiver executable");
+            if (checkResult.hasError)
+            {
+                return checkResult;
+            }
+        }
+
         if (!options.entryPoint.empty()
             && options.emitKind != EmitKind::Executable
             && options.emitKind != EmitKind::AirImage)
@@ -434,6 +656,40 @@ namespace linker
             {
                 return checkResult;
             }
+
+            if (!options.disableRuntimeInjection
+                && options.targetTriple == "x86_64-pc-windows-msvc"
+                && options.emitKind == EmitKind::Executable)
+            {
+                auto runtimeLibrary = locateRuntimeLibrary(options,
+                    {"bolt_runtime.lib", "libbolt_runtime.a"},
+                    false,
+                    "Windows executables");
+                if (runtimeLibrary.hasError)
+                {
+                    return createValidationError(runtimeLibrary.errorMessage);
+                }
+            }
+
+            if (!options.disableRuntimeInjection
+                && options.targetTriple == "x86_64-air-bolt"
+                && options.emitKind == EmitKind::AirImage)
+            {
+                auto runtimeLibrary = locateRuntimeLibrary(options,
+                    {"libbolt_runtime.a", "bolt_runtime.lib"},
+                    false,
+                    "Air images");
+                if (runtimeLibrary.hasError)
+                {
+                    return createValidationError(runtimeLibrary.errorMessage);
+                }
+            }
+        }
+        else if (!options.disableRuntimeInjection
+            && options.targetTriple == "x86_64-air-bolt"
+            && options.emitKind == EmitKind::AirImage)
+        {
+            return createValidationError("Air images require --runtime-root to locate runtime stubs.");
         }
 
         for (const auto& libraryPath : options.librarySearchPaths)

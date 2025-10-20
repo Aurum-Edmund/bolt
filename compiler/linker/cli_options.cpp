@@ -198,6 +198,12 @@ namespace linker
                 continue;
             }
 
+            if (argument == "--no-runtime")
+            {
+                result.options.disableRuntimeInjection = true;
+                continue;
+            }
+
             if (auto runtimeValue = parseOptionWithValue(argument, "--runtime-root", index, argc, argv, result))
             {
                 if (result.hasError)
@@ -225,6 +231,42 @@ namespace linker
                     return result;
                 }
                 result.options.importBundlePath = std::filesystem::path{*bundleValue};
+                continue;
+            }
+
+            if (auto linkerValue = parseOptionWithValue(argument, "--linker", index, argc, argv, result))
+            {
+                if (result.hasError)
+                {
+                    return result;
+                }
+
+                if (linkerValue->empty())
+                {
+                    result.hasError = true;
+                    result.errorMessage = "--linker requires a path.";
+                    return result;
+                }
+
+                result.options.linkerExecutableOverride = std::filesystem::path{*linkerValue};
+                continue;
+            }
+
+            if (auto archiverValue = parseOptionWithValue(argument, "--archiver", index, argc, argv, result))
+            {
+                if (result.hasError)
+                {
+                    return result;
+                }
+
+                if (archiverValue->empty())
+                {
+                    result.hasError = true;
+                    result.errorMessage = "--archiver requires a path.";
+                    return result;
+                }
+
+                result.options.archiverExecutableOverride = std::filesystem::path{*archiverValue};
                 continue;
             }
 
@@ -344,6 +386,13 @@ namespace linker
                 result.hasError = true;
                 result.errorMessage
                     = "--entry is only supported when emitting executables or Air images.";
+                return result;
+            }
+
+            if (result.options.disableRuntimeInjection && result.options.emitKind == EmitKind::BoltArchive)
+            {
+                result.hasError = true;
+                result.errorMessage = "--no-runtime is only meaningful for executables or Air images.";
                 return result;
             }
         }

@@ -52,6 +52,11 @@
 - Linker CLI exposes `--entry` overrides, passing custom entry symbols through Windows (`/ENTRY`) and Air (`-e`) command planners with documentation and unit tests updated accordingly.
 - Linker CLI rejects entry overrides for static libraries or Bolt archives so the flag never silently applies to unsupported emit kinds.
 - Repository housekeeping keeps the local `master` branch aligned with the active Stage-0 work tip to avoid divergence during follow-up sessions.
+- Linker CLI honors explicit `--linker`/`--archiver` overrides, validates the overridden executables, and covers the behavior with planner and CLI unit tests.
+- Linker wrapper requires runtime roots for Air images, auto-injects the Bolt runtime archive for Air/Windows executables, and reports missing runtime libraries up front with dedicated unit coverage.
+- Runtime root detection searches `lib/` and triple-qualified folders so packaged SDK layouts resolve Bolt runtime archives without manual intervention, with docs/tests covering the expanded lookup.
+- Linker CLI now honors `--no-runtime`, skipping runtime archive validation/injection for executables and Air images while planners, validators, and docs capture the override behavior.
+- Runtime library now ships atomic load/store/exchange/compare-exchange helpers for 32-bit and 64-bit values with cross-platform unit coverage, paving the way for MIR SSA and Live passes that require atomic intrinsics.
 
 ---
 

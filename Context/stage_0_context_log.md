@@ -46,9 +46,14 @@
 - Linker CLI now rejects entry overrides for static libraries or Bolt archives, with validation and unit coverage preventing the flag from acting as a silent no-op.
 - Driver now emits canonical JSON import bundles via `--emit-import-bundle`, guards single-module usage, and ships unit tests covering manifest structure and status serialization.
 - Confirmed the local `master` branch points at the Stage-0 work tip so future syncs start from an aligned history without stale divergence.
+- Linker CLI now accepts explicit `--linker`/`--archiver` overrides, threads them through command planning, and validates the overridden executables before launch for both Windows and Air toolchains.
+- Linker wrapper now requires a runtime root for Air images, auto-detects the Bolt runtime archive, and injects it for Air and Windows executables with unit coverage guarding missing-runtime diagnostics.
+- Runtime root discovery now probes `lib/` and triple-qualified subdirectories so packaged SDK layouts resolve Bolt runtime archives without extra flags, with updated unit coverage and documentation.
+- Linker CLI now exposes `--no-runtime`, allowing executables and Air images to bypass Bolt runtime injection while keeping planners and validators aware of the override, with fresh unit coverage and documentation updates.
+- Runtime library now provides atomic load/store/exchange/compare-exchange helpers for 32-bit and 64-bit values with MSVC interlocked fallbacks and cross-platform unit coverage, preparing Stage-0 for future SSA and Live passes that require atomic intrinsics.
 
 ## Progress Metric
-- **Estimated Stage-0 completion:** ~63?%
+- **Estimated Stage-0 completion:** ~69?%
 
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).
