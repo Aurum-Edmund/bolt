@@ -386,6 +386,14 @@ namespace linker
 
         auto checkResult = LinkerValidationResult{};
 
+        if (!options.entryPoint.empty()
+            && options.emitKind != EmitKind::Executable
+            && options.emitKind != EmitKind::AirImage)
+        {
+            return createValidationError(
+                "entry overrides are only supported when emitting executables or Air images.");
+        }
+
         if (!options.linkerScriptPath.empty())
         {
             checkResult = requireRegularFile(options.linkerScriptPath, "linker script");

@@ -348,3 +348,35 @@ TEST_F(LinkerValidationTest, RejectsBoltArchiveLibraryFlags)
         "library search paths (-L) are not supported when emitting Bolt archives.");
 }
 
+TEST_F(LinkerValidationTest, RejectsEntryOverrideForStaticLibrary)
+{
+    auto options = createValidOptions();
+    options.emitKind = EmitKind::StaticLibrary;
+    options.outputPath = options.outputPath.parent_path() / "runtime.lib";
+    options.entryPoint = "StaticStart";
+
+    auto result = validateLinkerInputs(options, false);
+
+    ASSERT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage,
+        "entry overrides are only supported when emitting executables or Air images.");
+}
+
+TEST_F(LinkerValidationTest, RejectsEntryOverrideForBoltArchive)
+{
+    auto options = createValidOptions();
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::BoltArchive;
+    options.outputPath = options.outputPath.parent_path() / "runtime.zap";
+    options.inputObjects = {createFile("obj/runtime.o")};
+    options.librarySearchPaths.clear();
+    options.libraries.clear();
+    options.entryPoint = "ArchiveStart";
+
+    auto result = validateLinkerInputs(options, false);
+
+    ASSERT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage,
+        "entry overrides are only supported when emitting executables or Air images.");
+}
+

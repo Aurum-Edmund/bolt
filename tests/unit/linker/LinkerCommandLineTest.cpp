@@ -107,6 +107,14 @@ TEST(LinkerCommandLineTest, RejectsEmptyEntrySymbol)
     EXPECT_EQ(result.errorMessage, "--entry requires a symbol name.");
 }
 
+TEST(LinkerCommandLineTest, RejectsEntryForStaticLibraryEmit)
+{
+    auto result = parse({"bolt-ld", "--emit=lib", "--entry=StaticStart", "-o", "runtime.lib", "runtime.obj"});
+
+    EXPECT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "--entry is only supported when emitting executables or Air images.");
+}
+
 TEST(LinkerCommandLineTest, RejectsUnknownEmitKind)
 {
     auto result = parse({"bolt-ld", "--emit=bin", "-o", "app.exe", "app.obj"});

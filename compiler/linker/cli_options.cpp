@@ -336,6 +336,16 @@ namespace linker
                 }
                 break;
             }
+
+            if (!result.options.entryPoint.empty()
+                && result.options.emitKind != EmitKind::Executable
+                && result.options.emitKind != EmitKind::AirImage)
+            {
+                result.hasError = true;
+                result.errorMessage
+                    = "--entry is only supported when emitting executables or Air images.";
+                return result;
+            }
         }
 
         return result;
