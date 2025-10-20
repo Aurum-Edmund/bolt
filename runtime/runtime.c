@@ -36,8 +36,6 @@ void* bolt_memory_copy(void* destination, const void* source, size_t bytes)
     return destination;
 }
 
-#undef BOLT_NORETURN
-
 void* bolt_memory_fill(void* destination, int value, size_t bytes)
 {
     unsigned char* dst = (unsigned char*)destination;
@@ -58,3 +56,5 @@ BOLT_NORETURN void _start(void)
     bolt_panic_abort("start returned");
 }
 #endif
+
+#undef BOLT_NORETURN
