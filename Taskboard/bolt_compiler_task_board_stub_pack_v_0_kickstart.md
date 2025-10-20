@@ -65,6 +65,7 @@
 - Import resolver now threads canonical module paths through MIR resolved-import metadata, driver notices, and JSON import bundles with dedicated regression coverage guarding the canonical flow.
 - MIR pass library exposes a control-flow graph builder that records block predecessors and successors from terminator metadata, with linear and branching unit tests priming SSA construction.
 - MIR pass library now ships a dominator tree builder with immediate-dominator edges, dominance queries, and regression tests to unblock the SSA conversion pass stack.
+- MIR pass library now ships a dominance frontier builder that combines the control-flow graph and dominator tree, with diamond and loop regression tests keeping SSA placement data stable.
 
 ---
 

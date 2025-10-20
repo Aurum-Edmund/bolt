@@ -60,9 +60,10 @@
 - Import resolver now records canonical module paths for resolved imports, threads them through MIR metadata, driver notices, and JSON import bundles, and ships regression coverage to guard the canonical wiring.
 - MIR pass library now includes a control-flow graph builder that captures block predecessors/successors from branch terminators, with unit tests covering linear and branching shapes to prepare SSA analysis.
 - MIR pass library now computes dominator trees with immediate-dominator relationships and dominance queries, priming the SSA conversion pass stack with dedicated unit coverage.
+- MIR pass library now computes dominance frontiers from the control-flow graph and dominator tree, covering diamond and loop shapes with unit tests so SSA construction has placement data ready.
 
 ## Progress Metric
-- **Estimated Stage-0 completion:** ~84?%
+- **Estimated Stage-0 completion:** ~85?%
 
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).
