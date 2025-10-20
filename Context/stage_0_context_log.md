@@ -35,6 +35,7 @@
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).
 - Expand MIR Live enforcement beyond baseline structural checks and implement SSA conversion passes.
+- Implement MIR Live enforcement and SSA conversion passes.
 
 ## Notes
 - Use the task board (`../Taskboard/bolt_compiler_task_board_stub_pack_v_0_kickstart.md`) to log task state and checklist progress.
