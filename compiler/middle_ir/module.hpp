@@ -58,6 +58,16 @@ namespace bolt::mir
     struct Function
     {
         std::string name;
+        struct Parameter
+        {
+            std::string typeName;
+            std::string name;
+            bool isLive{false};
+        };
+        std::vector<Parameter> parameters;
+        bool hasReturnType{false};
+        std::string returnType;
+        bool returnIsLive{false};
         std::vector<BasicBlock> blocks;
         std::uint32_t nextBlockId{0};
         std::uint32_t nextValueId{0};
