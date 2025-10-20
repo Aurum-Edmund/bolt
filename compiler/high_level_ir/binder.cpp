@@ -291,7 +291,7 @@ std::optional<std::uint64_t> Binder::parseUnsigned(const bolt::frontend::Attribu
 
 void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std::string& subject, const SourceSpan& span)
 {
-    constexpr std::string_view qualifier = "Live";
+    constexpr std::string_view qualifier = "live";
     if (typeRef.text.rfind(qualifier, 0) != 0)
     {
         return;
@@ -301,7 +301,7 @@ void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std:
     const auto first = remainder.find_first_not_of(" \t\r\n");
     if (first == std::string::npos)
     {
-        emitError("BOLT-E2217", "Live qualifier on " + subject + " must reference a concrete type.", span);
+        emitError("BOLT-E2217", "live qualifier on " + subject + " must reference a concrete type.", span);
         return;
     }
     const auto last = remainder.find_last_not_of(" \t\r\n");

@@ -22,6 +22,7 @@ namespace bolt::hir
     {
         std::string modulePath;
         ImportStatus status{ImportStatus::Pending};
+        std::optional<std::string> canonicalModulePath;
         std::optional<std::string> resolvedFilePath;
     };
 
