@@ -6,12 +6,6 @@
 #    include <intrin.h>
 #endif
 
-#if defined(_MSC_VER)
-#    define BOLT_NORETURN __declspec(noreturn)
-#else
-#    define BOLT_NORETURN __attribute__((noreturn))
-#endif
-
 BOLT_NORETURN void bolt_panic_abort(const char* message)
 {
     (void)message;

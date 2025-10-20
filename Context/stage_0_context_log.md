@@ -29,6 +29,7 @@
 - Runtime stub plan expanded with `_start` flow, testing strategy, and linker integration notes to guide upcoming implementation.
 - Live enforcement pass now enforces baseline invariants for Live-qualified functions, reports structured diagnostics (`BOLT-E4101`), surfaces them through the driver, and validates that Live-qualified basic blocks end with terminators.
 - Front-end parser sources normalized to Unix newlines to eliminate stray include warnings during builds.
+- Runtime panic/entry helpers share the common `BOLT_NORETURN` macro from `runtime.h`, cleaning up duplicate definitions after merge resolution.
 
 ## Progress Metric
 - **Estimated Stage-0 completion:** ~55?%

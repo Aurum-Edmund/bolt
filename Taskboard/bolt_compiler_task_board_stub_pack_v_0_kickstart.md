@@ -35,6 +35,7 @@
 - MIR lowering and canonicalization emit type-first parameter and field descriptors with default scalar aliases (e.g., `integer value`).
 - Parser accepts type-first source syntax with return types preceding `function`, keeping source and MIR canonical formats consistent.
 - Parser sources normalized to consistent Unix newlines to keep builds warning-free across toolchains.
+- Runtime panic helper and freestanding entry point now reuse the shared `BOLT_NORETURN` definition to avoid duplicate macros after conflict merges.
 - Driver CLI accepts `--import-root` entries and search roots flow into module locator (unit tested).
 
 ---
