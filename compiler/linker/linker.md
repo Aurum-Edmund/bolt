@@ -43,7 +43,9 @@ The Stage-0 wrapper now exposes a deterministic set of options that mirror the p
 | `--verbose` | Emits the constructed linker command line resolved by the wrapper before launching the platform linker. |
 | `--dry-run` | Resolves inputs without launching the platform linker. |
 
-Basic validation ensures required arguments are present, targets are recognised, and unsupported artifact kinds are rejected. The wrapper now materialises command plans for the Windows toolchain (`link.exe` by default, or `${sysroot}/bin/link.exe` when a sysroot is supplied) and the freestanding Air flow (`ld.lld`, optionally from `${sysroot}/bin/ld.lld`). Planned commands are printed when `--verbose` or `--dry-run` is provided. Stage‑0 still requires the host linker to be present on the PATH; if it is missing the wrapper reports an actionable diagnostic rather than silently succeeding.
+Basic validation ensures required arguments are present, targets are recognised, and unsupported artifact kinds are rejected. The wrapper now materialises command plans for the Windows toolchain (`link.exe` by default, or `${sysroot}/bin/link.exe` when a sysroot is supplied) and the freestanding Air flow (`ld.lld`, optionally from `${sysroot}/bin/ld.lld`).
+
+> **Note:** Upstream LLVM distributes the Air-capable linker as `ld.lld`. Earlier drafts referenced `link.air`, but that filename collides with the `.air` kernel artifacts described in the specification. Stage‑0 therefore resolves `ld.lld` directly; if your Air SDK exposes a renamed wrapper (for example `link.air`), create an `ld.lld` copy or symlink alongside it so the planner discovers the executable without ambiguity. Planned commands are printed when `--verbose` or `--dry-run` is provided. Stage‑0 still requires the host linker to be present on the PATH; if it is missing the wrapper reports an actionable diagnostic rather than silently succeeding.
 
 ## Next Steps
 
