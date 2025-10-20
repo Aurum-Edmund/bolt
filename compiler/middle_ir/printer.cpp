@@ -74,6 +74,15 @@ namespace bolt::mir
                     {
                         stream << " // " << instruction.detail;
                     }
+                    if (!instruction.successors.empty())
+                    {
+                        stream << " ->";
+                        for (std::size_t index = 0; index < instruction.successors.size(); ++index)
+                        {
+                            stream << (index == 0 ? ' ' : ',');
+                            stream << instruction.successors[index];
+                        }
+                    }
                     stream << "\n";
                 }
 

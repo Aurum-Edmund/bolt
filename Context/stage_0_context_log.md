@@ -58,9 +58,10 @@
 - Linker CLI now honours `BOLT_SYSROOT` and `BOLT_RUNTIME_ROOT` defaults when explicit command-line values are absent, keeping scripted builds ergonomic without sacrificing deterministic flag handling.
 - Linker CLI and planner now support `--map`, validating destinations and threading map file requests through Windows (`/MAP`) and Air (`--Map=`) invocations with expanded regression coverage.
 - Import resolver now records canonical module paths for resolved imports, threads them through MIR metadata, driver notices, and JSON import bundles, and ships regression coverage to guard the canonical wiring.
+- MIR pass library now includes a control-flow graph builder that captures block predecessors/successors from branch terminators, with unit tests covering linear and branching shapes to prepare SSA analysis.
 
 ## Progress Metric
-- **Estimated Stage-0 completion:** ~81?%
+- **Estimated Stage-0 completion:** ~83?%
 
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).

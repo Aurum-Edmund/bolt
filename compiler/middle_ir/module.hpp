@@ -46,6 +46,7 @@ namespace bolt::mir
         InstructionKind kind{InstructionKind::Nop};
         std::vector<Operand> operands;
         std::string detail;
+        std::vector<std::uint32_t> successors;
     };
 
     struct BasicBlock

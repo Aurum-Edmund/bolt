@@ -15,6 +15,15 @@ namespace bolt::mir
             stream << static_cast<int>(inst.kind);
             stream << ' ';
             stream << inst.detail;
+            if (!inst.successors.empty())
+            {
+                stream << " succ";
+                for (std::size_t index = 0; index < inst.successors.size(); ++index)
+                {
+                    stream << (index == 0 ? ' ' : ',');
+                    stream << inst.successors[index];
+                }
+            }
             return stream.str();
         }
 
