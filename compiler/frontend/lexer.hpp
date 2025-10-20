@@ -14,6 +14,7 @@ namespace bolt::frontend
         std::string code;
         std::string message;
         SourceSpan span;
+        std::optional<std::string> fixItHint;
     };
 
     class Lexer

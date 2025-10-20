@@ -108,7 +108,7 @@ This glossary aligns the compiler’s terminology with **Bolt Language v2.3**. A
 - **Atomic Ordering:** Supported orders are `relaxed`, `acquire`, `release`, `acquireRelease`, and `sequentiallyConsistent`.
 - **Memory Fence:** The intrinsic `memoryFence(order)` creates an ordering boundary that may not be removed or crossed by the optimizer.
 - **Lock‑Free Widths:** One, two, four, and eight byte atomics are lock‑free on x86‑64.
-- **Live Value Semantics:** Loads and stores to Live Value memory are side‑effecting and must not be elided or merged across fences.
+- **live value semantics:** Loads and stores to live value memory are side‑effecting and must not be elided or merged across fences.
 - **Packed Layout Rules:** Fields in `packed` blueprints may not be reordered; program order must be preserved for memory‑mapped input/output.
 
 ## 7) Profiles, Policies, and Build Integration
@@ -162,7 +162,7 @@ This glossary aligns the compiler’s terminology with **Bolt Language v2.3**. A
 ### Concurrency and Memory Semantics
 - **Atomic Ordering:** The contract that constrains how memory operations may appear to interleave across threads; supported orders are relaxed, acquire, release, acquireRelease, and sequentiallyConsistent.
 - **Memory Fence:** A compiler intrinsic that prevents reordering of memory operations across the fence in the chosen ordering.
-- **Live Value Semantics:** The rule that reads and writes marked as Live Value are side‑effecting and must not be removed or combined.
+- **live value semantics:** The rule that reads and writes marked as live value are side‑effecting and must not be removed or combined.
 - **Packed Layout Rules:** The rule that field order and exact bit‑width in a packed blueprint are preserved; required for correct memory‑mapped input/output.
 
 ### Profiles, Policies, and Tooling

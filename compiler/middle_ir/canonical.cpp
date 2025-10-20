@@ -70,6 +70,10 @@ namespace bolt::mir
         for (const auto& entry : module.resolvedImports)
         {
             std::string detail = entry.modulePath;
+            if (entry.canonicalModulePath.has_value())
+            {
+                detail += " [" + *entry.canonicalModulePath + "]";
+            }
             if (entry.filePath.has_value())
             {
                 detail += " -> ";
