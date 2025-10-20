@@ -4,6 +4,7 @@ set(BOLT_UNIT_TEST_SOURCES
     unit/high_level_ir/BinderTest.cpp
     unit/high_level_ir/ImportResolverTest.cpp
     unit/driver/CommandLineParserTest.cpp
+    unit/driver/ImportBundleWriterTest.cpp
     unit/middle_ir/LoweringTest.cpp
     unit/middle_ir/MirCanonicalTest.cpp
     unit/middle_ir/LiveEnforcementTest.cpp
@@ -17,6 +18,7 @@ add_executable(bolt_unit_tests ${BOLT_UNIT_TEST_SOURCES})
 target_link_libraries(bolt_unit_tests
     PRIVATE
         gtest_main
+        bolt_driver_support
         bolt_front_end
         bolt_hir
         bolt_mir

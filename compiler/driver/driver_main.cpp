@@ -11,6 +11,7 @@
 #include "../middle_ir/canonical.hpp"
 #include "../middle_ir/passes/live_enforcement.hpp"
 #include "command_line.hpp"
+#include "import_bundle_writer.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -43,6 +44,7 @@ namespace bolt
                   << "  --emit-mir-canonical=<path> Write MIR canonical dump to the given path.\n"
                   << "  --import-root <path>   Add a directory to import search roots (repeatable).\n"
                   << "  --import-root=<path>   Add a directory to import search roots (shorthand).\n"
+                  << "  --emit-import-bundle=<path> Write resolved import metadata to the given path.\n"
                   << "  -o <path>              Write output to the specified path.\n";
     }
 
@@ -141,6 +143,12 @@ namespace bolt
     }
     int runCompiler(const CommandLineOptions& options)
     {
+        if (options.importBundleOutputPath.has_value() && options.inputPaths.size() > 1)
+        {
+            std::cerr << "BOLT-E3002 ImportBundleSingleInput: --emit-import-bundle requires a single input module.\n";
+            return 1;
+        }
+
         std::cout << "[information] Starting boltcc stage-0 pipeline.\n";
         std::cout << "  emit: " << options.emitKind << "\n";
         std::cout << "  target: " << options.targetTriple << "\n";
@@ -366,7 +374,24 @@ namespace bolt
                                 }
                             }
 
-                            if (!runMirPipeline(boundModule, resolution, options))
+                            bool pipelineSuccess = runMirPipeline(boundModule, resolution, options);
+
+                            if (pipelineSuccess && options.importBundleOutputPath.has_value())
+                            {
+                                std::string errorMessage;
+                                if (!writeImportBundle(*options.importBundleOutputPath, boundModule, resolution, errorMessage))
+                                {
+                                    std::cerr << "BOLT-E3003 ImportBundleWriteFailed: " << errorMessage << "\n";
+                                    pipelineSuccess = false;
+                                }
+                                else
+                                {
+                                    std::cout << "[notice] Import bundle written to "
+                                              << *options.importBundleOutputPath << "\n";
+                                }
+                            }
+
+                            if (!pipelineSuccess)
                             {
                                 exitCode = 1;
                             }

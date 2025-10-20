@@ -42,9 +42,10 @@
 - Parser, binder, and MIR lowering suites now cover `link` functions alongside multiple blueprints, ensuring the static replacement modifier remains stable across stages.
 - Blueprint regression coverage now asserts blueprint field metadata in parser, binder, and MIR lowering tests to guard shared `link` helpers across aggregates.
 - Linker CLI now defaults to `x86_64-air-bolt` when `--emit=air` or `--emit=zap` are selected without an explicit target and rejects incompatible target/emit combinations with direct diagnostics.
+- Driver now emits canonical JSON import bundles via `--emit-import-bundle`, guards single-module usage, and ships unit tests covering manifest structure and status serialization.
 
 ## Progress Metric
-- **Estimated Stage-0 completion:** ~60?%
+- **Estimated Stage-0 completion:** ~61?%
 
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).

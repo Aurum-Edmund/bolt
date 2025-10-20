@@ -48,6 +48,7 @@
 - Linker wrapper now assembles Bolt archives with `llvm-ar`, rejects `-L`/`-l` flags for deterministic `.zap` creation, and includes unit coverage for the new planner and validation behaviour.
 - Parser, binder, and MIR tests exercise `link` functions across modules with multiple blueprints and assert blueprint field metadata so the static replacement modifier stays regression-safe.
 - Linker CLI auto-selects the Air triple for `--emit=air`/`--emit=zap` when no target is provided and rejects incompatible emit/target combinations with explicit diagnostics.
+- Driver emits JSON import bundles via `--emit-import-bundle`, enforcing single-module usage and covering the manifest format in unit tests.
 
 ---
 
