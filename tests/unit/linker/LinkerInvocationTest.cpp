@@ -47,16 +47,6 @@ TEST(LinkerInvocationTest, PlansWindowsExecutableInvocation)
     }
 }
 
-TEST(LinkerInvocationTest, RejectsUnsupportedTarget)
-{
-    auto options = createBaseOptions();
-    options.targetTriple = "x86_64-air-bolt";
-
-    auto plan = planLinkerInvocation(options);
-    EXPECT_TRUE(plan.hasError);
-    EXPECT_EQ(plan.errorMessage, "linker planning for target 'x86_64-air-bolt' is not implemented.");
-}
-
 TEST(LinkerInvocationTest, RejectsUnsupportedEmitKind)
 {
     auto options = createBaseOptions();
@@ -65,5 +55,66 @@ TEST(LinkerInvocationTest, RejectsUnsupportedEmitKind)
     auto plan = planLinkerInvocation(options);
     EXPECT_TRUE(plan.hasError);
     EXPECT_EQ(plan.errorMessage, "emit kind is not supported for Windows linker planning.");
+}
+
+TEST(LinkerInvocationTest, RejectsAirTargetWithoutAirEmitKind)
+{
+    auto options = createBaseOptions();
+    options.targetTriple = "x86_64-air-bolt";
+
+    auto plan = planLinkerInvocation(options);
+    EXPECT_TRUE(plan.hasError);
+    EXPECT_EQ(plan.errorMessage, "emit kind is not supported for Air linker planning.");
+}
+
+TEST(LinkerInvocationTest, RejectsAirTargetWithoutLinkerScript)
+{
+    auto options = createBaseOptions();
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::AirImage;
+
+    auto plan = planLinkerInvocation(options);
+    EXPECT_TRUE(plan.hasError);
+    EXPECT_EQ(plan.errorMessage, "linker script is required when targeting x86_64-air-bolt.");
+}
+
+TEST(LinkerInvocationTest, PlansAirImageInvocation)
+{
+    auto options = createBaseOptions();
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::AirImage;
+    options.outputPath = "kernel.air";
+    options.linkerScriptPath = "scripts/bolt_air.ld";
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_FALSE(plan.hasError);
+    EXPECT_EQ(plan.invocation.executable, std::filesystem::path{"ld.lld"});
+
+    std::vector<std::string> expected{
+        "-nostdlib",
+        "-static",
+        "--gc-sections",
+        "--no-undefined",
+        "-o",
+        "kernel.air",
+        "-T",
+        "scripts/bolt_air.ld",
+        "-e",
+        "_start",
+        "-LC:/Bolt/runtime",
+        "-Llib",
+        "-LC:/Bolt/lib",
+        "main.obj",
+        "runtime.obj",
+        "-lbolt-runtime",
+        "UserProvided.lib",
+    };
+
+    ASSERT_EQ(plan.invocation.arguments.size(), expected.size());
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        EXPECT_EQ(plan.invocation.arguments[index], expected[index]) << "mismatch at index " << index;
+    }
 }
 

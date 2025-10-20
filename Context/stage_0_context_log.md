@@ -34,6 +34,7 @@
 - Runtime memory helpers now have unit tests covering byte copy, fill, and zero-length behavior to guard the freestanding runtime contract.
 - Linker wrapper now parses structured CLI options (emit kind, targets, sysroot/runtime roots) and ships with unit coverage to prepare for real platform invocations.
 - Linker wrapper now plans Windows invocations (`link.exe`), surfaces the computed command line when verbose/dry-run is enabled, and reports missing host linkers with diagnostics.
+- Linker wrapper now plans freestanding Air images through `ld.lld`, enforcing linker-script requirements and populating entry/runtime library parameters for the Stage-0 flow.
 
 ## Progress Metric
 - **Estimated Stage-0 completion:** ~55?%

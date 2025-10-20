@@ -43,13 +43,13 @@ The Stage-0 wrapper now exposes a deterministic set of options that mirror the p
 | `--verbose` | Emits the constructed linker command line resolved by the wrapper before launching the platform linker. |
 | `--dry-run` | Resolves inputs without launching the platform linker. |
 
-Basic validation ensures required arguments are present, targets are recognised, and unsupported artifact kinds are rejected. The wrapper now materialises a command plan for the Windows toolchain (`link.exe` by default, or `${sysroot}/bin/link.exe` when a sysroot is supplied) and prints the arguments when `--verbose` or `--dry-run` is provided. Stage‑0 still requires the host linker to be present on the PATH; if it is missing the wrapper reports an actionable diagnostic rather than silently succeeding.
+Basic validation ensures required arguments are present, targets are recognised, and unsupported artifact kinds are rejected. The wrapper now materialises command plans for the Windows toolchain (`link.exe` by default, or `${sysroot}/bin/link.exe` when a sysroot is supplied) and the freestanding Air flow (`ld.lld`, optionally from `${sysroot}/bin/ld.lld`). Planned commands are printed when `--verbose` or `--dry-run` is provided. Stage‑0 still requires the host linker to be present on the PATH; if it is missing the wrapper reports an actionable diagnostic rather than silently succeeding.
 
 ## Next Steps
 
 1. Draft the base linker script template (Freestanding x86-64, entry `_start`).
 2. Integrate runtime stubs once they land in `runtime/`.
-3. Extend the invocation planner to cover Air images and static libraries (switching to `lib.exe` or the Air linker backend as appropriate).
+3. Extend the invocation planner to cover static libraries (switching to `lib.exe`) and Bolt archives.
 4. Add unit/regression tests that build `examples/add.bolt` into a COFF/ELF artifact and smoke-boot under QEMU scripts (future milestone).
 
 

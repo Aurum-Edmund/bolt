@@ -41,6 +41,7 @@
 - Driver CLI accepts `--import-root` entries and search roots flow into module locator (unit tested).
 - Linker wrapper exposes structured CLI parsing (emit kind, target, sysroot, runtime roots) with dedicated unit coverage.
 - Linker wrapper materialises Windows command plans (link.exe) and reports missing host linkers with actionable diagnostics.
+- Linker wrapper now materialises Air (`ld.lld`) command plans, validating linker scripts and freestanding entry configuration.
 
 ---
 
