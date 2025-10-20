@@ -30,6 +30,8 @@
 - Live enforcement pass now enforces baseline invariants for Live-qualified functions, reports structured diagnostics (`BOLT-E4101`), surfaces them through the driver, and validates that Live-qualified basic blocks end with terminators.
 - Front-end parser sources normalized to Unix newlines to eliminate stray include warnings during builds.
 - Runtime panic/entry helpers share the common `BOLT_NORETURN` macro from `runtime.h`, cleaning up duplicate definitions after merge resolution.
+- Freestanding `_start` entry point is now gated behind `BOLT_RUNTIME_INCLUDE_FREESTANDING_START` so host-linked tools can reuse runtime helpers without conflicting CRT entry symbols.
+- Runtime memory helpers now have unit tests covering byte copy, fill, and zero-length behavior to guard the freestanding runtime contract.
 
 ## Progress Metric
 - **Estimated Stage-0 completion:** ~55?%

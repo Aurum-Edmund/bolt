@@ -40,7 +40,7 @@ void* bolt_memory_fill(void* destination, int value, size_t bytes)
     }
     return destination;
 }
-#if !defined(_MSC_VER)
+#if !defined(_MSC_VER) && defined(BOLT_RUNTIME_INCLUDE_FREESTANDING_START)
 extern int start(void);
 
 BOLT_NORETURN void _start(void)
