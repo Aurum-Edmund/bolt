@@ -22,6 +22,7 @@ namespace linker
         std::vector<std::filesystem::path> librarySearchPaths;
         std::vector<std::string> libraries;
         std::filesystem::path outputPath;
+        std::filesystem::path mapFilePath;
         std::filesystem::path linkerScriptPath;
         std::filesystem::path importBundlePath;
         std::filesystem::path sysrootPath;

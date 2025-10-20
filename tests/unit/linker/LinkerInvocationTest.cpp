@@ -173,6 +173,34 @@ TEST_F(LinkerInvocationPlanningTest, PlansWindowsExecutableInvocation)
     }
 }
 
+TEST_F(LinkerInvocationPlanningTest, PlansWindowsExecutableWithMapFile)
+{
+    auto options = createWindowsExecutableOptions();
+    options.mapFilePath = options.outputPath.parent_path() / "app.map";
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_FALSE(plan.hasError);
+    std::vector<std::string> expected{
+        "/NOLOGO",
+        std::string{"/OUT:"} + options.outputPath.string(),
+        std::string{"/MAP:"} + options.mapFilePath.string(),
+        std::string{"/LIBPATH:"} + options.runtimeRootPath.string(),
+        std::string{"/LIBPATH:"} + options.librarySearchPaths[0].string(),
+        std::string{"/LIBPATH:"} + options.librarySearchPaths[1].string(),
+        options.inputObjects[0].string(),
+        options.inputObjects[1].string(),
+        "UserProvided.lib",
+        windowsRuntimeLibrary.string(),
+    };
+
+    ASSERT_EQ(plan.invocation.arguments.size(), expected.size());
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        EXPECT_EQ(plan.invocation.arguments[index], expected[index]) << "mismatch at index " << index;
+    }
+}
+
 TEST_F(LinkerInvocationPlanningTest, SkipsRuntimeInjectionWhenDisabled)
 {
     auto options = createWindowsExecutableOptions();
@@ -424,6 +452,48 @@ TEST_F(LinkerInvocationPlanningTest, PlansAirImageInvocation)
     }
 }
 
+TEST_F(LinkerInvocationPlanningTest, PlansAirImageInvocationWithMapFile)
+{
+    auto options = createWindowsExecutableOptions();
+    options.targetTriple = "x86_64-air-bolt";
+    options.emitKind = EmitKind::AirImage;
+    options.outputPath = options.outputPath.parent_path() / "kernel.air";
+    options.linkerScriptPath = options.outputPath.parent_path() / "bolt_air.ld";
+    options.entryPoint.clear();
+    options.mapFilePath = options.outputPath.parent_path() / "kernel.map";
+
+    auto plan = planLinkerInvocation(options);
+
+    ASSERT_FALSE(plan.hasError);
+
+    std::vector<std::string> expected{
+        "-nostdlib",
+        "-static",
+        "--gc-sections",
+        "--no-undefined",
+        "-o",
+        options.outputPath.string(),
+        std::string{"--Map="} + options.mapFilePath.string(),
+        "-T",
+        options.linkerScriptPath.string(),
+        "-e",
+        "_start",
+        std::string{"-L"} + options.runtimeRootPath.string(),
+        std::string{"-L"} + options.librarySearchPaths[0].string(),
+        std::string{"-L"} + options.librarySearchPaths[1].string(),
+        options.inputObjects[0].string(),
+        options.inputObjects[1].string(),
+        "-lUserProvided",
+        airRuntimeLibrary.string(),
+    };
+
+    ASSERT_EQ(plan.invocation.arguments.size(), expected.size());
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        EXPECT_EQ(plan.invocation.arguments[index], expected[index]) << "mismatch at index " << index;
+    }
+}
+
 TEST_F(LinkerInvocationPlanningTest, UsesCustomLinkerExecutableForAirImages)
 {
     auto options = createWindowsExecutableOptions();
@@ -527,6 +597,16 @@ TEST_F(LinkerValidationTest, ReportsMissingImportBundle)
     auto result = validateLinkerInputs(options, false);
     ASSERT_TRUE(result.hasError);
     EXPECT_EQ(result.errorMessage, "import bundle '" + options.importBundlePath.string() + "' was not found.");
+}
+
+TEST_F(LinkerValidationTest, ReportsMissingMapDirectory)
+{
+    auto options = createValidOptions();
+    options.mapFilePath = workspace / "missing" / "app.map";
+
+    auto result = validateLinkerInputs(options, false);
+    ASSERT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "map file directory '" + (workspace / "missing").string() + "' was not found.");
 }
 
 TEST_F(LinkerValidationTest, ReportsMissingLinkerOverride)

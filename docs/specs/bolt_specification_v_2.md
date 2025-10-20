@@ -48,7 +48,7 @@ blueprint RegisterBlock {
 **Supported attributes:** interruptHandler, bareFunction, inSection(name), aligned(bytes), pageAligned, packed, bits(width), systemRequest(identifier), intrinsic(name)
 
 ### 4. Memory and Concurrency
-- **Live Value:** loads and stores are side-effecting.
+- **live value:** loads and stores are side-effecting.
 - **Atomic Ordering:** relaxed, acquire, release, acquireRelease, sequentiallyConsistent.
 - **Mutual Lock**, **Access Counter**, **Wake Signal**, **Sleep List** define synchronization primitives.
 
@@ -172,7 +172,7 @@ integer function systemWrite(integer fd, &byte buffer, unsignedInteger length)
 **attribute** — Declarative modifier applied via brackets.
 **Bolt Intermediate Representation** — Core architecture-neutral program form.
 **System Request Gateway** — Transition boundary between user and kernel.
-**Live Value** — Memory qualifier ensuring side-effect visibility.
+**live value** — Memory qualifier ensuring side-effect visibility.
 **freestanding profile** — Build mode without runtime or implicit allocation.
 **packed** — Layout directive removing padding between fields.
 

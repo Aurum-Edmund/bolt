@@ -31,7 +31,7 @@ namespace
 
 [aligned(16)]
 [systemRequest(identifier=2)]
-public Live integer32 function request(Live integer32 param) {
+public live integer32 function request(live integer32 param) {
     return param;
 }
 )";
@@ -90,7 +90,7 @@ integer function badAlign() {
 [packed]
 [aligned(64)]
 public blueprint Timer {
-    Live integer32 start;
+    live integer32 start;
     [bits(8)] integer32 mode;
     [aligned(16)] [bits(4)] integer32 priority;
 }

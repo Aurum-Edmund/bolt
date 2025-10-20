@@ -15,8 +15,8 @@ namespace bolt::mir
     };
 
     /**
-     * Enforce Live qualifiers after MIR lowering.
-     * Returns true when the module satisfies Live guarantees.
+     * Enforce live qualifiers after MIR lowering.
+     * Returns true when the module satisfies live guarantees.
      * Any diagnostics encountered are appended to the provided vector.
      */
     bool enforceLive(Module& module, std::vector<LiveDiagnostic>& diagnostics);

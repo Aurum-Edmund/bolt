@@ -80,20 +80,20 @@ namespace bolt::mir
 
             if (liveReturn && !function.hasReturnType)
             {
-                reportError(function, "Live return declared without a concrete return type.", diagnostics);
+                reportError(function, "live return declared without a concrete return type.", diagnostics);
                 success = false;
             }
 
             if (function.blocks.empty())
             {
-                reportError(function, "Live-qualified function has no basic blocks.", diagnostics);
+                reportError(function, "live-qualified function has no basic blocks.", diagnostics);
                 success = false;
                 continue;
             }
 
             if (!functionHasReturnInstruction(function))
             {
-                reportError(function, "Live-qualified function is missing a return instruction.", diagnostics);
+                reportError(function, "live-qualified function is missing a return instruction.", diagnostics);
                 success = false;
             }
 
@@ -102,7 +102,7 @@ namespace bolt::mir
                 if (block.instructions.empty())
                 {
                     reportError(function,
-                                "Live-qualified function contains an empty basic block '" + describeBlock(block) + "'.",
+                                "live-qualified function contains an empty basic block '" + describeBlock(block) + "'.",
                                 diagnostics);
                     success = false;
                     continue;
@@ -112,7 +112,7 @@ namespace bolt::mir
                 {
                     reportError(function,
                                 "Basic block '" + describeBlock(block)
-                                    + "' must terminate with return or branch for Live-qualified function.",
+                                    + "' must terminate with return or branch for live-qualified function.",
                                 diagnostics);
                     success = false;
                 }

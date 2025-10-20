@@ -121,6 +121,7 @@ TEST(LinkerCommandLineTest, ParsesExtendedOptions)
         "--runtime-root", "/runtime",
         "--linker-script", "air.ld",
         "--import-bundle", "imports.json",
+        "--map=app.map",
         "--linker", "/tools/custom-ld",
         "--archiver=/tools/custom-ar",
         "--verbose",
@@ -142,6 +143,7 @@ TEST(LinkerCommandLineTest, ParsesExtendedOptions)
     EXPECT_EQ(result.options.runtimeRootPath, std::filesystem::path{"/runtime"});
     EXPECT_EQ(result.options.linkerScriptPath, std::filesystem::path{"air.ld"});
     EXPECT_EQ(result.options.importBundlePath, std::filesystem::path{"imports.json"});
+    EXPECT_EQ(result.options.mapFilePath, std::filesystem::path{"app.map"});
     EXPECT_EQ(result.options.linkerExecutableOverride, std::filesystem::path{"/tools/custom-ld"});
     EXPECT_EQ(result.options.archiverExecutableOverride, std::filesystem::path{"/tools/custom-ar"});
     EXPECT_TRUE(result.options.verbose);
@@ -181,12 +183,27 @@ TEST(LinkerCommandLineTest, RejectsEmptyEntrySymbol)
     EXPECT_EQ(result.errorMessage, "--entry requires a symbol name.");
 }
 
+TEST(LinkerCommandLineTest, RejectsEmptyMapPath)
+{
+    auto result = parse({"bolt-ld", "--map=", "-o", "app.exe", "main.obj"});
+    EXPECT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "--map requires a path.");
+}
+
 TEST(LinkerCommandLineTest, RejectsEntryForStaticLibraryEmit)
 {
     auto result = parse({"bolt-ld", "--emit=lib", "--entry=StaticStart", "-o", "runtime.lib", "runtime.obj"});
 
     EXPECT_TRUE(result.hasError);
     EXPECT_EQ(result.errorMessage, "--entry is only supported when emitting executables or Air images.");
+}
+
+TEST(LinkerCommandLineTest, RejectsMapForStaticLibraryEmit)
+{
+    auto result = parse({"bolt-ld", "--emit=lib", "--map=runtime.map", "-o", "runtime.lib", "runtime.obj"});
+
+    EXPECT_TRUE(result.hasError);
+    EXPECT_EQ(result.errorMessage, "--map is only supported when emitting executables or Air images.");
 }
 
 TEST(LinkerCommandLineTest, ParsesNoRuntimeFlag)

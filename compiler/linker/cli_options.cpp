@@ -235,6 +235,24 @@ namespace linker
                 continue;
             }
 
+            if (auto mapValue = parseOptionWithValue(argument, "--map", index, argc, argv, result))
+            {
+                if (result.hasError)
+                {
+                    return result;
+                }
+
+                if (mapValue->empty())
+                {
+                    result.hasError = true;
+                    result.errorMessage = "--map requires a path.";
+                    return result;
+                }
+
+                result.options.mapFilePath = std::filesystem::path{*mapValue};
+                continue;
+            }
+
             if (auto linkerValue = parseOptionWithValue(argument, "--linker", index, argc, argv, result))
             {
                 if (result.hasError)
@@ -387,6 +405,16 @@ namespace linker
                 result.hasError = true;
                 result.errorMessage
                     = "--entry is only supported when emitting executables or Air images.";
+                return result;
+            }
+
+            if (!result.options.mapFilePath.empty()
+                && result.options.emitKind != EmitKind::Executable
+                && result.options.emitKind != EmitKind::AirImage)
+            {
+                result.hasError = true;
+                result.errorMessage
+                    = "--map is only supported when emitting executables or Air images.";
                 return result;
             }
 

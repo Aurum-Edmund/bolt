@@ -112,7 +112,7 @@ namespace bolt::mir
                 std::string detail = "return " + hirFunction.returnType.text;
                 if (hirFunction.returnIsLive)
                 {
-                    detail += " [Live]";
+                    detail += " [live]";
                 }
                 appendDetail(builder, entryBlock, std::move(detail));
             }
@@ -130,7 +130,7 @@ namespace bolt::mir
                 detail += parameter.name;
                 if (parameter.isLive)
                 {
-                    detail += " [Live]";
+                    detail += " [live]";
                 }
                 appendDetail(builder, entryBlock, std::move(detail));
             }
@@ -162,7 +162,7 @@ namespace bolt::mir
                 stream << "field " << field.type.text << ' ' << field.name;
                 if (field.isLive)
                 {
-                    stream << " [Live]";
+                    stream << " [live]";
                 }
                 if (field.bitWidth.has_value())
                 {

@@ -7,10 +7,10 @@ Stage‑0 requires a minimal freestanding runtime so compiled Bolt programs can 
 | Stub | Description | Notes |
 |------|-------------|-------|
 | `_start` | Assembly entry point invoked by the loader. Sets stack, zeroes `.bss`, calls `start`, and halts or loops on return. | Implement in NASM/YASM syntax to align with existing build toolchain. |
-| `bolt_panic_abort` | Non-returning panic routine that halts/hangs the CPU. | Must respect Live ordering; optionally print diagnostics when debug I/O is available. |
-| `bolt_memory_copy` | Memory copy helper (maps to the **Memory Copy** glossary term). | Thin wrapper around `intrinsic_memcpy`; enforces non-overlapping behaviour and Live fences. |
+| `bolt_panic_abort` | Non-returning panic routine that halts/hangs the CPU. | Must respect live ordering; optionally print diagnostics when debug I/O is available. |
+| `bolt_memory_copy` | Memory copy helper (maps to the **Memory Copy** glossary term). | Thin wrapper around `intrinsic_memcpy`; enforces non-overlapping behaviour and live fences. |
 | `bolt_memory_fill` | Memory fill helper (maps to the **Memory Fill** glossary term). | Wraps `intrinsic_memset`; used by allocator and runtime zeroing. |
-| `bolt_atomic_compare_exchange` (and related) | Minimal atomic intrinsics required by the compiler IR. | Coordinate with upcoming MIR SSA/Live enforcement. |
+| `bolt_atomic_compare_exchange` (and related) | Minimal atomic intrinsics required by the compiler IR. | Coordinate with upcoming MIR SSA/live enforcement. |
 
 ## Integration Notes
 

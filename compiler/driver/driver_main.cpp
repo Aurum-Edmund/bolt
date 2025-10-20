@@ -74,10 +74,10 @@ namespace bolt
         std::vector<mir::LiveDiagnostic> liveDiagnostics;
         if (!mir::enforceLive(mirModule, liveDiagnostics))
         {
-            std::cerr << "BOLT-E4100 MirLiveEnforcementFailed: module '" << module.moduleName << "'.\n";
+            std::cerr << "BOLT-E4100 Mir live enforcement failed: module '" << module.moduleName << "'.\n";
             for (const auto& diagnostic : liveDiagnostics)
             {
-                std::cerr << diagnostic.code << " LiveInvariantViolation in function '" << diagnostic.functionName
+                std::cerr << diagnostic.code << " live invariant violation in function '" << diagnostic.functionName
                           << "': " << diagnostic.detail << "\n";
             }
             return false;

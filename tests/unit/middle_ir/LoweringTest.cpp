@@ -36,7 +36,7 @@ namespace
 
 [aligned(32)]
 [systemRequest(identifier=3)]
-public Live integer32 function demoFunc(Live integer32 value) {
+public live integer32 function demoFunc(live integer32 value) {
     return value;
 }
 )";
@@ -56,8 +56,8 @@ public Live integer32 function demoFunc(Live integer32 value) {
 
         EXPECT_EQ(block.instructions[1].detail, "aligned 32");
         EXPECT_EQ(block.instructions[2].detail, "systemRequest 3");
-        EXPECT_EQ(block.instructions[3].detail, "return integer [Live]");
-        EXPECT_EQ(block.instructions[4].detail, "param integer value [Live]");
+        EXPECT_EQ(block.instructions[3].detail, "return integer [live]");
+        EXPECT_EQ(block.instructions[4].detail, "param integer value [live]");
 
         const auto& terminator = block.instructions.back();
         EXPECT_EQ(terminator.kind, InstructionKind::Return);
@@ -71,7 +71,7 @@ public Live integer32 function demoFunc(Live integer32 value) {
 [packed]
 [aligned(64)]
 public blueprint Timer {
-    Live integer32 start;
+    live integer32 start;
     [bits(8)] integer32 mode;
     [aligned(16)] [bits(4)] integer32 priority;
 }
@@ -91,7 +91,7 @@ public blueprint Timer {
         EXPECT_EQ(block.instructions[0].detail, "modifiers: public");
         EXPECT_EQ(block.instructions[1].detail, "attr packed");
         EXPECT_EQ(block.instructions[2].detail, "aligned 64");
-        EXPECT_EQ(block.instructions[3].detail, "field integer start [Live]");
+        EXPECT_EQ(block.instructions[3].detail, "field integer start [live]");
         EXPECT_EQ(block.instructions[4].detail, "field integer mode bits=8");
         EXPECT_EQ(block.instructions[5].detail, "field integer priority bits=4 align=16");
 

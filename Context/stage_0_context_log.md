@@ -27,7 +27,7 @@
 - Added parser regression tests that reject legacy colon-style parameters and blueprint fields to prevent syntax regressions.
 - Driver CLI now accepts repeatable `--import-root` flags; module locator uses them and coverage added in unit tests.
 - Runtime stub plan expanded with `_start` flow, testing strategy, and linker integration notes to guide upcoming implementation.
-- Live enforcement pass now enforces baseline invariants for Live-qualified functions, reports structured diagnostics (`BOLT-E4101`), surfaces them through the driver, and validates that Live-qualified basic blocks end with terminators.
+- live enforcement pass now enforces baseline invariants for live-qualified functions, reports structured diagnostics (`BOLT-E4101`), surfaces them through the driver, and validates that live-qualified basic blocks end with terminators.
 - Front-end parser sources normalized to Unix newlines to eliminate stray include warnings during builds.
 - Runtime panic/entry helpers share the common `BOLT_NORETURN` macro from `runtime.h`, cleaning up duplicate definitions after merge resolution.
 - Freestanding `_start` entry point is now gated behind `BOLT_RUNTIME_INCLUDE_FREESTANDING_START` so host-linked tools can reuse runtime helpers without conflicting CRT entry symbols.
@@ -50,17 +50,18 @@
 - Linker wrapper now requires a runtime root for Air images, auto-detects the Bolt runtime archive, and injects it for Air and Windows executables with unit coverage guarding missing-runtime diagnostics.
 - Runtime root discovery now probes `lib/` and triple-qualified subdirectories so packaged SDK layouts resolve Bolt runtime archives without extra flags, with updated unit coverage and documentation.
 - Linker CLI now exposes `--no-runtime`, allowing executables and Air images to bypass Bolt runtime injection while keeping planners and validators aware of the override, with fresh unit coverage and documentation updates.
-- Runtime library now provides atomic load/store/exchange/compare-exchange helpers for 8-bit, 16-bit, 32-bit, and 64-bit values with MSVC interlocked fallbacks and cross-platform unit coverage, preparing Stage-0 for future SSA and Live passes that require atomic intrinsics.
+- Runtime library now provides atomic load/store/exchange/compare-exchange helpers for 8-bit, 16-bit, 32-bit, and 64-bit values with MSVC interlocked fallbacks and cross-platform unit coverage, preparing Stage-0 for future SSA and live passes that require atomic intrinsics.
 - Module locator now scans import roots, caches discovered modules, and surfaces `BOLT-E2225`/`BOLT-E2226` diagnostics for missing roots or duplicate modules; the driver reports discoveries ahead of import resolution and new unit tests cover discovery, duplicates, and invalid roots.
 - Parser now attaches fix-it hints to missing semicolon diagnostics on package/module/import declarations, and the driver surfaces the suggestions alongside parser errors.
 - Linker CLI now honours `BOLT_SYSROOT` and `BOLT_RUNTIME_ROOT` defaults when explicit command-line values are absent, keeping scripted builds ergonomic without sacrificing deterministic flag handling.
+- Linker CLI and planner now support `--map`, validating destinations and threading map file requests through Windows (`/MAP`) and Air (`--Map=`) invocations with expanded regression coverage.
 
 ## Progress Metric
-- **Estimated Stage-0 completion:** ~74?%
+- **Estimated Stage-0 completion:** ~76?%
 
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).
-- Expand MIR Live enforcement beyond baseline structural checks and implement SSA conversion passes.
+- Expand MIR live enforcement beyond baseline structural checks and implement SSA conversion passes.
 
 ## Notes
 - Use the task board (`../Taskboard/bolt_compiler_task_board_stub_pack_v_0_kickstart.md`) to log task state and checklist progress.

@@ -276,6 +276,11 @@ namespace linker
                 invocation.arguments.emplace_back("/OUT:" + options.outputPath.string());
             }
 
+            if (!options.mapFilePath.empty())
+            {
+                invocation.arguments.emplace_back("/MAP:" + options.mapFilePath.string());
+            }
+
             if (!options.entryPoint.empty())
             {
                 invocation.arguments.emplace_back("/ENTRY:" + options.entryPoint);
@@ -397,6 +402,11 @@ namespace linker
             {
                 invocation.arguments.emplace_back("-o");
                 invocation.arguments.emplace_back(options.outputPath.string());
+            }
+
+            if (!options.mapFilePath.empty())
+            {
+                invocation.arguments.emplace_back("--Map=" + options.mapFilePath.string());
             }
 
             invocation.arguments.emplace_back("-T");
@@ -614,6 +624,25 @@ namespace linker
         {
             return createValidationError(
                 "entry overrides are only supported when emitting executables or Air images.");
+        }
+
+        if (!options.mapFilePath.empty())
+        {
+            if (options.emitKind != EmitKind::Executable && options.emitKind != EmitKind::AirImage)
+            {
+                return createValidationError(
+                    "map files are only supported when emitting executables or Air images.");
+            }
+
+            auto parent = options.mapFilePath.parent_path();
+            if (!parent.empty())
+            {
+                checkResult = requireDirectory(parent, "map file directory");
+                if (checkResult.hasError)
+                {
+                    return checkResult;
+                }
+            }
         }
 
         if (!options.linkerScriptPath.empty())

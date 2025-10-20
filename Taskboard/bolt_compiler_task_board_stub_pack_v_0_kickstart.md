@@ -13,7 +13,7 @@
 
 ### To Do
 - High-level IR type system expansion (algebraic data types, generics, references).
-- Middle-IR SSA construction and Live enforcement passes.
+- Middle-IR SSA construction and live enforcement passes.
 - Backend scaffolding: instruction selection tables and linear scan register allocator.
 - Runtime stubs plus Air ABI shims for freestanding x86-64 builds.
 - Broaden golden and negative diagnostic suites.
@@ -26,7 +26,7 @@
 ### Done
 - Lexer with diagnostics.
 - Attribute-aware parser for modules, blueprints, and functions.
-- High-level IR binder with attribute validation, Live handling, and duplicate checks.
+- High-level IR binder with attribute validation, live handling, and duplicate checks.
 - Import capture and duplicate diagnostics in AST/HIR.
 - Middle-IR lowering, printer, canonical hash, and verification skeleton.
 - Driver CLI with MIR dump, canonical hash emission, and resolver wiring.
@@ -57,15 +57,16 @@
 - Linker wrapper requires runtime roots for Air images, auto-injects the Bolt runtime archive for Air/Windows executables, and reports missing runtime libraries up front with dedicated unit coverage.
 - Runtime root detection searches `lib/` and triple-qualified folders so packaged SDK layouts resolve Bolt runtime archives without manual intervention, with docs/tests covering the expanded lookup.
 - Linker CLI now honors `--no-runtime`, skipping runtime archive validation/injection for executables and Air images while planners, validators, and docs capture the override behavior.
-- Runtime library now ships atomic load/store/exchange/compare-exchange helpers for 8-bit, 16-bit, 32-bit, and 64-bit values with cross-platform unit coverage, paving the way for MIR SSA and Live passes that require atomic intrinsics.
+- Runtime library now ships atomic load/store/exchange/compare-exchange helpers for 8-bit, 16-bit, 32-bit, and 64-bit values with cross-platform unit coverage, paving the way for MIR SSA and live passes that require atomic intrinsics.
 - Linker CLI now falls back to `BOLT_SYSROOT`/`BOLT_RUNTIME_ROOT` environment defaults when the corresponding flags are omitted, keeping scripted builds ergonomic without overriding explicit command-line configuration.
+- Linker CLI and planner now honor `--map`, validating destination directories and forwarding map generation to Windows (`/MAP`) and Air (`--Map=`) toolchains with fresh documentation and unit coverage.
 
 ---
 
 ## Milestones
 - **M0 (Completed)** Stage-0 lexical analyser, parser, and binder pipeline online.
 - **M1 (Active)** Import resolution framework feeding canonical MIR metadata.
-- **M2 (Planned)** Middle-IR SSA, Live enforcement, and diagnostic passes.
+- **M2 (Planned)** Middle-IR SSA, live enforcement, and diagnostic passes.
 - **M3 (Planned)** Backend scaffolding with instruction selection and register allocation seeds.
 - **M4 (Planned)** Runtime stubs, Air ABI shims, and freestanding image linkage.
 
@@ -113,14 +114,14 @@ bolt/
 ## Today's Focus
 
 Runtime/Linker Acceleration Plan: finalize stub APIs, implement helpers, integrate bolt-ld wrapper, add automation.
-1. Outline MIR SSA and Live enforcement plan for Stage-0.
+1. Outline MIR SSA and live enforcement plan for Stage-0.
 2. Define initial backend scaffolding milestones (instruction selection, register allocation).
 3. Map runtime stub requirements to upcoming build steps.
 4. Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).
 
 **Notes:**
-- MIR SSA plan: start with pruned IDOM construction, insert Phi nodes, enforce Live barriers before lowering to back end.
-- Live enforcement: dedicate MIR pass to ensure side-effect ordering and fence handling prior to SSA conversion.
+- MIR SSA plan: start with pruned IDOM construction, insert Phi nodes, enforce live barriers before lowering to back end.
+- live enforcement: dedicate MIR pass to ensure side-effect ordering and fence handling prior to SSA conversion.
 - Backend scaffolding: define instruction selection tables, linear scan register allocator, and object emission stub.
 - Runtime stubs: `_start` entry, panic abort routine, memory copy and memory fill helpers, atomic intrinsics aligned with Air ABI shims.
 - Linker integration: emit `.exe` (Windows), `.air` (Air executable), and link archives (`.lib` for Windows, `.zap` for Air/Bolt), then bundle runtime stubs plus resolved import metadata.
