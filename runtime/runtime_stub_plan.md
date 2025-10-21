@@ -11,6 +11,8 @@ Stage‑0 requires a minimal freestanding runtime so compiled Bolt programs can 
 | `bolt_memory_copy` | Memory copy helper (maps to the **Memory Copy** glossary term). | Thin wrapper around `intrinsic_memcpy`; enforces non-overlapping behaviour and live fences. |
 | `bolt_memory_fill` | Memory fill helper (maps to the **Memory Fill** glossary term). | Wraps `intrinsic_memset`; used by allocator and runtime zeroing. |
 | `bolt_atomic_compare_exchange` (and related) | Minimal atomic intrinsics required by the compiler IR. | Coordinate with upcoming MIR SSA/live enforcement. |
+| `bolt_new` / `bolt_delete` | Deterministic allocation primitives. | Zero-initialise storage; callers must release explicitly. |
+| `bolt_shared_pointer_*` | Shared-ownership smart pointer helpers. | Provide make/copy/move/isValid/release without mutexes. |
 
 ## Integration Notes
 
@@ -35,5 +37,6 @@ Stage‑0 requires a minimal freestanding runtime so compiled Bolt programs can 
   unit tests cover both operations to guard future regressions.
 - Added `bolt_atomic_fetch_and`/`bolt_atomic_fetch_or`/`bolt_atomic_fetch_xor` helpers for all supported widths so bitwise atomics
   required by Stage-0 lowering are available with matching unit coverage.
+- Implemented deterministic allocation helpers (`bolt_new`, `bolt_delete`) and a shared-pointer runtime (`bolt_shared_pointer_make`/`copy`/`move`/`is_valid`/`release`) to back the new pointer syntax and object validity checks. Unit coverage exercises zero-initialisation, copy semantics, move semantics, and destructor invocation.
 
 

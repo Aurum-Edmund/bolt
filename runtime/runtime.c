@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #if defined(_MSC_VER) && !defined(__clang__)
 #    include <intrin.h>
 #else
@@ -11,6 +12,145 @@
 #if defined(_MSC_VER)
 #    include <intrin.h>
 #endif
+
+struct boltSharedPointerControlBlock
+{
+    volatile uint32_t referenceCount;
+    boltSharedPointerDestructor destructor;
+};
+
+static void bolt_shared_pointer_reset(boltSharedPointer* pointer)
+{
+    if (pointer != NULL)
+    {
+        pointer->payload = NULL;
+        pointer->control = NULL;
+    }
+}
+
+void* bolt_new(size_t size)
+{
+    if (size == 0U)
+    {
+        return NULL;
+    }
+
+    return calloc(1U, size);
+}
+
+void bolt_delete(void* memory)
+{
+    free(memory);
+}
+
+boltSharedPointer bolt_shared_pointer_make(void* payload, boltSharedPointerDestructor destructor)
+{
+    boltSharedPointer pointer;
+    pointer.payload = NULL;
+    pointer.control = NULL;
+
+    if (payload == NULL)
+    {
+        return pointer;
+    }
+
+    boltSharedPointerControlBlock* control
+        = (boltSharedPointerControlBlock*)bolt_new(sizeof(boltSharedPointerControlBlock));
+    if (control == NULL)
+    {
+        if (destructor != NULL)
+        {
+            destructor(payload);
+        }
+        else
+        {
+            bolt_delete(payload);
+        }
+        return pointer;
+    }
+
+    control->referenceCount = 1U;
+    control->destructor = destructor;
+    pointer.payload = payload;
+    pointer.control = control;
+    return pointer;
+}
+
+bool bolt_shared_pointer_is_valid(const boltSharedPointer* pointer)
+{
+    return (pointer != NULL) && (pointer->control != NULL) && (pointer->payload != NULL);
+}
+
+void* bolt_shared_pointer_get(const boltSharedPointer* pointer)
+{
+    if (!bolt_shared_pointer_is_valid(pointer))
+    {
+        return NULL;
+    }
+
+    return pointer->payload;
+}
+
+boltSharedPointer bolt_shared_pointer_copy(const boltSharedPointer* pointer)
+{
+    boltSharedPointer copy;
+    copy.payload = NULL;
+    copy.control = NULL;
+
+    if (!bolt_shared_pointer_is_valid(pointer))
+    {
+        return copy;
+    }
+
+    bolt_atomic_fetch_add_u32(&pointer->control->referenceCount, 1U, boltAtomicOrderAcquireRelease);
+    copy.payload = pointer->payload;
+    copy.control = pointer->control;
+    return copy;
+}
+
+boltSharedPointer bolt_shared_pointer_move(boltSharedPointer* pointer)
+{
+    boltSharedPointer moved;
+    moved.payload = NULL;
+    moved.control = NULL;
+
+    if (pointer == NULL)
+    {
+        return moved;
+    }
+
+    moved = *pointer;
+    bolt_shared_pointer_reset(pointer);
+    return moved;
+}
+
+void bolt_shared_pointer_release(boltSharedPointer* pointer)
+{
+    if (!bolt_shared_pointer_is_valid(pointer))
+    {
+        bolt_shared_pointer_reset(pointer);
+        return;
+    }
+
+    boltSharedPointerControlBlock* control = pointer->control;
+    void* payload = pointer->payload;
+    bolt_shared_pointer_reset(pointer);
+
+    uint32_t previous = bolt_atomic_fetch_sub_u32(&control->referenceCount, 1U, boltAtomicOrderAcquireRelease);
+    if (previous == 1U)
+    {
+        if (control->destructor != NULL)
+        {
+            control->destructor(payload);
+        }
+        else
+        {
+            bolt_delete(payload);
+        }
+
+        bolt_delete(control);
+    }
+}
 
 BOLT_NORETURN void bolt_panic_abort(const char* message)
 {

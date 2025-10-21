@@ -279,6 +279,44 @@ public live integer function example(integer value, pointer<byte> buffer, refere
         EXPECT_EQ(function.returnType.text, "integer");
         EXPECT_TRUE(function.returnIsLive);
     }
+
+    TEST(BinderTest, NormalizesStarPointerAndReferenceSyntax)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint SyntaxCarrier {
+    integer* smartPointer;
+    integer & smartReference;
+    integer*& refToPointer;
+}
+
+public integer function build(integer* instance) {
+    return 0;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty())
+            << "First diagnostic: " << parseDiagnostics.front().code << " - " << parseDiagnostics.front().message;
+
+        Binder binder{unit, "binder-star"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty()) << "Binder diagnostics detected";
+
+        ASSERT_EQ(module.blueprints.size(), 1u);
+        const auto& blueprint = module.blueprints.front();
+        ASSERT_EQ(blueprint.fields.size(), 3u);
+        EXPECT_EQ(blueprint.fields[0].type.text, "pointer<integer>");
+        EXPECT_EQ(blueprint.fields[1].type.text, "reference<integer>");
+        EXPECT_EQ(blueprint.fields[2].type.text, "reference<pointer<integer>>");
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        const auto& function = module.functions.front();
+        ASSERT_EQ(function.parameters.size(), 1u);
+        EXPECT_EQ(function.parameters[0].type.text, "pointer<integer>");
+        EXPECT_EQ(function.returnType.text, "integer");
+    }
 }
 } // namespace bolt::hir
 

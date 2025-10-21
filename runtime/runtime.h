@@ -31,6 +31,58 @@ void* bolt_memory_copy(void* destination, const void* source, size_t bytes);
  * Memory fill helper (see glossary "Memory Fill").
  * Fills `bytes` bytes at destination with the provided byte value.
 /*
+ * Allocates zero-initialized storage of `size` bytes. Returns NULL when the
+ * host cannot satisfy the allocation request. Callers must release the
+ * allocation with `bolt_delete` when the storage is no longer required.
+ */
+void* bolt_new(size_t size);
+
+/* Releases memory obtained via `bolt_new`. The pointer may be NULL. */
+void bolt_delete(void* memory);
+
+/* Smart pointer support --------------------------------------------------- */
+
+typedef void (*boltSharedPointerDestructor)(void* payload);
+
+typedef struct boltSharedPointerControlBlock boltSharedPointerControlBlock;
+
+typedef struct boltSharedPointer
+{
+    void* payload;
+    boltSharedPointerControlBlock* control;
+} boltSharedPointer;
+
+/*
+ * Creates a managed pointer around `payload`. The payload is expected to be a
+ * valid allocation obtained through `bolt_new` or a compatible allocator.
+ * When the final reference is released the optional destructor is invoked; if
+ * NULL, `bolt_delete` is used. Returns an invalid pointer when payload is NULL
+ * or the control block cannot be allocated.
+ */
+boltSharedPointer bolt_shared_pointer_make(void* payload, boltSharedPointerDestructor destructor);
+
+/* Returns true when the pointer owns a payload. */
+bool bolt_shared_pointer_is_valid(const boltSharedPointer* pointer);
+
+/* Returns the managed payload or NULL when the pointer is invalid. */
+void* bolt_shared_pointer_get(const boltSharedPointer* pointer);
+
+/*
+ * Creates an additional reference to the payload. Copying is explicit—callers
+ * receive a fresh `boltSharedPointer` instance with its own lifetime.
+ */
+boltSharedPointer bolt_shared_pointer_copy(const boltSharedPointer* pointer);
+
+/*
+ * Transfers ownership from `pointer` into the returned instance. The source is
+ * invalidated, providing an explicit move semantic.
+ */
+boltSharedPointer bolt_shared_pointer_move(boltSharedPointer* pointer);
+
+/* Releases the reference held by `pointer` and invalidates it. */
+void bolt_shared_pointer_release(boltSharedPointer* pointer);
+
+/*
  * Memory ordering used by the Bolt atomic helper APIs. Mirrors the
  * specification terminology while mapping onto the host's atomic
  * primitives.

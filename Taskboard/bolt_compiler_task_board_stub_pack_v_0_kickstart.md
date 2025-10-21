@@ -73,6 +73,10 @@
 - MIR SSA conversion pass now inserts phi instructions, renames temporaries with deterministic versioning, surfaces `BOLT-E4301`/`BOLT-E4302` diagnostics for missing definitions, and updates printer/canonical output with SSA operands under new regression tests.
 - MIR verifier enforces that live-qualified functions retain concrete return types and return instructions so later passes cannot break live invariants.
 - live enforcement diagnostics now emit dedicated codes (`BOLT-E4101`–`BOLT-E4105`) for signature and block invariants, with unit coverage for each failure mode.
+- Lexer recognises compound arithmetic/logical operators and lifecycle keywords (`constructor`, `destructor`, `new`, `delete`), with unit tests locking the token stream down for Stage-0.
+- Parser and binder normalise `Type*`/`Type&` syntax into canonical `pointer<>`/`reference<>` forms; regression suites exercise chained suffix combinations to keep smart-pointer metadata intact.
+- Runtime library now exposes deterministic allocation (`bolt_new`, `bolt_delete`) and smart-pointer helpers (`bolt_shared_pointer_make`/`copy`/`move`/`is_valid`/`release`), with runtime unit tests covering zero-initialisation, explicit copy semantics, move transfer, and destructor dispatch.
+- Documentation (glossary, specification, runtime plan) now captures the smart pointer model, lifecycle keywords, operator surface, and object validity rules so tooling and reference material stay aligned.
 
 ---
 

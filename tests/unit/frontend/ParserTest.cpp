@@ -260,6 +260,40 @@ public live integer function example(integer value, pointer<byte> buffer, refere
         EXPECT_EQ(function.parameters[2].typeName, "reference<byte>");
         EXPECT_EQ(function.parameters[2].name, "mirrorRef");
     }
+
+    TEST(ParserTest, CapturesStarPointerAndReferenceSyntax)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint SyntaxCarrier {
+    integer* smartPointer;
+    integer & smartReference;
+    integer*& refToPointer;
+}
+
+public integer function build(integer* instance) {
+    return 0;
+}
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        CompilationUnit unit = parseSource(source, diagnostics);
+
+        ASSERT_TRUE(diagnostics.empty())
+            << "First diagnostic: " << diagnostics.front().code << " - " << diagnostics.front().message;
+
+        ASSERT_EQ(unit.blueprints.size(), 1u);
+        const auto& blueprint = unit.blueprints.front();
+        ASSERT_EQ(blueprint.fields.size(), 3u);
+        EXPECT_EQ(blueprint.fields[0].typeName, "integer*");
+        EXPECT_EQ(blueprint.fields[1].typeName, "integer&");
+        EXPECT_EQ(blueprint.fields[2].typeName, "integer*&");
+
+        ASSERT_EQ(unit.functions.size(), 1u);
+        const auto& function = unit.functions.front();
+        ASSERT_EQ(function.parameters.size(), 1u);
+        EXPECT_EQ(function.parameters[0].typeName, "integer*");
+    }
 }
 } // namespace bolt::frontend
 

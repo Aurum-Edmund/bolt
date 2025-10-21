@@ -29,6 +29,23 @@
 - Explicit width forms (`integer16`, `integer64`, `float32`, `float64`, and so on) remain available when precise sizing matters.
 - Tooling canonicalizes parameters and fields using the alias form and prints them as `<type> <name>` unless an explicit width is requested, matching the source declaration order (`integer value`).
 
+### Managed Pointers and References
+- `Type*` declares a managed pointer backed by the Bolt runtime's shared-ownership smart pointer. It is equivalent to `pointer<Type>` in earlier drafts and never introduces hidden allocations—developers call the runtime helpers to create, copy, move, and release ownership.
+- `Type&` declares a reference alias (`reference<Type>`). References never own storage and provide deterministic aliasing semantics.
+- Pointer and reference suffixes associate from right to left. `integer*&` is read as a reference to a managed pointer.
+- `if (object)` succeeds when the managed pointer owns a payload. `if (!object)` enters the failure branch. These conditions mirror `bolt_shared_pointer_is_valid` at runtime.
+
+### Lifecycle Keywords and Runtime Support
+- `constructor` and `destructor` are accepted as function modifiers and flow through the front end for Stage‑0 planning. They document creation/teardown entry points without altering semantics yet.
+- `new` allocates zero-initialised storage; `delete` releases it. The runtime implementation (`bolt_new` / `bolt_delete`) guarantees deterministic zero-fill so automatic variables observe sane defaults.
+- Smart pointer helpers: `bolt_shared_pointer_make`, `bolt_shared_pointer_copy`, `bolt_shared_pointer_move`, `bolt_shared_pointer_is_valid`, and `bolt_shared_pointer_release` manage reference counts without mutexes or background threads.
+
+### Operators (Tokenised in Stage‑0)
+- Arithmetic: `+`, `-`, `*`, `/`, `%`, plus compound assignment `+=` and `-=`.
+- Unary: `++`, `--` (both prefixes parsed).
+- Comparison: `>`, `<`, `>=`, `<=`, `==`, `!=`.
+- Logical: `&&` (logical AND). `||` is reserved for future stages.
+
 ### 3. Attributes
 Attributes precede declarations using bracketed syntax. Multiple lines allowed.
 ```bolt

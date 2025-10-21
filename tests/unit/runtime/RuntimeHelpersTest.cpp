@@ -11,6 +11,28 @@
 namespace
 {
     constexpr std::size_t kBufferSize = 64;
+
+    struct TrackingPayload
+    {
+        int value;
+        bool* destroyed;
+    };
+
+    void tracking_destructor(void* payload)
+    {
+        if (payload == nullptr)
+        {
+            return;
+        }
+
+        TrackingPayload* typed = static_cast<TrackingPayload*>(payload);
+        if (typed->destroyed != nullptr)
+        {
+            *typed->destroyed = true;
+        }
+
+        bolt_delete(payload);
+    }
 }
 
 TEST(RuntimeHelpersTest, MemoryCopyTransfersAllBytes)
@@ -100,6 +122,76 @@ TEST(RuntimeHelpersTest, MemoryFillHandlesZeroLength)
     EXPECT_EQ(buffer.data(), returned);
     EXPECT_EQ(0x2AU, buffer.front());
     EXPECT_EQ(0x2AU, buffer.back());
+}
+
+TEST(RuntimeHelpersTest, BoltNewProvidesZeroInitializedStorage)
+{
+    constexpr std::size_t kSize = 32;
+    std::uint8_t* memory = static_cast<std::uint8_t*>(bolt_new(kSize));
+    ASSERT_NE(memory, nullptr);
+    for (std::size_t index = 0; index < kSize; ++index)
+    {
+        EXPECT_EQ(0U, memory[index]);
+    }
+    bolt_delete(memory);
+}
+
+TEST(RuntimeHelpersTest, BoltNewHandlesZeroSize)
+{
+    void* memory = bolt_new(0);
+    EXPECT_EQ(nullptr, memory);
+    bolt_delete(memory);
+}
+
+TEST(RuntimeSmartPointerTest, SharedPointerCopyAndRelease)
+{
+    bool destroyed = false;
+    TrackingPayload* payload = static_cast<TrackingPayload*>(bolt_new(sizeof(TrackingPayload)));
+    ASSERT_NE(payload, nullptr);
+    payload->value = 7;
+    payload->destroyed = &destroyed;
+
+    boltSharedPointer pointer = bolt_shared_pointer_make(payload, tracking_destructor);
+    ASSERT_TRUE(bolt_shared_pointer_is_valid(&pointer));
+    EXPECT_EQ(payload, bolt_shared_pointer_get(&pointer));
+
+    boltSharedPointer copy = bolt_shared_pointer_copy(&pointer);
+    ASSERT_TRUE(bolt_shared_pointer_is_valid(&copy));
+
+    bolt_shared_pointer_release(&pointer);
+    EXPECT_FALSE(destroyed);
+
+    bolt_shared_pointer_release(&copy);
+    EXPECT_TRUE(destroyed);
+}
+
+TEST(RuntimeSmartPointerTest, MoveTransfersOwnershipAndDestroys)
+{
+    bool destroyed = false;
+    TrackingPayload* payload = static_cast<TrackingPayload*>(bolt_new(sizeof(TrackingPayload)));
+    ASSERT_NE(payload, nullptr);
+    payload->value = 99;
+    payload->destroyed = &destroyed;
+
+    boltSharedPointer pointer = bolt_shared_pointer_make(payload, tracking_destructor);
+    ASSERT_TRUE(bolt_shared_pointer_is_valid(&pointer));
+
+    boltSharedPointer moved = bolt_shared_pointer_move(&pointer);
+    EXPECT_FALSE(bolt_shared_pointer_is_valid(&pointer));
+    EXPECT_TRUE(bolt_shared_pointer_is_valid(&moved));
+
+    bolt_shared_pointer_release(&moved);
+    EXPECT_TRUE(destroyed);
+}
+
+TEST(RuntimeSmartPointerTest, ReleaseHandlesInvalidPointer)
+{
+    boltSharedPointer pointer;
+    pointer.payload = nullptr;
+    pointer.control = nullptr;
+
+    bolt_shared_pointer_release(&pointer);
+    EXPECT_FALSE(bolt_shared_pointer_is_valid(&pointer));
 }
 
 TEST(RuntimeAtomicTest, StoreAndLoad32BitValue)

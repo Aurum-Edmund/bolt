@@ -347,7 +347,9 @@ namespace bolt::frontend
         std::vector<std::string> modifiers;
         while (check(TokenKind::KeywordPublic)
                || check(TokenKind::KeywordLink)
-               || check(TokenKind::KeywordExtern))
+               || check(TokenKind::KeywordExtern)
+               || check(TokenKind::KeywordConstructor)
+               || check(TokenKind::KeywordDestructor))
         {
             const Token& token = advance();
             modifiers.emplace_back(token.text);

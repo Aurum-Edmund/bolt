@@ -152,7 +152,25 @@ Freestanding or kernel builds **must** enable the following flags:
 --bounds=off   # enable in debug with --bounds=on
 ```
 
-Optional in-source profile header:
+### Smart pointers and references
+- Use `Type*` to declare a managed pointer. The `*` suffix is equivalent to `pointer<Type>` and maps to a shared-ownership smart pointer implemented by the Bolt runtime. All managed pointers participate in deterministic reference counting and never perform hidden allocations—copying requires an explicit call to the runtime smart pointer helpers.
+- Use `Type&` to declare a reference alias. The syntax mirrors `reference<Type>` in existing code and binds to the underlying value without taking ownership.
+- Chained suffixes associate from right to left. `integer*&` denotes a `reference<pointer<integer>>`, enabling references to managed pointers without exposing raw addresses.
+- Pointer validity is determined by ownership: `if (object)` checks that the managed pointer owns a payload, and `if (!object)` enters when the pointer is empty.
+
+### Object lifecycle
+- `constructor` and `destructor` modifiers can decorate functions to document creation and teardown entry points for blueprints or modules. Stage‑0 tooling records the modifiers alongside other function metadata.
+- `new` allocates zero-initialised storage and returns a managed pointer-ready address. `delete` releases storage obtained from `new`. Both keywords are reserved in the lexer so they cannot be repurposed for identifiers.
+- All automatic variables receive sane defaults; uninitialised storage is zero-filled by default so deterministic state is available before constructors run.
+- The runtime exposes explicit helpers for smart pointer construction (`bolt_shared_pointer_make`), copying (`bolt_shared_pointer_copy`), moving (`bolt_shared_pointer_move`), validation (`bolt_shared_pointer_is_valid`), and teardown (`bolt_shared_pointer_release`). Hidden allocations are forbidden—callers decide when to allocate and destroy.
+
+### Operators
+- Arithmetic: `+`, `-`, `*`, `/`, `%`, with compound assignment `+=` and `-=`.
+- Increment and decrement: `++` and `--` (prefix and postfix are tokenised for future semantic passes).
+- Comparison: `>`, `<`, `>=`, `<=`, `==`, `!=`.
+- Logical: `&&` (logical AND) and `||` (reserved for future stages).
+
+| `volatile` | **live value** | Side-effecting read or write; not optimized away. |
 ```bolt
 profile kernelFreestanding {
     panic abort
