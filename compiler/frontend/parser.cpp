@@ -1,4 +1,6 @@
-#include "parser.hpp"`r`n`r`n#include <sstream>`r`n#include <cctype>
+#include "parser.hpp"
+
+#include <sstream>
 #include <cctype>
 
 namespace bolt::frontend
@@ -149,7 +151,11 @@ namespace bolt::frontend
         return false;
     }
 
-    const Token& Parser::consume(TokenKind kind, std::string_view messageCode, std::string_view messageText)
+    const Token& Parser::consume(
+        TokenKind kind,
+        std::string_view messageCode,
+        std::string_view messageText,
+        std::string_view fixItHint)
     {
         if (check(kind))
         {
@@ -160,6 +166,10 @@ namespace bolt::frontend
         diag.code = std::string{messageCode};
         diag.message = std::string{messageText};
         diag.span = peek().span;
+        if (!fixItHint.empty())
+        {
+            diag.fixItHint = std::string{fixItHint};
+        }
         m_diagnostics.emplace_back(std::move(diag));
 
         if (!isAtEnd())
@@ -208,9 +218,29 @@ namespace bolt::frontend
             const Token& keyword = previous();
             const auto packageName = parseQualifiedName("BOLT-E2103", "Expected package identifier.");
             module.packageName = packageName.first;
-            const Token& terminator = consume(TokenKind::Semicolon, "BOLT-E2104", "Expected ';' after package declaration.");
             span.begin = keyword.span.begin;
-            span.end = terminator.span.end;
+            if (match(TokenKind::Semicolon))
+            {
+                span.end = previous().span.end;
+            }
+            else
+            {
+                Diagnostic diag;
+                diag.code = "BOLT-E2104";
+                diag.message = "Expected ';' after package declaration.";
+                if (packageName.second.begin.line != 0 || packageName.second.begin.column != 0)
+                {
+                    diag.span = packageName.second;
+                    span.end = packageName.second.end;
+                }
+                else
+                {
+                    diag.span = keyword.span;
+                    span.end = keyword.span.end;
+                }
+                diag.fixItHint = std::string{"Insert ';' after the package declaration."};
+                m_diagnostics.emplace_back(std::move(diag));
+            }
             packageSpecified = true;
         }
         else
@@ -231,8 +261,28 @@ namespace bolt::frontend
             }
             const auto moduleName = parseQualifiedName("BOLT-E2105", "Expected module identifier.");
             module.moduleName = moduleName.first;
-            const Token& terminator = consume(TokenKind::Semicolon, "BOLT-E2106", "Expected ';' after module declaration.");
-            span.end = terminator.span.end;
+            if (match(TokenKind::Semicolon))
+            {
+                span.end = previous().span.end;
+            }
+            else
+            {
+                Diagnostic diag;
+                diag.code = "BOLT-E2106";
+                diag.message = "Expected ';' after module declaration.";
+                if (moduleName.second.begin.line != 0 || moduleName.second.begin.column != 0)
+                {
+                    diag.span = moduleName.second;
+                    span.end = moduleName.second.end;
+                }
+                else
+                {
+                    diag.span = keyword.span;
+                    span.end = keyword.span.end;
+                }
+                diag.fixItHint = std::string{"Insert ';' after the module declaration."};
+                m_diagnostics.emplace_back(std::move(diag));
+            }
         }
         else
         {
@@ -274,6 +324,20 @@ namespace bolt::frontend
         {
             importDecl.span.end = previous().span.end;
         }
+        else
+        {
+            Diagnostic diag;
+            diag.code = "BOLT-E2123";
+            diag.message = "Expected ';' after import declaration.";
+            SourceSpan span = pathSpan;
+            if (span.begin.line == 0 && span.begin.column == 0)
+            {
+                span = keyword.span;
+            }
+            diag.span = span;
+            diag.fixItHint = std::string{"Insert ';' after this import declaration."};
+            m_diagnostics.emplace_back(std::move(diag));
+        }
 
         return importDecl;
     }
@@ -283,7 +347,7 @@ namespace bolt::frontend
         std::vector<std::string> modifiers;
         while (check(TokenKind::KeywordPublic)
                || check(TokenKind::KeywordLink)
-               || check(TokenKind::KeywordExtern))
+               || check(TokenKind::KeywordExternal))
         {
             const Token& token = advance();
             modifiers.emplace_back(token.text);
@@ -310,8 +374,20 @@ namespace bolt::frontend
             m_diagnostics.emplace_back(std::move(diag));
         }
 
-        const Token& nameToken = consume(TokenKind::Identifier, "BOLT-E2110", "Expected function name.");
-        fn.name = nameToken.text;
+        SourceSpan nameSpan{};
+        if (match(TokenKind::Tilde))
+        {
+            const Token& tildeToken = previous();
+            const Token& blueprintToken = consume(TokenKind::Identifier, "BOLT-E2110", "Expected blueprint name after '~'.");
+            fn.name = "~" + blueprintToken.text;
+            nameSpan = spanFrom(tildeToken, blueprintToken);
+        }
+        else
+        {
+            const Token& nameToken = consume(TokenKind::Identifier, "BOLT-E2110", "Expected function name.");
+            fn.name = nameToken.text;
+            nameSpan = nameToken.span;
+        }
 
         consume(TokenKind::LeftParen, "BOLT-E2111", "Expected '(' after function name.");
 
@@ -365,7 +441,7 @@ namespace bolt::frontend
             m_diagnostics.emplace_back(std::move(diag));
         }
 
-        fn.span = mergeSpans(nameToken.span, bodySpan);
+        fn.span = mergeSpans(nameSpan, bodySpan);
         return fn;
     }
 

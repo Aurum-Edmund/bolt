@@ -6,15 +6,15 @@ _Status update:_ The Stage-0 lexer is in place; the next milestones focus on par
 
 1. **Front-End Foundation (compiler/frontend)**
    - **Completed:** lexical scanner with attribute-aware tokens, plus baseline parser for modules, blueprints, and functions (attributes + modifiers handled).
-   - **Completed:** semantic binder for duplicate-attribute validation, symbol tables, attribute placement checks, and Live/kernel marker capture.
+   - **Completed:** semantic binder for duplicate-attribute validation, symbol tables, attribute placement checks, and live/kernel marker capture.
    - Next: fold in import resolution scaffolding and start enforcing kernel profile diagnostics.
 2. **High-Level IR (compiler/high_level_ir)**
-   - **Completed:** foundational HIR data structures with type references, attribute-derived alignment flags, packed/bitfield metadata, and Live/kernel marker flags.
+   - **Completed:** foundational HIR data structures with type references, attribute-derived alignment flags, packed/bitfield metadata, and live/kernel marker flags.
    - Next: expose lowering entry points to MIR and model module-level linkage metadata.
    - Debug: MIR lowering populates stub functions, verifier runs, and printer dumps module/function layout.
 3. **Middle Representation (compiler/middle_ir)**
    - Model basic blocks, instruction opcodes, and effect kinds per spec §5.
-   - Add a verifier that enforces single entry, explicit terminators, and Live barriers.
+   - Add a verifier that enforces single entry, explicit terminators, and live barriers.
 4. **Back-End Preparation (compiler/backend + compiler/targets/x64)**
    - Describe calling convention records (argument registers, callee preserved sets).
    - Sketch stack frame builder and object writer interface.
