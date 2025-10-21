@@ -35,17 +35,21 @@
 - Parser sources normalized to consistent Unix newlines to keep builds warning-free across toolchains.
 - Runtime panic helper and freestanding entry point now reuse the shared `BOLT_NORETURN` definition to avoid duplicate macros after conflict merges.
 - Freestanding `_start` entry is now opt-in via `BOLT_RUNTIME_INCLUDE_FREESTANDING_START`, preventing conflicts when host tooling links against runtime helpers.
-- Runtime memory copy/fill helpers now ship with unit coverage validating nominal and zero-length behavior.
+- Runtime memory copy/fill helpers now ship with unit coverage validating nominal, overlapping, self-copy, and zero-length behavior.
 - Driver CLI accepts `--import-root` entries and search roots flow into module locator (unit tested).
 - Linker wrapper exposes structured CLI parsing (emit kind, target, sysroot, runtime roots) with dedicated unit coverage.
 - Linker wrapper materialises Windows command plans (link.exe) and reports missing host linkers with actionable diagnostics.
 - Linker wrapper now produces Windows static library plans via `lib.exe`, enabling archive packaging for Stage-0 builds.
 - Linker wrapper now materialises Air (`ld.lld`) command plans, validating linker scripts and freestanding entry configuration while avoiding conflicts with `.air` kernel artifact naming.
 - Linker documentation clarifies that Stage-0 resolves `ld.lld` directly and records guidance for SDKs that ship alternate wrapper names so environments stay compatible.
+- Linker documentation clarifies that Stage-0 resolves `ld.lld` directly and records guidance for SDKs that ship alternate wrapper names so environments stay compatible.
+- Language specification, glossary, and example modules now show the lowercase `live` qualifier, type-first declarations, and the `public live integer function example(integer value) { return value + 1; }` pattern so docs match the implementation.
 - Linker wrapper validates linker scripts, import bundles, runtime roots, and object inputs ahead of invocation, and stages import bundles to `<output>.imports` after successful links (dry runs report the planned destination).
 - Linker wrapper now assembles Bolt archives with `llvm-ar`, rejects `-L`/`-l` flags for deterministic `.zap` creation, and includes unit coverage for the new planner and validation behaviour.
 - Module locator scans import roots, caches discovered modules, and reports `BOLT-E2225`/`BOLT-E2226` diagnostics for missing roots or duplicate modules before import resolution, with unit coverage locking down discovery and error handling.
 - Parser, binder, and MIR tests exercise `link` functions across modules with multiple blueprints and assert blueprint field metadata so the static replacement modifier stays regression-safe.
+- Parser, binder, and MIR tests exercise `link` functions across modules with multiple blueprints and assert blueprint field metadata so the static replacement modifier stays regression-safe.
+- Parser and binder suites now cover pointer/reference declarations alongside the canonical `public live integer function example(integer value)` helper to lock in type-first memory syntax.
 - Parser emits fix-it hints for missing semicolons on package/module/import declarations and the driver reports the suggested edits alongside parser diagnostics.
 - Linker CLI auto-selects the Air triple for `--emit=air`/`--emit=zap` when no target is provided and rejects incompatible emit/target combinations with explicit diagnostics.
 - Driver emits JSON import bundles via `--emit-import-bundle`, enforcing single-module usage and covering the manifest format in unit tests.
@@ -68,6 +72,7 @@
 - MIR SSA groundwork now includes a phi-placement planner that consumes dominance frontiers, yields deterministic insertion blocks, and carries diamond/loop unit coverage for regression safety.
 - MIR SSA conversion pass now inserts phi instructions, renames temporaries with deterministic versioning, surfaces `BOLT-E4301`/`BOLT-E4302` diagnostics for missing definitions, and updates printer/canonical output with SSA operands under new regression tests.
 - MIR verifier enforces that live-qualified functions retain concrete return types and return instructions so later passes cannot break live invariants.
+- live enforcement diagnostics now emit dedicated codes (`BOLT-E4101`–`BOLT-E4105`) for signature and block invariants, with unit coverage for each failure mode.
 
 ---
 

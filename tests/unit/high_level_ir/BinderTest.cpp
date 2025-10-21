@@ -38,7 +38,8 @@ public live integer32 function request(live integer32 param) {
 
         std::vector<frontend::Diagnostic> parseDiagnostics;
         auto unit = parseCompilationUnit(source, parseDiagnostics);
-        ASSERT_TRUE(parseDiagnostics.empty()) << "Parser diagnostics detected";
+        ASSERT_TRUE(parseDiagnostics.empty())
+            << "First diagnostic: " << parseDiagnostics.front().code << " - " << parseDiagnostics.front().message;
 
         Binder binder{unit, "binder-test"};
         Module module = binder.bind();
@@ -197,7 +198,8 @@ public link integer function staticFunctionTest(integer value) {
 
         std::vector<frontend::Diagnostic> parseDiagnostics;
         auto unit = parseCompilationUnit(source, parseDiagnostics);
-        ASSERT_TRUE(parseDiagnostics.empty()) << "Parser diagnostics detected";
+        ASSERT_TRUE(parseDiagnostics.empty())
+            << "First diagnostic: " << parseDiagnostics.front().code << " - " << parseDiagnostics.front().message;
 
         Binder binder{unit, "binder-test"};
         Module module = binder.bind();
@@ -230,6 +232,52 @@ public link integer function staticFunctionTest(integer value) {
         ASSERT_EQ(fn.parameters.size(), 1u);
         EXPECT_EQ(fn.parameters.front().type.text, "integer");
         EXPECT_EQ(fn.parameters.front().name, "value");
+    }
+
+    TEST(BinderTest, CapturesPointerAndReferenceTypes)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint PointerCarrier {
+    pointer<byte> payload;
+    reference<byte> mirrorRef;
+}
+
+public live integer function example(integer value, pointer<byte> buffer, reference<byte> mirrorRef) {
+    return value + 1;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty())
+            << "First diagnostic: " << parseDiagnostics.front().code << " - " << parseDiagnostics.front().message;
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty()) << "Binder diagnostics detected";
+
+        ASSERT_EQ(module.blueprints.size(), 1u);
+        const auto& blueprint = module.blueprints.front();
+        ASSERT_EQ(blueprint.fields.size(), 2u);
+        EXPECT_EQ(blueprint.fields[0].type.text, "pointer<byte>");
+        EXPECT_EQ(blueprint.fields[0].name, "payload");
+        EXPECT_EQ(blueprint.fields[1].type.text, "reference<byte>");
+        EXPECT_EQ(blueprint.fields[1].name, "mirrorRef");
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        const auto& function = module.functions.front();
+        EXPECT_EQ(function.name, "example");
+        ASSERT_EQ(function.parameters.size(), 3u);
+        EXPECT_EQ(function.parameters[0].type.text, "integer");
+        EXPECT_EQ(function.parameters[0].name, "value");
+        EXPECT_EQ(function.parameters[1].type.text, "pointer<byte>");
+        EXPECT_EQ(function.parameters[1].name, "buffer");
+        EXPECT_EQ(function.parameters[2].type.text, "reference<byte>");
+        EXPECT_EQ(function.parameters[2].name, "mirrorRef");
+        EXPECT_TRUE(function.hasReturnType);
+        EXPECT_EQ(function.returnType.text, "integer");
+        EXPECT_TRUE(function.returnIsLive);
     }
 }
 } // namespace bolt::hir

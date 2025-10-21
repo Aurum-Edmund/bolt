@@ -23,7 +23,7 @@ BOLT_NORETURN void bolt_panic_abort(const char* message);
 /*
  * Memory copy helper (see glossary "Memory Copy").
  * Copies `bytes` from source to destination and returns destination.
- * The regions must not overlap.
+ * Overlapping regions are supported and copied safely.
  */
 void* bolt_memory_copy(void* destination, const void* source, size_t bytes);
 

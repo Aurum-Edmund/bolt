@@ -43,6 +43,40 @@ TEST(RuntimeHelpersTest, MemoryCopyHandlesZeroLength)
     EXPECT_EQ(0xCDU, destination.back());
 }
 
+TEST(RuntimeHelpersTest, MemoryCopyHandlesOverlappingForwardRanges)
+{
+    std::array<std::uint8_t, kBufferSize> buffer{};
+    for (std::size_t index = 0; index < buffer.size(); ++index)
+    {
+        buffer[index] = static_cast<std::uint8_t>(index);
+    }
+
+    void* returned = bolt_memory_copy(buffer.data() + 4, buffer.data(), 20);
+    EXPECT_EQ(buffer.data() + 4, returned);
+
+    for (std::size_t index = 0; index < 20; ++index)
+    {
+        EXPECT_EQ(static_cast<std::uint8_t>(index), buffer[index + 4]);
+    }
+}
+
+TEST(RuntimeHelpersTest, MemoryCopyHandlesSelfCopy)
+{
+    std::array<std::uint8_t, kBufferSize> buffer{};
+    for (std::size_t index = 0; index < buffer.size(); ++index)
+    {
+        buffer[index] = static_cast<std::uint8_t>((index * 7U) & 0xFFU);
+    }
+
+    void* returned = bolt_memory_copy(buffer.data(), buffer.data(), buffer.size());
+    EXPECT_EQ(buffer.data(), returned);
+
+    for (std::size_t index = 0; index < buffer.size(); ++index)
+    {
+        EXPECT_EQ(static_cast<std::uint8_t>((index * 7U) & 0xFFU), buffer[index]);
+    }
+}
+
 TEST(RuntimeHelpersTest, MemoryFillWritesRequestedByte)
 {
     std::array<std::uint8_t, kBufferSize> buffer{};

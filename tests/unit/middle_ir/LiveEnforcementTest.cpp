@@ -63,10 +63,10 @@ public integer function demo() {
         std::vector<LiveDiagnostic> diagnostics;
         EXPECT_FALSE(enforceLive(module, diagnostics));
         ASSERT_EQ(diagnostics.size(), 2u);
-        EXPECT_EQ(diagnostics[0].code, "BOLT-E4101");
+        EXPECT_EQ(diagnostics[0].code, "BOLT-E4103");
         EXPECT_EQ(diagnostics[0].functionName, "demo");
         EXPECT_NE(diagnostics[0].detail.find("missing a return instruction"), std::string::npos);
-        EXPECT_EQ(diagnostics[1].code, "BOLT-E4101");
+        EXPECT_EQ(diagnostics[1].code, "BOLT-E4104");
         EXPECT_EQ(diagnostics[1].functionName, "demo");
         EXPECT_NE(diagnostics[1].detail.find("empty basic block"), std::string::npos);
     }
@@ -87,6 +87,23 @@ public integer function demo() {
         EXPECT_EQ(diagnostics.front().code, "BOLT-E4101");
         EXPECT_EQ(diagnostics.front().functionName, "requiresType");
         EXPECT_NE(diagnostics.front().detail.find("return declared without a concrete return type"), std::string::npos);
+    }
+
+    TEST(LiveEnforcementTest, RejectsLiveFunctionWithoutBlocks)
+    {
+        Module module;
+        Function function;
+        function.name = "noBlocks";
+        function.returnIsLive = true;
+        function.hasReturnType = true;
+        module.functions.push_back(function);
+
+        std::vector<LiveDiagnostic> diagnostics;
+        EXPECT_FALSE(enforceLive(module, diagnostics));
+        ASSERT_EQ(diagnostics.size(), 1u);
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E4102");
+        EXPECT_EQ(diagnostics.front().functionName, "noBlocks");
+        EXPECT_NE(diagnostics.front().detail.find("no basic blocks"), std::string::npos);
     }
 
     TEST(LiveEnforcementTest, RejectsLiveBlockMissingTerminator)
@@ -114,7 +131,7 @@ public integer function demo() {
         std::vector<LiveDiagnostic> diagnostics;
         EXPECT_FALSE(enforceLive(module, diagnostics));
         ASSERT_EQ(diagnostics.size(), 1u);
-        EXPECT_EQ(diagnostics.front().code, "BOLT-E4101");
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E4105");
         EXPECT_EQ(diagnostics.front().functionName, "misordered");
         EXPECT_NE(diagnostics.front().detail.find("must terminate with return or branch"), std::string::npos);
     }

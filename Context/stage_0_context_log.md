@@ -28,6 +28,7 @@
 - Driver CLI now accepts repeatable `--import-root` flags; module locator uses them and coverage added in unit tests.
 - Runtime stub plan expanded with `_start` flow, testing strategy, and linker integration notes to guide upcoming implementation.
 - live enforcement pass now enforces baseline invariants for live-qualified functions, reports structured diagnostics (`BOLT-E4101`), surfaces them through the driver, and validates that live-qualified basic blocks end with terminators.
+- live enforcement diagnostics now use dedicated codes (`BOLT-E4101`–`BOLT-E4105`) for missing return types, absent blocks, missing returns, empty blocks, and unterminated blocks, with regression coverage exercising each path.
 - Front-end parser sources normalized to Unix newlines to eliminate stray include warnings during builds.
 - Runtime panic/entry helpers share the common `BOLT_NORETURN` macro from `runtime.h`, cleaning up duplicate definitions after merge resolution.
 - Freestanding `_start` entry point is now gated behind `BOLT_RUNTIME_INCLUDE_FREESTANDING_START` so host-linked tools can reuse runtime helpers without conflicting CRT entry symbols.
@@ -66,9 +67,12 @@
 - MIR SSA conversion pass now inserts phi nodes, renames temporaries, reports `BOLT-E4301`/`BOLT-E4302` for missing definitions, enriches printer/canonical dumps with SSA operands, and ships diamond control-flow coverage through dedicated unit tests.
 - Driver pipeline now runs the SSA conversion pass after live enforcement, emitting `BOLT-E4300` failures when SSA conversion breaks and guaranteeing canonical MIR reaches verification.
 - MIR verifier now enforces that live-qualified functions keep concrete return types and return instructions so later passes cannot violate live invariants.
+- Parser and binder regression suites now cover pointer and reference declarations alongside the canonical `public live integer function example(integer value)` helper, locking in the type-first syntax for memory-centric signatures.
+- Runtime memory copy helper now guards overlapping and self-copy scenarios with dedicated unit coverage so freestanding builds handle those edge cases deterministically.
+- Language specification, glossary, and example modules now showcase the lowercase `live` qualifier, type-first variable declarations, and the `public live integer function example(integer value) { return value + 1; }` pattern to keep documentation aligned with the implementation.
 
 ## Progress Metric
-- **Estimated Stage-0 completion:** ~95%
+- **Estimated Stage-0 completion:** ~97%
 
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).

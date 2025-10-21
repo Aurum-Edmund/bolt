@@ -27,12 +27,29 @@ BOLT_NORETURN void bolt_panic_abort(const char* message)
 
 void* bolt_memory_copy(void* destination, const void* source, size_t bytes)
 {
+    if ((destination == source) || (bytes == 0U))
+    {
+        return destination;
+    }
+
     unsigned char* dst = (unsigned char*)destination;
     const unsigned char* src = (const unsigned char*)source;
-    for (size_t index = 0; index < bytes; ++index)
+
+    if (dst < src)
     {
-        dst[index] = src[index];
+        for (size_t index = 0; index < bytes; ++index)
+        {
+            dst[index] = src[index];
+        }
     }
+    else
+    {
+        for (size_t offset = bytes; offset > 0U; --offset)
+        {
+            dst[offset - 1U] = src[offset - 1U];
+        }
+    }
+
     return destination;
 }
 

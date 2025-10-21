@@ -54,10 +54,13 @@ namespace bolt::mir
             return "#" + std::to_string(block.id);
         }
 
-        void reportError(const Function& function, std::string_view detail, std::vector<LiveDiagnostic>& diagnostics)
+        void reportError(const Function& function,
+                         std::string_view code,
+                         std::string_view detail,
+                         std::vector<LiveDiagnostic>& diagnostics)
         {
             LiveDiagnostic diagnostic;
-            diagnostic.code = "BOLT-E4101";
+            diagnostic.code = std::string{code};
             diagnostic.functionName = function.name;
             diagnostic.detail = std::string{detail};
             diagnostics.emplace_back(std::move(diagnostic));
@@ -80,20 +83,29 @@ namespace bolt::mir
 
             if (liveReturn && !function.hasReturnType)
             {
-                reportError(function, "live return declared without a concrete return type.", diagnostics);
+                reportError(function,
+                    "BOLT-E4101",
+                    "live return declared without a concrete return type.",
+                    diagnostics);
                 success = false;
             }
 
             if (function.blocks.empty())
             {
-                reportError(function, "live-qualified function has no basic blocks.", diagnostics);
+                reportError(function,
+                    "BOLT-E4102",
+                    "live-qualified function has no basic blocks.",
+                    diagnostics);
                 success = false;
                 continue;
             }
 
             if (!functionHasReturnInstruction(function))
             {
-                reportError(function, "live-qualified function is missing a return instruction.", diagnostics);
+                reportError(function,
+                    "BOLT-E4103",
+                    "live-qualified function is missing a return instruction.",
+                    diagnostics);
                 success = false;
             }
 
@@ -102,6 +114,7 @@ namespace bolt::mir
                 if (block.instructions.empty())
                 {
                     reportError(function,
+                                "BOLT-E4104",
                                 "live-qualified function contains an empty basic block '" + describeBlock(block) + "'.",
                                 diagnostics);
                     success = false;
@@ -111,6 +124,7 @@ namespace bolt::mir
                 if (!isTerminator(block.instructions.back()))
                 {
                     reportError(function,
+                                "BOLT-E4105",
                                 "Basic block '" + describeBlock(block)
                                     + "' must terminate with return or branch for live-qualified function.",
                                 diagnostics);

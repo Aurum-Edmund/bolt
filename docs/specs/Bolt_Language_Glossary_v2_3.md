@@ -55,31 +55,38 @@ Identifier      := letter { letter | digit }
 **Examples**
 ```bolt
 [interruptHandler]
-integer function timerInterrupt() { /* ... */ }
+public integer function timerInterrupt() { /* ... */ }
 
 [bareFunction]
 [inSection(".text.boot"), aligned(4096)]
-integer function earlyEntry() { assembly { "cli"; "hlt" } }
+public integer function earlyEntry() { assembly { "cli"; "hlt"; } }
 
 [systemRequest(identifier=1)]
-integer function systemWrite(integer fileDescriptor, &byte buffer, unsignedInteger length)
+public live integer function systemWrite(integer fileDescriptor, pointer<byte> buffer, unsigned64 length);
+
+public live integer function example(integer value) {
+    integer next = value + 1;
+    return next;
+}
 
 [packed]
-blueprint UartControl {
-    [bits(1)]  unsignedInteger enable
-    [bits(2)]  unsignedInteger parity
-    [bits(2)]  unsignedInteger stopBits
-    [bits(27)] unsignedInteger reserved
+public blueprint UartControl {
+    [bits(1)] unsignedInteger enable;
+    [bits(2)] unsignedInteger parity;
+    [bits(2)] unsignedInteger stopBits;
+    [bits(27)] unsignedInteger reserved;
 }
 ```
 
 ## Numeric Type Aliases
 - integer is the default signed thirty-two bit scalar (alias for integer32).
-- loat aliases loat32; double aliases loat64.
-- Use explicit width forms (for example, integer16, integer64, ## Memory Model and live value
+## Memory Model and live value
 **live value (volatile):**
 - Front-end analysis records live qualifiers alongside type metadata so MIR/LIR passes can honour ordering and visibility guarantees.
-unction sample(...) -> integer.
+loat64.
+- Use explicit width forms (for example, integer16, integer64, loat32) when exact sizing or interop requirements demand it.
+- Compiler diagnostics and canonical MIR output prefer the alias form unless a width-specific type is declared.
+- Documentation snippets may present the shorthand public integer function sample(integer value) { ... } to illustrate the alias while the Stage-0 parser continues to accept unction sample(...) -> integer.
 
 ---
 
@@ -220,8 +227,8 @@ profile kernelFreestanding {
 | build script | **build script** | Steps and flags to produce artifacts. |
 | manifest | **run descriptor** | Entry point, permissions, and dependencies. |
 
-### Pipeline Phases
-| Legacy Term | Modern Term | Definition |
+public live integer function systemWrite(integer fileDescriptor, pointer<byte> buffer, unsigned64 length)
+- **live value** — A qualifier that forces loads and stores to be side-effecting and visible to hardware or other agents.
 |---|---|---|
 | Lexical Analysis | **Lexical Analysis** | Converts source to tokens. |
 | Parsing | **Parsing** | Builds the Abstract Syntax Tree. |

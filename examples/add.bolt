@@ -1,12 +1,13 @@
 package examples;
 module add;
 
-public integer function add(integer first, integer second) {
-    return first + second;
+public live integer function example(integer value) {
+    return value + 1;
 }
 
 public integer function start() {
-    return add(2, 3);
+    integer input = 2;
+    return example(input);
 }
 
 

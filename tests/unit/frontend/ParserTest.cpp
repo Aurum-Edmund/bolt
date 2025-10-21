@@ -32,7 +32,8 @@ public integer function sample(integer value) {
         std::vector<Diagnostic> diagnostics;
         CompilationUnit unit = parseSource(source, diagnostics);
 
-        EXPECT_TRUE(diagnostics.empty());
+        ASSERT_TRUE(diagnostics.empty())
+            << "First diagnostic: " << diagnostics.front().code << " - " << diagnostics.front().message;
         ASSERT_EQ(unit.functions.size(), 1u);
         const auto& fn = unit.functions.front();
         EXPECT_EQ(fn.name, "sample");
@@ -216,6 +217,48 @@ public link integer function staticFunctionTest(integer value) {
         ASSERT_EQ(fn.parameters.size(), 1u);
         EXPECT_EQ(fn.parameters.front().typeName, "integer");
         EXPECT_EQ(fn.parameters.front().name, "value");
+    }
+
+    TEST(ParserTest, ParsesPointerAndReferenceUsage)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint PointerCarrier {
+    pointer<byte> payload;
+    reference<byte> mirrorRef;
+}
+
+public live integer function example(integer value, pointer<byte> buffer, reference<byte> mirrorRef) {
+    return value + 1;
+}
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        CompilationUnit unit = parseSource(source, diagnostics);
+
+        ASSERT_TRUE(diagnostics.empty())
+            << "First diagnostic: " << diagnostics.front().code << " - " << diagnostics.front().message;
+        ASSERT_EQ(unit.blueprints.size(), 1u);
+        const auto& blueprint = unit.blueprints.front();
+        EXPECT_EQ(blueprint.name, "PointerCarrier");
+        ASSERT_EQ(blueprint.fields.size(), 2u);
+        EXPECT_EQ(blueprint.fields[0].typeName, "pointer<byte>");
+        EXPECT_EQ(blueprint.fields[0].name, "payload");
+        EXPECT_EQ(blueprint.fields[1].typeName, "reference<byte>");
+        EXPECT_EQ(blueprint.fields[1].name, "mirrorRef");
+
+        ASSERT_EQ(unit.functions.size(), 1u);
+        const auto& function = unit.functions.front();
+        EXPECT_EQ(function.name, "example");
+        ASSERT_TRUE(function.returnType.has_value());
+        EXPECT_EQ(function.returnType.value(), "live integer");
+        ASSERT_EQ(function.parameters.size(), 3u);
+        EXPECT_EQ(function.parameters[0].typeName, "integer");
+        EXPECT_EQ(function.parameters[0].name, "value");
+        EXPECT_EQ(function.parameters[1].typeName, "pointer<byte>");
+        EXPECT_EQ(function.parameters[1].name, "buffer");
+        EXPECT_EQ(function.parameters[2].typeName, "reference<byte>");
+        EXPECT_EQ(function.parameters[2].name, "mirrorRef");
     }
 }
 } // namespace bolt::frontend
