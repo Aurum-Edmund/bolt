@@ -18,7 +18,8 @@ namespace bolt::mir
         Load,
         Store,
         Unary,
-        Binary
+        Binary,
+        Phi
     };
 
     enum class ValueKind : std::uint16_t
@@ -39,6 +40,7 @@ namespace bolt::mir
     struct Operand
     {
         Value value;
+        std::optional<std::uint32_t> predecessorBlockId;
     };
 
     struct Instruction
@@ -46,6 +48,9 @@ namespace bolt::mir
         InstructionKind kind{InstructionKind::Nop};
         std::vector<Operand> operands;
         std::string detail;
+        std::vector<std::uint32_t> successors;
+        std::optional<Value> result;
+        std::optional<std::uint32_t> originalTemporaryId;
     };
 
     struct BasicBlock
@@ -58,6 +63,16 @@ namespace bolt::mir
     struct Function
     {
         std::string name;
+        struct Parameter
+        {
+            std::string typeName;
+            std::string name;
+            bool isLive{false};
+        };
+        std::vector<Parameter> parameters;
+        bool hasReturnType{false};
+        std::string returnType;
+        bool returnIsLive{false};
         std::vector<BasicBlock> blocks;
         std::uint32_t nextBlockId{0};
         std::uint32_t nextValueId{0};
@@ -72,6 +87,7 @@ namespace bolt::mir
         struct ResolvedImport
         {
             std::string modulePath;
+            std::optional<std::string> canonicalModulePath;
             std::optional<std::string> filePath;
         };
         std::vector<ResolvedImport> resolvedImports;
