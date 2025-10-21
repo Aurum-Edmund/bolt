@@ -21,5 +21,72 @@ namespace
         EXPECT_EQ(tokens[2].kind, TokenKind::Semicolon);
         EXPECT_EQ(tokens[3].kind, TokenKind::KeywordModule);
     }
+
+    TEST(LexerTest, RecognizesCompoundOperators)
+    {
+        const std::string source = "value += 1; other--; ++value; if (value && other) { value -= 2; }";
+
+        Lexer lexer{source, "operators"};
+        lexer.lex();
+
+        const auto& tokens = lexer.tokens();
+        std::size_t plusEqualsCount = 0;
+        std::size_t minusMinusCount = 0;
+        std::size_t plusPlusCount = 0;
+        std::size_t ampersandAmpersandCount = 0;
+        std::size_t minusEqualsCount = 0;
+
+        for (const auto& token : tokens)
+        {
+            switch (token.kind)
+            {
+            case TokenKind::PlusEquals: ++plusEqualsCount; break;
+            case TokenKind::MinusMinus: ++minusMinusCount; break;
+            case TokenKind::PlusPlus: ++plusPlusCount; break;
+            case TokenKind::AmpersandAmpersand: ++ampersandAmpersandCount; break;
+            case TokenKind::MinusEquals: ++minusEqualsCount; break;
+            default: break;
+            }
+        }
+
+        EXPECT_EQ(1u, plusEqualsCount);
+        EXPECT_EQ(1u, minusMinusCount);
+        EXPECT_EQ(1u, plusPlusCount);
+        EXPECT_EQ(1u, ampersandAmpersandCount);
+        EXPECT_EQ(1u, minusEqualsCount);
+    }
+
+    TEST(LexerTest, RecognizesExternalAndLifecycleKeywords)
+    {
+        const std::string source = "public external function build() {} new delete";
+
+        Lexer lexer{source, "keywords"};
+        lexer.lex();
+
+        const auto& tokens = lexer.tokens();
+        bool sawExternal = false;
+        bool sawNew = false;
+        bool sawDelete = false;
+
+        for (const auto& token : tokens)
+        {
+            if (token.kind == TokenKind::KeywordExternal)
+            {
+                sawExternal = true;
+            }
+            else if (token.kind == TokenKind::KeywordNew)
+            {
+                sawNew = true;
+            }
+            else if (token.kind == TokenKind::KeywordDelete)
+            {
+                sawDelete = true;
+            }
+        }
+
+        EXPECT_TRUE(sawExternal);
+        EXPECT_TRUE(sawNew);
+        EXPECT_TRUE(sawDelete);
+    }
 }
 } // namespace bolt::frontend

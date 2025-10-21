@@ -31,14 +31,15 @@ namespace
 
 [aligned(16)]
 [systemRequest(identifier=2)]
-public Live integer32 function request(Live integer32 param) {
+public live integer32 function request(live integer32 param) {
     return param;
 }
 )";
 
         std::vector<frontend::Diagnostic> parseDiagnostics;
         auto unit = parseCompilationUnit(source, parseDiagnostics);
-        ASSERT_TRUE(parseDiagnostics.empty()) << "Parser diagnostics detected";
+        ASSERT_TRUE(parseDiagnostics.empty())
+            << "First diagnostic: " << parseDiagnostics.front().code << " - " << parseDiagnostics.front().message;
 
         Binder binder{unit, "binder-test"};
         Module module = binder.bind();
@@ -60,6 +61,27 @@ public Live integer32 function request(Live integer32 param) {
         EXPECT_EQ(fn.parameters.front().name, "param");
         EXPECT_EQ(fn.parameters.front().type.text, "integer");
         EXPECT_TRUE(fn.parameters.front().isLive);
+    }
+
+    TEST(BinderTest, RecordsBlueprintLifecycleFunctions)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public void function Widget() {}
+public void function ~Widget() {}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty());
+
+        ASSERT_EQ(module.functions.size(), 2u);
+        EXPECT_EQ(module.functions[0].name, "Widget");
+        EXPECT_EQ(module.functions[1].name, "~Widget");
     }
 
     TEST(BinderTest, DuplicateFunctionAttributeEmitsDiagnostic)
@@ -90,7 +112,7 @@ integer function badAlign() {
 [packed]
 [aligned(64)]
 public blueprint Timer {
-    Live integer32 start;
+    live integer32 start;
     [bits(8)] integer32 mode;
     [aligned(16)] [bits(4)] integer32 priority;
 }
@@ -136,7 +158,7 @@ public blueprint Timer {
     {
         const std::string source = R"(package demo.tests; module demo.tests;
 import demo.alpha;
-import demo.beta.gamma
+import demo.beta.gamma;
 
 public integer function sample() {
     return 0;
@@ -176,6 +198,145 @@ import demo.alpha;
         ASSERT_EQ(module.imports.size(), 2u);
         EXPECT_EQ(module.imports[0].modulePath, "demo.alpha");
         EXPECT_EQ(module.imports[1].modulePath, "demo.beta");
+    }
+
+    TEST(BinderTest, RecordsLinkFunctionAcrossMultipleBlueprints)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint FirstBlueprint {
+    integer firstField;
+}
+
+public blueprint SecondBlueprint {
+    integer secondField;
+}
+
+public link integer function staticFunctionTest(integer value) {
+    return value;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty())
+            << "First diagnostic: " << parseDiagnostics.front().code << " - " << parseDiagnostics.front().message;
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty()) << "Binder diagnostics detected";
+
+        ASSERT_EQ(module.blueprints.size(), 2u);
+        EXPECT_EQ(module.blueprints[0].name, "FirstBlueprint");
+        EXPECT_EQ(module.blueprints[1].name, "SecondBlueprint");
+
+        ASSERT_EQ(module.blueprints[0].modifiers.size(), 1u);
+        EXPECT_EQ(module.blueprints[0].modifiers.front(), "public");
+        ASSERT_EQ(module.blueprints[0].fields.size(), 1u);
+        EXPECT_EQ(module.blueprints[0].fields.front().type.text, "integer");
+        EXPECT_EQ(module.blueprints[0].fields.front().name, "firstField");
+
+        ASSERT_EQ(module.blueprints[1].modifiers.size(), 1u);
+        EXPECT_EQ(module.blueprints[1].modifiers.front(), "public");
+        ASSERT_EQ(module.blueprints[1].fields.size(), 1u);
+        EXPECT_EQ(module.blueprints[1].fields.front().type.text, "integer");
+        EXPECT_EQ(module.blueprints[1].fields.front().name, "secondField");
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        const auto& fn = module.functions.front();
+        EXPECT_EQ(fn.name, "staticFunctionTest");
+        ASSERT_EQ(fn.modifiers.size(), 2u);
+        EXPECT_EQ(fn.modifiers[0], "public");
+        EXPECT_EQ(fn.modifiers[1], "link");
+        EXPECT_TRUE(fn.hasReturnType);
+        EXPECT_EQ(fn.returnType.text, "integer");
+        ASSERT_EQ(fn.parameters.size(), 1u);
+        EXPECT_EQ(fn.parameters.front().type.text, "integer");
+        EXPECT_EQ(fn.parameters.front().name, "value");
+    }
+
+    TEST(BinderTest, CapturesPointerAndReferenceTypes)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint PointerCarrier {
+    pointer<byte> payload;
+    reference<byte> mirrorRef;
+}
+
+public live integer function example(integer value, pointer<byte> buffer, reference<byte> mirrorRef) {
+    return value + 1;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty())
+            << "First diagnostic: " << parseDiagnostics.front().code << " - " << parseDiagnostics.front().message;
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty()) << "Binder diagnostics detected";
+
+        ASSERT_EQ(module.blueprints.size(), 1u);
+        const auto& blueprint = module.blueprints.front();
+        ASSERT_EQ(blueprint.fields.size(), 2u);
+        EXPECT_EQ(blueprint.fields[0].type.text, "pointer<byte>");
+        EXPECT_EQ(blueprint.fields[0].name, "payload");
+        EXPECT_EQ(blueprint.fields[1].type.text, "reference<byte>");
+        EXPECT_EQ(blueprint.fields[1].name, "mirrorRef");
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        const auto& function = module.functions.front();
+        EXPECT_EQ(function.name, "example");
+        ASSERT_EQ(function.parameters.size(), 3u);
+        EXPECT_EQ(function.parameters[0].type.text, "integer");
+        EXPECT_EQ(function.parameters[0].name, "value");
+        EXPECT_EQ(function.parameters[1].type.text, "pointer<byte>");
+        EXPECT_EQ(function.parameters[1].name, "buffer");
+        EXPECT_EQ(function.parameters[2].type.text, "reference<byte>");
+        EXPECT_EQ(function.parameters[2].name, "mirrorRef");
+        EXPECT_TRUE(function.hasReturnType);
+        EXPECT_EQ(function.returnType.text, "integer");
+        EXPECT_TRUE(function.returnIsLive);
+    }
+
+    TEST(BinderTest, NormalizesStarPointerAndReferenceSyntax)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint SyntaxCarrier {
+    integer* smartPointer;
+    integer & smartReference;
+    integer*& refToPointer;
+}
+
+public integer function build(integer* instance) {
+    return 0;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty())
+            << "First diagnostic: " << parseDiagnostics.front().code << " - " << parseDiagnostics.front().message;
+
+        Binder binder{unit, "binder-star"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty()) << "Binder diagnostics detected";
+
+        ASSERT_EQ(module.blueprints.size(), 1u);
+        const auto& blueprint = module.blueprints.front();
+        ASSERT_EQ(blueprint.fields.size(), 3u);
+        EXPECT_EQ(blueprint.fields[0].type.text, "pointer<integer>");
+        EXPECT_EQ(blueprint.fields[1].type.text, "reference<integer>");
+        EXPECT_EQ(blueprint.fields[2].type.text, "reference<pointer<integer>>");
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        const auto& function = module.functions.front();
+        ASSERT_EQ(function.parameters.size(), 1u);
+        EXPECT_EQ(function.parameters[0].type.text, "pointer<integer>");
+        EXPECT_EQ(function.returnType.text, "integer");
     }
 }
 } // namespace bolt::hir

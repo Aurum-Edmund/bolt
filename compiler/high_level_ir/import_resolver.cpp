@@ -41,6 +41,7 @@ namespace bolt::hir
                 if (located.has_value())
                 {
                     entry.status = ImportStatus::Resolved;
+                    entry.canonicalModulePath = located->canonicalPath;
                     entry.resolvedFilePath = located->filePath.lexically_normal().string();
                 }
                 else

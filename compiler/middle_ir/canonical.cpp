@@ -9,12 +9,50 @@ namespace bolt::mir
 {
     namespace
     {
+        std::string describeValue(const Value& value)
+        {
+            std::ostringstream stream;
+            stream << static_cast<int>(value.kind) << ':' << value.id;
+            if (!value.name.empty())
+            {
+                stream << ':' << value.name;
+            }
+            return stream.str();
+        }
+
         std::string canonicalDetail(const Instruction& inst)
         {
             std::ostringstream stream;
             stream << static_cast<int>(inst.kind);
             stream << ' ';
             stream << inst.detail;
+            if (inst.result.has_value())
+            {
+                stream << " res " << describeValue(*inst.result);
+            }
+            if (!inst.operands.empty())
+            {
+                stream << " ops";
+                for (std::size_t index = 0; index < inst.operands.size(); ++index)
+                {
+                    const auto& operand = inst.operands[index];
+                    stream << (index == 0 ? ' ' : ',');
+                    stream << describeValue(operand.value);
+                    if (operand.predecessorBlockId.has_value())
+                    {
+                        stream << "@" << *operand.predecessorBlockId;
+                    }
+                }
+            }
+            if (!inst.successors.empty())
+            {
+                stream << " succ";
+                for (std::size_t index = 0; index < inst.successors.size(); ++index)
+                {
+                    stream << (index == 0 ? ' ' : ',');
+                    stream << inst.successors[index];
+                }
+            }
             return stream.str();
         }
 
@@ -70,6 +108,10 @@ namespace bolt::mir
         for (const auto& entry : module.resolvedImports)
         {
             std::string detail = entry.modulePath;
+            if (entry.canonicalModulePath.has_value())
+            {
+                detail += " [" + *entry.canonicalModulePath + "]";
+            }
             if (entry.filePath.has_value())
             {
                 detail += " -> ";

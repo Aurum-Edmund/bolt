@@ -55,27 +55,35 @@ Identifier      := letter { letter | digit }
 **Examples**
 ```bolt
 [interruptHandler]
-integer function timerInterrupt() { /* ... */ }
+public integer function timerInterrupt() { /* ... */ }
 
 [bareFunction]
 [inSection(".text.boot"), aligned(4096)]
-integer function earlyEntry() { assembly { "cli"; "hlt" } }
+public integer function earlyEntry() { assembly { "cli"; "hlt"; } }
 
 [systemRequest(identifier=1)]
-integer function systemWrite(integer fileDescriptor, &byte buffer, unsignedInteger length)
+public live integer function systemWrite(integer fileDescriptor, pointer<byte> buffer, unsigned64 length);
+
+public live integer function example(integer value) {
+    integer next = value + 1;
+    return next;
+}
 
 [packed]
-blueprint UartControl {
-    [bits(1)]  unsignedInteger enable
-    [bits(2)]  unsignedInteger parity
-    [bits(2)]  unsignedInteger stopBits
-    [bits(27)] unsignedInteger reserved
+public blueprint UartControl {
+    [bits(1)] unsignedInteger enable;
+    [bits(2)] unsignedInteger parity;
+    [bits(2)] unsignedInteger stopBits;
+    [bits(27)] unsignedInteger reserved;
 }
 ```
 
 ## Numeric Type Aliases
 - integer is the default signed thirty-two bit scalar (alias for integer32).
-- loat aliases loat32; double aliases loat64.
+## Memory Model and live value
+**live value (volatile):**
+- Front-end analysis records live qualifiers alongside type metadata so MIR/LIR passes can honour ordering and visibility guarantees.
+loat64.
 - Use explicit width forms (for example, integer16, integer64, loat32) when exact sizing or interop requirements demand it.
 - Compiler diagnostics and canonical MIR output prefer the alias form unless a width-specific type is declared.
 - Documentation snippets may present the shorthand public integer function sample(integer value) { ... } to illustrate the alias while the Stage-0 parser continues to accept unction sample(...) -> integer.
@@ -144,7 +152,25 @@ Freestanding or kernel builds **must** enable the following flags:
 --bounds=off   # enable in debug with --bounds=on
 ```
 
-Optional in-source profile header:
+### Smart pointers and references
+- Use `Type*` to declare a managed pointer. The `*` suffix is equivalent to `pointer<Type>` and maps to a shared-ownership smart pointer implemented by the Bolt runtime. All managed pointers participate in deterministic reference counting and never perform hidden allocations—copying requires an explicit call to the runtime smart pointer helpers.
+- Use `Type&` to declare a reference alias. The syntax mirrors `reference<Type>` in existing code and binds to the underlying value without taking ownership.
+- Chained suffixes associate from right to left. `integer*&` denotes a `reference<pointer<integer>>`, enabling references to managed pointers without exposing raw addresses.
+- Pointer validity is determined by ownership: `if (object)` checks that the managed pointer owns a payload, and `if (!object)` enters when the pointer is empty.
+
+### Object lifecycle
+- Blueprint construction and teardown use dedicated function names: the blueprint name itself (`BlueprintName`) represents the constructor and `~BlueprintName` names the destructor. Stage‑0 tooling records the identifiers alongside other function metadata.
+- `new` allocates zero-initialised storage and returns a managed pointer-ready address. `delete` releases storage obtained from `new`. Both keywords are reserved in the lexer so they cannot be repurposed for identifiers.
+- All automatic variables receive sane defaults; uninitialised storage is zero-filled by default so deterministic state is available before constructors run.
+- The runtime exposes explicit helpers for smart pointer construction (`bolt_shared_pointer_make`), copying (`bolt_shared_pointer_copy`), moving (`bolt_shared_pointer_move`), validation (`bolt_shared_pointer_is_valid`), and teardown (`bolt_shared_pointer_release`). Hidden allocations are forbidden—callers decide when to allocate and destroy.
+
+### Operators
+- Arithmetic: `+`, `-`, `*`, `/`, `%`, with compound assignment `+=` and `-=`.
+- Increment and decrement: `++` and `--` (prefix and postfix are tokenised for future semantic passes).
+- Comparison: `>`, `<`, `>=`, `<=`, `==`, `!=`.
+- Logical: `&&` (logical AND) and `||` (reserved for future stages).
+
+| `volatile` | **live value** | Side-effecting read or write; not optimized away. |
 ```bolt
 profile kernelFreestanding {
     panic abort
@@ -219,8 +245,8 @@ profile kernelFreestanding {
 | build script | **build script** | Steps and flags to produce artifacts. |
 | manifest | **run descriptor** | Entry point, permissions, and dependencies. |
 
-### Pipeline Phases
-| Legacy Term | Modern Term | Definition |
+public live integer function systemWrite(integer fileDescriptor, pointer<byte> buffer, unsigned64 length)
+- **live value** — A qualifier that forces loads and stores to be side-effecting and visible to hardware or other agents.
 |---|---|---|
 | Lexical Analysis | **Lexical Analysis** | Converts source to tokens. |
 | Parsing | **Parsing** | Builds the Abstract Syntax Tree. |

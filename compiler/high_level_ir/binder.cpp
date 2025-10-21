@@ -40,7 +40,7 @@ namespace bolt::hir
             return std::string{token};
         }
 
-        std::string normalizeTypeText(std::string_view text)
+        std::string normalizeTypeTokens(std::string_view text)
         {
             std::string result;
             result.reserve(text.size());
@@ -62,6 +62,85 @@ namespace bolt::hir
                 {
                     result.push_back(static_cast<char>(ch));
                     ++index;
+                }
+            }
+
+            return result;
+        }
+
+        std::string trimCopy(std::string_view text)
+        {
+            const auto first = text.find_first_not_of(" \t\r\n");
+            if (first == std::string_view::npos)
+            {
+                return std::string{};
+            }
+
+            const auto last = text.find_last_not_of(" \t\r\n");
+            return std::string{text.substr(first, last - first + 1)};
+        }
+
+        std::string normalizeTypeText(std::string_view text)
+        {
+            std::string trimmed = trimCopy(text);
+            if (trimmed.empty())
+            {
+                return trimmed;
+            }
+
+            std::vector<char> qualifiers;
+            std::size_t index = trimmed.size();
+            while (index > 0)
+            {
+                unsigned char ch = static_cast<unsigned char>(trimmed[index - 1]);
+                if (std::isspace(ch))
+                {
+                    --index;
+                    continue;
+                }
+
+                if (ch == '*' || ch == '&')
+                {
+                    qualifiers.push_back(static_cast<char>(ch));
+                    --index;
+                    continue;
+                }
+
+                break;
+            }
+
+            std::string core = trimmed.substr(0, index);
+            if (!core.empty())
+            {
+                core = trimCopy(core);
+            }
+
+            std::string result = normalizeTypeTokens(core);
+
+            for (std::size_t i = qualifiers.size(); i > 0; --i)
+            {
+                const char qualifier = qualifiers[i - 1];
+                if (qualifier == '*')
+                {
+                    if (result.empty())
+                    {
+                        result = "pointer<void>";
+                    }
+                    else
+                    {
+                        result = "pointer<" + result + ">";
+                    }
+                }
+                else
+                {
+                    if (result.empty())
+                    {
+                        result = "reference<void>";
+                    }
+                    else
+                    {
+                        result = "reference<" + result + ">";
+                    }
                 }
             }
 
@@ -291,7 +370,7 @@ std::optional<std::uint64_t> Binder::parseUnsigned(const bolt::frontend::Attribu
 
 void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std::string& subject, const SourceSpan& span)
 {
-    constexpr std::string_view qualifier = "Live";
+    constexpr std::string_view qualifier = "live";
     if (typeRef.text.rfind(qualifier, 0) != 0)
     {
         return;
@@ -301,7 +380,7 @@ void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std:
     const auto first = remainder.find_first_not_of(" \t\r\n");
     if (first == std::string::npos)
     {
-        emitError("BOLT-E2217", "Live qualifier on " + subject + " must reference a concrete type.", span);
+        emitError("BOLT-E2217", "live qualifier on " + subject + " must reference a concrete type.", span);
         return;
     }
     const auto last = remainder.find_last_not_of(" \t\r\n");
