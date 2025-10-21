@@ -43,6 +43,24 @@ public integer function sample(integer value) {
         EXPECT_EQ(*fn.returnType, "integer");
     }
 
+    TEST(ParserTest, ParsesBlueprintConstructorAndDestructorNames)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public void function Widget() {}
+public void function ~Widget() {}
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        CompilationUnit unit = parseSource(source, diagnostics);
+
+        ASSERT_TRUE(diagnostics.empty())
+            << "First diagnostic: " << diagnostics.front().code << " - " << diagnostics.front().message;
+        ASSERT_EQ(unit.functions.size(), 2u);
+        EXPECT_EQ(unit.functions[0].name, "Widget");
+        EXPECT_EQ(unit.functions[1].name, "~Widget");
+    }
+
     TEST(ParserTest, ParsesImportStatement)
     {
         const std::string source = R"(package demo.tests; module demo.tests;

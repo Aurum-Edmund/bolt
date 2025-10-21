@@ -36,7 +36,7 @@
 - `if (object)` succeeds when the managed pointer owns a payload. `if (!object)` enters the failure branch. These conditions mirror `bolt_shared_pointer_is_valid` at runtime.
 
 ### Lifecycle Keywords and Runtime Support
-- `constructor` and `destructor` are accepted as function modifiers and flow through the front end for Stage‑0 planning. They document creation/teardown entry points without altering semantics yet.
+- Blueprint construction and teardown use the blueprint name itself (`BlueprintName`) and its destructor counterpart (`~BlueprintName`). These identifiers flow through the front end for Stage‑0 planning without altering semantics yet.
 - `new` allocates zero-initialised storage; `delete` releases it. The runtime implementation (`bolt_new` / `bolt_delete`) guarantees deterministic zero-fill so automatic variables observe sane defaults.
 - Smart pointer helpers: `bolt_shared_pointer_make`, `bolt_shared_pointer_copy`, `bolt_shared_pointer_move`, `bolt_shared_pointer_is_valid`, and `bolt_shared_pointer_release` manage reference counts without mutexes or background threads.
 

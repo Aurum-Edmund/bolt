@@ -159,7 +159,7 @@ Freestanding or kernel builds **must** enable the following flags:
 - Pointer validity is determined by ownership: `if (object)` checks that the managed pointer owns a payload, and `if (!object)` enters when the pointer is empty.
 
 ### Object lifecycle
-- `constructor` and `destructor` modifiers can decorate functions to document creation and teardown entry points for blueprints or modules. Stage‑0 tooling records the modifiers alongside other function metadata.
+- Blueprint construction and teardown use dedicated function names: the blueprint name itself (`BlueprintName`) represents the constructor and `~BlueprintName` names the destructor. Stage‑0 tooling records the identifiers alongside other function metadata.
 - `new` allocates zero-initialised storage and returns a managed pointer-ready address. `delete` releases storage obtained from `new`. Both keywords are reserved in the lexer so they cannot be repurposed for identifiers.
 - All automatic variables receive sane defaults; uninitialised storage is zero-filled by default so deterministic state is available before constructors run.
 - The runtime exposes explicit helpers for smart pointer construction (`bolt_shared_pointer_make`), copying (`bolt_shared_pointer_copy`), moving (`bolt_shared_pointer_move`), validation (`bolt_shared_pointer_is_valid`), and teardown (`bolt_shared_pointer_release`). Hidden allocations are forbidden—callers decide when to allocate and destroy.

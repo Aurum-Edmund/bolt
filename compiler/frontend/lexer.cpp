@@ -36,12 +36,10 @@ namespace
         if (text == "continue") return TokenKind::KeywordContinue;
         if (text == "public") return TokenKind::KeywordPublic;
         if (text == "use") return TokenKind::KeywordUse;
-        if (text == "extern") return TokenKind::KeywordExtern;
+        if (text == "external") return TokenKind::KeywordExternal;
         if (text == "intrinsic") return TokenKind::KeywordIntrinsic;
         if (text == "new") return TokenKind::KeywordNew;
         if (text == "delete") return TokenKind::KeywordDelete;
-        if (text == "constructor") return TokenKind::KeywordConstructor;
-        if (text == "destructor") return TokenKind::KeywordDestructor;
         if (text == "true") return TokenKind::KeywordTrue;
         if (text == "false") return TokenKind::KeywordFalse;
         if (text == "null") return TokenKind::KeywordNull;
@@ -252,6 +250,9 @@ namespace bolt::frontend
                 break;
             case '^':
                 emitSingle(TokenKind::Caret);
+                break;
+            case '~':
+                emitSingle(TokenKind::Tilde);
                 break;
             default:
                 advance();

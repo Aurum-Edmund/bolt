@@ -347,9 +347,7 @@ namespace bolt::frontend
         std::vector<std::string> modifiers;
         while (check(TokenKind::KeywordPublic)
                || check(TokenKind::KeywordLink)
-               || check(TokenKind::KeywordExtern)
-               || check(TokenKind::KeywordConstructor)
-               || check(TokenKind::KeywordDestructor))
+               || check(TokenKind::KeywordExternal))
         {
             const Token& token = advance();
             modifiers.emplace_back(token.text);
@@ -376,8 +374,20 @@ namespace bolt::frontend
             m_diagnostics.emplace_back(std::move(diag));
         }
 
-        const Token& nameToken = consume(TokenKind::Identifier, "BOLT-E2110", "Expected function name.");
-        fn.name = nameToken.text;
+        SourceSpan nameSpan{};
+        if (match(TokenKind::Tilde))
+        {
+            const Token& tildeToken = previous();
+            const Token& blueprintToken = consume(TokenKind::Identifier, "BOLT-E2110", "Expected blueprint name after '~'.");
+            fn.name = "~" + blueprintToken.text;
+            nameSpan = spanFrom(tildeToken, blueprintToken);
+        }
+        else
+        {
+            const Token& nameToken = consume(TokenKind::Identifier, "BOLT-E2110", "Expected function name.");
+            fn.name = nameToken.text;
+            nameSpan = nameToken.span;
+        }
 
         consume(TokenKind::LeftParen, "BOLT-E2111", "Expected '(' after function name.");
 
@@ -431,7 +441,7 @@ namespace bolt::frontend
             m_diagnostics.emplace_back(std::move(diag));
         }
 
-        fn.span = mergeSpans(nameToken.span, bodySpan);
+        fn.span = mergeSpans(nameSpan, bodySpan);
         return fn;
     }
 

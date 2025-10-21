@@ -56,28 +56,23 @@ namespace
         EXPECT_EQ(1u, minusEqualsCount);
     }
 
-    TEST(LexerTest, RecognizesLifecycleKeywords)
+    TEST(LexerTest, RecognizesExternalAndLifecycleKeywords)
     {
-        const std::string source = "public constructor function build() {} public destructor function tearDown() {} new delete";
+        const std::string source = "public external function build() {} new delete";
 
         Lexer lexer{source, "keywords"};
         lexer.lex();
 
         const auto& tokens = lexer.tokens();
-        bool sawConstructor = false;
-        bool sawDestructor = false;
+        bool sawExternal = false;
         bool sawNew = false;
         bool sawDelete = false;
 
         for (const auto& token : tokens)
         {
-            if (token.kind == TokenKind::KeywordConstructor)
+            if (token.kind == TokenKind::KeywordExternal)
             {
-                sawConstructor = true;
-            }
-            else if (token.kind == TokenKind::KeywordDestructor)
-            {
-                sawDestructor = true;
+                sawExternal = true;
             }
             else if (token.kind == TokenKind::KeywordNew)
             {
@@ -89,8 +84,7 @@ namespace
             }
         }
 
-        EXPECT_TRUE(sawConstructor);
-        EXPECT_TRUE(sawDestructor);
+        EXPECT_TRUE(sawExternal);
         EXPECT_TRUE(sawNew);
         EXPECT_TRUE(sawDelete);
     }

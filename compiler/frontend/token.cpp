@@ -29,12 +29,10 @@ namespace bolt::frontend
         case TokenKind::KeywordContinue: return "continue";
         case TokenKind::KeywordPublic: return "public";
         case TokenKind::KeywordUse: return "use";
-        case TokenKind::KeywordExtern: return "extern";
+        case TokenKind::KeywordExternal: return "external";
         case TokenKind::KeywordIntrinsic: return "intrinsic";
         case TokenKind::KeywordNew: return "new";
         case TokenKind::KeywordDelete: return "delete";
-        case TokenKind::KeywordConstructor: return "constructor";
-        case TokenKind::KeywordDestructor: return "destructor";
         case TokenKind::KeywordTrue: return "true";
         case TokenKind::KeywordFalse: return "false";
         case TokenKind::KeywordNull: return "null";
@@ -72,6 +70,7 @@ namespace bolt::frontend
         case TokenKind::AmpersandAmpersand: return "ampersandAmpersand";
         case TokenKind::Pipe: return "pipe";
         case TokenKind::Caret: return "caret";
+        case TokenKind::Tilde: return "tilde";
         case TokenKind::Bang: return "bang";
         case TokenKind::LessThan: return "lessThan";
         case TokenKind::GreaterThan: return "greaterThan";

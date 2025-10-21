@@ -70,10 +70,11 @@
 - Parser and binder regression suites now cover pointer and reference declarations alongside the canonical `public live integer function example(integer value)` helper, locking in the type-first syntax for memory-centric signatures.
 - Runtime memory copy helper now guards overlapping and self-copy scenarios with dedicated unit coverage so freestanding builds handle those edge cases deterministically.
 - Language specification, glossary, and example modules now showcase the lowercase `live` qualifier, type-first variable declarations, and the `public live integer function example(integer value) { return value + 1; }` pattern to keep documentation aligned with the implementation.
-- Lexer now recognises compound operators (`+=`, `-=`, `++`, `--`, `&&`) and lifecycle keywords (`constructor`, `destructor`, `new`, `delete`), with unit coverage ensuring the Stage-0 token stream remains stable.
+- Lexer now recognises compound operators (`+=`, `-=`, `++`, `--`, `&&`) and lifecycle keywords (`new`, `delete`) alongside the `external` function modifier, with unit coverage ensuring the Stage-0 token stream remains stable.
 - Parser and binder normalise `Type*`/`Type&` syntax into canonical `pointer<>`/`reference<>` forms so the front end captures smart pointer and reference metadata without regressions; regression suites exercise chained suffix combinations.
 - Runtime library now ships deterministic allocation helpers (`bolt_new`, `bolt_delete`) plus shared-pointer APIs (`bolt_shared_pointer_make`/`copy`/`move`/`is_valid`/`release`), and unit tests verify zero-initialisation, explicit copy semantics, move-only transfer, and destructor dispatch.
 - Language specification, glossary, and runtime plan now document the smart pointer model, lifecycle keywords, operator set, and object validity rules so tooling and documentation stay aligned.
+- Blueprint construction now expects functions named after the blueprint (`BlueprintName`) with destructors prefixed by `~BlueprintName`, replacing the temporary constructor/destructor modifiers across the codebase and documentation.
 
 ## Progress Metric
 - **Estimated Stage-0 completion:** ~98%

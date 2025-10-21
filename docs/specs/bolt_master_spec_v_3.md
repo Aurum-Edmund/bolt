@@ -49,10 +49,10 @@ public blueprint Allocator {
     opt.Optional<pointer<byte>> (*reallocate)(void* context, pointer<byte> p, unsigned64 old_size, unsigned64 new_size, unsigned64 alignment);
 };
 
-[kernel_allocation] extern void* __alloc_context;
-[kernel_allocation] extern opt.Optional<pointer<byte>> __alloc_allocate(void* context, unsigned64 bytes, unsigned64 alignment);
-[kernel_allocation] extern void __alloc_deallocate(void* context, pointer<byte> p, unsigned64 bytes, unsigned64 alignment);
-[kernel_allocation] extern opt.Optional<pointer<byte>> __alloc_reallocate(void* context, pointer<byte> p, unsigned64 old_size, unsigned64 new_size, unsigned64 alignment);
+[kernel_allocation] external void* __alloc_context;
+[kernel_allocation] external opt.Optional<pointer<byte>> __alloc_allocate(void* context, unsigned64 bytes, unsigned64 alignment);
+[kernel_allocation] external void __alloc_deallocate(void* context, pointer<byte> p, unsigned64 bytes, unsigned64 alignment);
+[kernel_allocation] external opt.Optional<pointer<byte>> __alloc_reallocate(void* context, pointer<byte> p, unsigned64 old_size, unsigned64 new_size, unsigned64 alignment);
 
 public Allocator system_allocator() {
     Allocator a; a.context = __alloc_context; a.allocate = __alloc_allocate; a.deallocate = __alloc_deallocate; a.reallocate = __alloc_reallocate; return a;
@@ -106,7 +106,7 @@ intrinsic void intrinsic_memcpy(pointer<byte> dst, pointer<byte> src, unsigned64
 ## 3. Blueprints, Kernel Markers & Interfaces
 - **Blueprint**: a nominal record type (similar to a C `struct`) with Bolt semantics.
 - **Interface**: a blueprint that exposes behavior via **a context pointer and function pointers**.
-- **Kernel markers**: every `extern` that touches platform or hardware must be annotated with the appropriate square‑bracket marker, for example `[kernel_allocation]`, `[kernel_serial]`, `[kernel_time]`, `[kernel_sync]`, `[kernel_vfs]`.
+- **Kernel markers**: every `external` that touches platform or hardware must be annotated with the appropriate square‑bracket marker, for example `[kernel_allocation]`, `[kernel_serial]`, `[kernel_time]`, `[kernel_sync]`, `[kernel_vfs]`.
 
 **Writer interface (example)**
 ```bolt
@@ -219,7 +219,7 @@ public res.Result<void, WriteError> write_all(Writer* w, core.View<byte> src) {
 package std.io; module serial;
 use std.core as core; use std.core.result as res; use std.io.writer as writer;
 
-[kernel_serial] extern res.Result<unsigned64, writer.WriteError> hw_write(core.View<byte> data);
+[kernel_serial] external res.Result<unsigned64, writer.WriteError> hw_write(core.View<byte> data);
 
 static res.Result<unsigned64, writer.WriteError> serial_write(void* context, core.View<byte> src) { (void)context; return hw_write(src); };
 static res.Result<void, writer.WriteError> serial_flush(void* context) { (void)context; return res.ok<void, writer.WriteError>({}); };
@@ -230,7 +230,7 @@ public writer.Writer writer() { writer.Writer w; w.context = (void*)0; w.write =
 ---
 
 ## 6. Kernel Boot‑Target Subset (Bolt‑Safe Core)
-- **Allowed**: primitives, control flow, static storage, constants, basic blueprints, direct memory access, and `extern` with a **kernel marker**.
+- **Allowed**: primitives, control flow, static storage, constants, basic blueprints, direct memory access, and `external` with a **kernel marker**.
 - **Forbidden**: general allocators, file input or output, channels or tasks, recursion, and floating point.
 
 **Boot‑legal example**
@@ -342,10 +342,10 @@ public blueprint Allocator {
     opt.Optional<pointer<byte>> (*reallocate)(void* context, pointer<byte> p, unsigned64 old_size, unsigned64 new_size, unsigned64 alignment);
 };
 
-[kernel_allocation] extern void* __alloc_context;
-[kernel_allocation] extern opt.Optional<pointer<byte>> __alloc_allocate(void* context, unsigned64 bytes, unsigned64 alignment);
-[kernel_allocation] extern void __alloc_deallocate(void* context, pointer<byte> p, unsigned64 bytes, unsigned64 alignment);
-[kernel_allocation] extern opt.Optional<pointer<byte>> __alloc_reallocate(void* context, pointer<byte> p, unsigned64 old_size, unsigned64 new_size, unsigned64 alignment);
+[kernel_allocation] external void* __alloc_context;
+[kernel_allocation] external opt.Optional<pointer<byte>> __alloc_allocate(void* context, unsigned64 bytes, unsigned64 alignment);
+[kernel_allocation] external void __alloc_deallocate(void* context, pointer<byte> p, unsigned64 bytes, unsigned64 alignment);
+[kernel_allocation] external opt.Optional<pointer<byte>> __alloc_reallocate(void* context, pointer<byte> p, unsigned64 old_size, unsigned64 new_size, unsigned64 alignment);
 
 public Allocator system_allocator() {
     Allocator a; a.context = __alloc_context; a.allocate = __alloc_allocate; a.deallocate = __alloc_deallocate; a.reallocate = __alloc_reallocate; return a;
@@ -511,7 +511,7 @@ public res.Result<void, WriteError> write_all(Writer* w, core.View<byte> src) {
 package std.io; module serial;
 use std.core as core; use std.core.result as res; use std.io.writer as writer;
 
-[kernel_serial] extern res.Result<unsigned64, writer.WriteError> hw_write(core.View<byte> data);
+[kernel_serial] external res.Result<unsigned64, writer.WriteError> hw_write(core.View<byte> data);
 
 static res.Result<unsigned64, writer.WriteError> serial_write(void* context, core.View<byte> src) { (void)context; return hw_write(src); };
 static res.Result<void, writer.WriteError> serial_flush(void* context) { (void)context; return res.ok<void, writer.WriteError>({}); };
@@ -693,7 +693,7 @@ public Duration from_milliseconds(unsigned64 ms) { return Duration{ ticks: ms * 
 public Duration add(Duration a, Duration b) { return Duration{ ticks: a.ticks + b.ticks }; };
 public Instant add_to_instant(Instant t, Duration d) { return Instant{ ticks: t.ticks + d.ticks }; };
 
-[kernel_time] extern res.Result<Instant, unsigned32> monotonic();
+[kernel_time] external res.Result<Instant, unsigned32> monotonic();
 ```
 
 ### std/time/units.bolt
@@ -796,7 +796,7 @@ public blueprint Channel<T> {
     void (*close)(void* context);
 };
 
-[kernel_sync] extern res.Result<Channel<T>, ChanError> sys_make_bounded<T>(unsigned64 capacity);
+[kernel_sync] external res.Result<Channel<T>, ChanError> sys_make_bounded<T>(unsigned64 capacity);
 
 public res.Result<Channel<T>, ChanError> bounded<T>(unsigned64 capacity) { return sys_make_bounded<T>(capacity); };
 ```
@@ -885,7 +885,7 @@ public blueprint File { void* context; res.Result<unsigned64, FileError> (*read)
 
 public res.Result<File, FileError> open(p.Path path, OpenMode mode) { return sys_open(path, mode); };
 
-[kernel_vfs] extern res.Result<File, FileError> sys_open(p.Path path, OpenMode mode);
+[kernel_vfs] external res.Result<File, FileError> sys_open(p.Path path, OpenMode mode);
 ```
 
 ### std/fs/path_ops.bolt
@@ -1480,7 +1480,7 @@ public void demo() {
 - **No abbreviations** in public surfaces (`context`, not `ctx`).
 
 ## Appendix B: Reserved Keywords
-`package, module, public, blueprint, enum, constant, use, extern, intrinsic, return, if, else, while, switch, case, break, continue, true, false, null, static, sizeof, alignof`.
+`package, module, public, blueprint, enum, constant, use, external, intrinsic, return, if, else, while, switch, case, break, continue, true, false, null, static, sizeof, alignof`.
 
 ## Appendix C: Required Intrinsics (Minimum Set)
 - `intrinsic void intrinsic_memcpy(pointer<byte> dst, pointer<byte> src, unsigned64 n);`
@@ -1495,7 +1495,7 @@ public void demo() {
 ## Appendix E: Conformance Checklist (Compiler/Runtime)
 - [ ] Enforce context‑and‑function‑pointer surfaces for `Allocator`, `Reader`, `Writer`, `Output`.
 - [ ] Reject nested function definitions.
-- [ ] Require square‑bracket **kernel markers** on all externs that touch platform or hardware.
+- [ ] Require square‑bracket **kernel markers** on all externals that touch platform or hardware.
 - [ ] Toolchain flags enable freestanding builds (equivalent to `-ffreestanding`).
 - [ ] Boot subset compiles with no allocator references.
 - [ ] Stdlib compiles with no implicit dynamic allocation in hot paths.

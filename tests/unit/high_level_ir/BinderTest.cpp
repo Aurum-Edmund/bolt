@@ -63,6 +63,27 @@ public live integer32 function request(live integer32 param) {
         EXPECT_TRUE(fn.parameters.front().isLive);
     }
 
+    TEST(BinderTest, RecordsBlueprintLifecycleFunctions)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public void function Widget() {}
+public void function ~Widget() {}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty());
+
+        ASSERT_EQ(module.functions.size(), 2u);
+        EXPECT_EQ(module.functions[0].name, "Widget");
+        EXPECT_EQ(module.functions[1].name, "~Widget");
+    }
+
     TEST(BinderTest, DuplicateFunctionAttributeEmitsDiagnostic)
     {
         const std::string source = R"(package demo.tests; module demo.tests;
