@@ -61,9 +61,10 @@
 - MIR pass library now includes a control-flow graph builder that captures block predecessors/successors from branch terminators, with unit tests covering linear and branching shapes to prepare SSA analysis.
 - MIR pass library now computes dominator trees with immediate-dominator relationships and dominance queries, priming the SSA conversion pass stack with dedicated unit coverage.
 - MIR pass library now computes dominance frontiers from the control-flow graph and dominator tree, covering diamond and loop shapes with unit tests so SSA construction has placement data ready.
+- MIR SSA groundwork now includes a phi-placement planner that consumes dominance frontiers, returns deterministic insertion sites, and ships with diamond/loop/unit coverage to anchor the conversion pass.
 
 ## Progress Metric
-- **Estimated Stage-0 completion:** ~85?%
+- **Estimated Stage-0 completion:** ~88?%
 
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).

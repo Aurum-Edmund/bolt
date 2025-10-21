@@ -13,7 +13,7 @@
 
 ### To Do
 - High-level IR type system expansion (algebraic data types, generics, references).
-- Middle-IR SSA construction and live enforcement passes.
+- Middle-IR SSA renaming and live-barrier enforcement passes.
 - Backend scaffolding: instruction selection tables and linear scan register allocator.
 - Runtime stubs plus Air ABI shims for freestanding x86-64 builds.
 - Broaden golden and negative diagnostic suites.
@@ -66,6 +66,7 @@
 - MIR pass library exposes a control-flow graph builder that records block predecessors and successors from terminator metadata, with linear and branching unit tests priming SSA construction.
 - MIR pass library now ships a dominator tree builder with immediate-dominator edges, dominance queries, and regression tests to unblock the SSA conversion pass stack.
 - MIR pass library now ships a dominance frontier builder that combines the control-flow graph and dominator tree, with diamond and loop regression tests keeping SSA placement data stable.
+- MIR SSA groundwork now includes a phi-placement planner that consumes dominance frontiers, yields deterministic insertion blocks, and carries diamond/loop unit coverage for regression safety.
 
 ---
 
