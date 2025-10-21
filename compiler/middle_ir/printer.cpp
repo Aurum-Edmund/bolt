@@ -13,6 +13,15 @@ namespace bolt::mir
                 stream << "  ";
             }
         }
+
+        void printValue(std::ostream& stream, const Value& value)
+        {
+            stream << static_cast<int>(value.kind) << ':' << value.id;
+            if (!value.name.empty())
+            {
+                stream << ':' << value.name;
+            }
+        }
     } // namespace
 
     void print(const Module& module, std::ostream& stream)
@@ -44,6 +53,10 @@ namespace bolt::mir
             {
                 printIndent(stream, 2);
                 stream << entry.modulePath;
+                if (entry.canonicalModulePath.has_value())
+                {
+                    stream << " [" << *entry.canonicalModulePath << "]";
+                }
                 if (entry.filePath.has_value())
                 {
                     stream << " -> " << *entry.filePath;
@@ -69,6 +82,34 @@ namespace bolt::mir
                     if (!instruction.detail.empty())
                     {
                         stream << " // " << instruction.detail;
+                    }
+                    if (instruction.result.has_value())
+                    {
+                        stream << " res ";
+                        printValue(stream, *instruction.result);
+                    }
+                    if (!instruction.operands.empty())
+                    {
+                        stream << " ops";
+                        for (std::size_t index = 0; index < instruction.operands.size(); ++index)
+                        {
+                            const auto& operand = instruction.operands[index];
+                            stream << (index == 0 ? ' ' : ',');
+                            printValue(stream, operand.value);
+                            if (operand.predecessorBlockId.has_value())
+                            {
+                                stream << "@" << *operand.predecessorBlockId;
+                            }
+                        }
+                    }
+                    if (!instruction.successors.empty())
+                    {
+                        stream << " ->";
+                        for (std::size_t index = 0; index < instruction.successors.size(); ++index)
+                        {
+                            stream << (index == 0 ? ' ' : ',');
+                            stream << instruction.successors[index];
+                        }
                     }
                     stream << "\n";
                 }
