@@ -99,6 +99,8 @@ namespace
         ASSERT_EQ(result.imports.size(), 1u);
         const auto& resolved = result.imports.front();
         EXPECT_EQ(resolved.status, ImportStatus::Resolved);
+        ASSERT_TRUE(resolved.canonicalModulePath.has_value());
+        EXPECT_EQ(*resolved.canonicalModulePath, "demo.utils.core");
         ASSERT_TRUE(resolved.resolvedFilePath.has_value());
         EXPECT_NE(resolved.resolvedFilePath->find("demo"), std::string::npos);
         EXPECT_TRUE(resolver.diagnostics().empty());
@@ -156,6 +158,8 @@ namespace
         ASSERT_EQ(result.imports.size(), 1u);
         const auto& resolved = result.imports.front();
         EXPECT_EQ(resolved.status, ImportStatus::Resolved);
+        ASSERT_TRUE(resolved.canonicalModulePath.has_value());
+        EXPECT_EQ(*resolved.canonicalModulePath, "demo.utils.core");
         ASSERT_TRUE(resolved.resolvedFilePath.has_value());
         EXPECT_NE(resolved.resolvedFilePath->find("demo"), std::string::npos);
         EXPECT_TRUE(resolver.diagnostics().empty());

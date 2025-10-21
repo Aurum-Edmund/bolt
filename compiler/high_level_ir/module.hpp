@@ -31,6 +31,9 @@ namespace bolt::hir
         TypeReference type;
         SourceSpan span;
         bool isLive{false};
+        bool hasDefaultValue{false};
+        bool requiresExplicitValue{false};
+        std::string defaultValue;
     };
 
     struct Function
@@ -50,6 +53,9 @@ namespace bolt::hir
         std::optional<std::string> intrinsicName;
         std::vector<std::string> kernelMarkers;
         bool returnIsLive{false};
+        bool isBlueprintConstructor{false};
+        bool isBlueprintDestructor{false};
+        std::optional<std::string> blueprintName;
         SourceSpan span;
     };
 
