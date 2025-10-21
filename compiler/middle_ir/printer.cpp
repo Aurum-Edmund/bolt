@@ -44,6 +44,10 @@ namespace bolt::mir
             {
                 printIndent(stream, 2);
                 stream << entry.modulePath;
+                if (entry.canonicalModulePath.has_value())
+                {
+                    stream << " [" << *entry.canonicalModulePath << "]";
+                }
                 if (entry.filePath.has_value())
                 {
                     stream << " -> " << *entry.filePath;
@@ -69,6 +73,15 @@ namespace bolt::mir
                     if (!instruction.detail.empty())
                     {
                         stream << " // " << instruction.detail;
+                    }
+                    if (!instruction.successors.empty())
+                    {
+                        stream << " ->";
+                        for (std::size_t index = 0; index < instruction.successors.size(); ++index)
+                        {
+                            stream << (index == 0 ? ' ' : ',');
+                            stream << instruction.successors[index];
+                        }
                     }
                     stream << "\n";
                 }

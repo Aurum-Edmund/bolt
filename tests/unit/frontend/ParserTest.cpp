@@ -75,7 +75,57 @@ import demo.alpha;
         EXPECT_FALSE(diagnostics.empty());
         EXPECT_EQ(diagnostics.front().code, "BOLT-E2108");
         ASSERT_EQ(unit.imports.size(), 1u);
-       EXPECT_EQ(unit.imports.front().modulePath, "demo.alpha");
+        EXPECT_EQ(unit.imports.front().modulePath, "demo.alpha");
+    }
+
+    TEST(ParserTest, ReportsMissingImportSemicolonWithFixIt)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+import demo.alpha
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        (void)parseSource(source, diagnostics);
+
+        const auto missingSemicolon = std::find_if(
+            diagnostics.begin(),
+            diagnostics.end(),
+            [](const Diagnostic& diag) { return diag.code == "BOLT-E2123"; });
+
+        ASSERT_NE(missingSemicolon, diagnostics.end());
+        ASSERT_TRUE(missingSemicolon->fixItHint.has_value());
+        EXPECT_NE(missingSemicolon->fixItHint->find("Insert ';'"), std::string::npos);
+    }
+
+    TEST(ParserTest, ReportsModuleHeaderSemicolonFixIts)
+    {
+        const std::string source = R"(package demo.tests
+module demo.tests
+
+integer function demo() {
+    return 0;
+}
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        (void)parseSource(source, diagnostics);
+
+        const auto packageFixIt = std::find_if(
+            diagnostics.begin(),
+            diagnostics.end(),
+            [](const Diagnostic& diag) { return diag.code == "BOLT-E2104"; });
+        ASSERT_NE(packageFixIt, diagnostics.end());
+        ASSERT_TRUE(packageFixIt->fixItHint.has_value());
+        EXPECT_NE(packageFixIt->fixItHint->find("Insert ';'"), std::string::npos);
+
+        const auto moduleFixIt = std::find_if(
+            diagnostics.begin(),
+            diagnostics.end(),
+            [](const Diagnostic& diag) { return diag.code == "BOLT-E2106"; });
+        ASSERT_NE(moduleFixIt, diagnostics.end());
+        ASSERT_TRUE(moduleFixIt->fixItHint.has_value());
+        EXPECT_NE(moduleFixIt->fixItHint->find("Insert ';'"), std::string::npos);
     }
 
     TEST(ParserTest, RejectsLegacyParameterSyntax)
@@ -116,6 +166,56 @@ public blueprint Timer {
             diagnostics.end(),
             [](const Diagnostic& diag) { return diag.code == "BOLT-E2153"; });
         EXPECT_TRUE(containsFieldError);
+    }
+
+    TEST(ParserTest, ParsesLinkFunctionAlongsideMultipleBlueprints)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint FirstBlueprint {
+    integer firstField;
+}
+
+public blueprint SecondBlueprint {
+    integer secondField;
+}
+
+public link integer function staticFunctionTest(integer value) {
+    return value;
+}
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        CompilationUnit unit = parseSource(source, diagnostics);
+
+        EXPECT_TRUE(diagnostics.empty());
+        ASSERT_EQ(unit.blueprints.size(), 2u);
+        EXPECT_EQ(unit.blueprints[0].name, "FirstBlueprint");
+        EXPECT_EQ(unit.blueprints[1].name, "SecondBlueprint");
+
+        ASSERT_EQ(unit.blueprints[0].modifiers.size(), 1u);
+        EXPECT_EQ(unit.blueprints[0].modifiers.front(), "public");
+        ASSERT_EQ(unit.blueprints[0].fields.size(), 1u);
+        EXPECT_EQ(unit.blueprints[0].fields.front().typeName, "integer");
+        EXPECT_EQ(unit.blueprints[0].fields.front().name, "firstField");
+
+        ASSERT_EQ(unit.blueprints[1].modifiers.size(), 1u);
+        EXPECT_EQ(unit.blueprints[1].modifiers.front(), "public");
+        ASSERT_EQ(unit.blueprints[1].fields.size(), 1u);
+        EXPECT_EQ(unit.blueprints[1].fields.front().typeName, "integer");
+        EXPECT_EQ(unit.blueprints[1].fields.front().name, "secondField");
+
+        ASSERT_EQ(unit.functions.size(), 1u);
+        const auto& fn = unit.functions.front();
+        EXPECT_EQ(fn.name, "staticFunctionTest");
+        ASSERT_EQ(fn.modifiers.size(), 2u);
+        EXPECT_EQ(fn.modifiers[0], "public");
+        EXPECT_EQ(fn.modifiers[1], "link");
+        ASSERT_TRUE(fn.returnType.has_value());
+        EXPECT_EQ(*fn.returnType, "integer");
+        ASSERT_EQ(fn.parameters.size(), 1u);
+        EXPECT_EQ(fn.parameters.front().typeName, "integer");
+        EXPECT_EQ(fn.parameters.front().name, "value");
     }
 }
 } // namespace bolt::frontend
