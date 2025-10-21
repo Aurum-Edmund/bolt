@@ -188,7 +188,7 @@ profile kernelFreestanding {
 ### Declarations and Namespaces
 | Legacy Term | Modern Term | Definition |
 |---|---|---|
-| `module` | — | Declares a package or namespace boundary. |
+| `volatile` | **live value** | Side-effecting read or write; not optimized away. |
 | `include` | **import** | Brings external symbols into scope. |
 | `namespace` | **Code Namespace (Domain)** | Groups related symbols and prevents collisions. |
 | `typedef` | **alias** | Alternate name for an existing type. |
@@ -276,7 +276,7 @@ function earlyEntry() { /* ... */ }
 
 [systemRequest(identifier=1)]
 integer function systemWrite(integer fileDescriptor, &byte buffer, unsignedInteger length)
-```
+- **live value** — A qualifier that forces loads and stores to be side-effecting and visible to hardware or other agents.
 
 **Reserved words (additions):** `interruptHandler`, `bareFunction`, `inSection`, `aligned`, `pageAligned`, `packed`, `bits`, `systemRequest`, `intrinsic`, `profile`.
 
