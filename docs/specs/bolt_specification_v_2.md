@@ -33,22 +33,22 @@
 Attributes precede declarations using bracketed syntax. Multiple lines allowed.
 ```bolt
 [interruptHandler]
-function timerInterrupt() { /* ... */ }
+public integer function timerInterrupt() { /* ... */ }
 
 [bareFunction]
 [inSection(".text.boot"), aligned(4096)]
-function earlyEntry() { /* startup */ }
+public integer function earlyEntry() { /* startup */ }
 
 [packed]
-blueprint RegisterBlock {
-    [bits(1)] unsignedInteger enable
-    [bits(31)] unsignedInteger reserved
+public blueprint RegisterBlock {
+    [bits(1)] unsignedInteger enable;
+    [bits(31)] unsignedInteger reserved;
 }
 ```
 **Supported attributes:** interruptHandler, bareFunction, inSection(name), aligned(bytes), pageAligned, packed, bits(width), systemRequest(identifier), intrinsic(name)
 
 ### 4. Memory and Concurrency
-- **Live Value:** loads and stores are side-effecting.
+- **live value:** loads and stores are side-effecting.
 - **Atomic Ordering:** relaxed, acquire, release, acquireRelease, sequentiallyConsistent.
 - **Mutual Lock**, **Access Counter**, **Wake Signal**, **Sleep List** define synchronization primitives.
 
@@ -141,17 +141,29 @@ Stage D: native optimizer and linker.
 
 ### Example Blueprint
 ```bolt
-Blueprint Engine {
-    mutable Integer rpm = 0
-    constant Integer maxRpm = 9000
+package demo.engines;
+module demo.engines;
 
-    function start() {
-        Console.printLine("Engine started.")
-        rpm = 800
+public blueprint Engine {
+    mutable integer rpm = 0;
+    constant integer maxRpm = 9000;
+
+    public live integer function example(integer value) {
+        integer next = value + 1;
+        return next;
     }
 
-    function rev(Integer increase) {
-        rpm = Math.clamp(rpm + increase, 0, maxRpm)
+    public integer function start() {
+        rpm = 800;
+        return rpm;
+    }
+
+    public integer function rev(integer increase) {
+        rpm = rpm + increase;
+        if (rpm > maxRpm) {
+            rpm = maxRpm;
+        }
+        return rpm;
     }
 }
 ```
@@ -159,7 +171,10 @@ Blueprint Engine {
 ### Example System Request
 ```bolt
 [systemRequest(identifier=1)]
-integer function systemWrite(integer fd, &byte buffer, unsignedInteger length)
+public live integer function systemWrite(
+    integer fileDescriptor,
+    pointer<byte> buffer,
+    unsigned64 length);
 ```
 
 ───────────────────────────────
@@ -172,7 +187,7 @@ integer function systemWrite(integer fd, &byte buffer, unsignedInteger length)
 **attribute** — Declarative modifier applied via brackets.
 **Bolt Intermediate Representation** — Core architecture-neutral program form.
 **System Request Gateway** — Transition boundary between user and kernel.
-**Live Value** — Memory qualifier ensuring side-effect visibility.
+**live value** — Memory qualifier ensuring side-effect visibility.
 **freestanding profile** — Build mode without runtime or implicit allocation.
 **packed** — Layout directive removing padding between fields.
 
