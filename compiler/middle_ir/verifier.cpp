@@ -1,4 +1,6 @@
-﻿#include "verifier.hpp"
+#include "verifier.hpp"
+
+#include <algorithm>
 
 namespace bolt::mir
 {
@@ -15,6 +17,29 @@ namespace bolt::mir
             default:
                 return false;
             }
+        }
+
+        bool hasLiveParameters(const Function& function)
+        {
+            return std::any_of(function.parameters.begin(), function.parameters.end(), [](const Function::Parameter& parameter) {
+                return parameter.isLive;
+            });
+        }
+
+        bool functionHasReturnInstruction(const Function& function)
+        {
+            for (const auto& block : function.blocks)
+            {
+                for (const auto& instruction : block.instructions)
+                {
+                    if (instruction.kind == InstructionKind::Return)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
     } // namespace
 
@@ -41,6 +66,19 @@ namespace bolt::mir
             }
 
             if (function.blocks.front().name != "entry")
+            {
+                return false;
+            }
+
+            const bool liveReturn = function.returnIsLive;
+            const bool liveParameters = hasLiveParameters(function);
+
+            if (liveReturn && !function.hasReturnType)
+            {
+                return false;
+            }
+
+            if ((liveReturn || liveParameters) && !functionHasReturnInstruction(function))
             {
                 return false;
             }

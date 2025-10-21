@@ -26,7 +26,11 @@ namespace bolt::frontend
         bool isAtEnd() const;
         bool check(TokenKind kind) const;
         bool match(TokenKind kind);
-        const Token& consume(TokenKind kind, std::string_view messageCode, std::string_view messageText);
+        const Token& consume(
+            TokenKind kind,
+            std::string_view messageCode,
+            std::string_view messageText,
+            std::string_view fixItHint = {});
         [[nodiscard]] SourceSpan spanFrom(const Token& begin, const Token& end) const;
         bool isTerminator(TokenKind kind, std::initializer_list<TokenKind> terminators, int angleDepth) const;
 
