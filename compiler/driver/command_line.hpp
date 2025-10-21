@@ -20,6 +20,7 @@ namespace bolt
         bool dumpMir{true};
         bool showMirHash{false};
         std::optional<std::string> mirCanonicalPath;
+        std::optional<std::string> importBundleOutputPath;
     };
 
     class CommandLineParser
@@ -97,6 +98,27 @@ namespace bolt
                     else
                     {
                         std::cerr << "BOLT-E1003 MissingImportRoot: expected path after --import-root option.\n";
+                        return std::nullopt;
+                    }
+                    continue;
+                }
+
+                if (argument.rfind("--emit-import-bundle=", 0) == 0)
+                {
+                    constexpr std::string_view bundleOpt = "--emit-import-bundle=";
+                    options.importBundleOutputPath = std::string{argument.substr(bundleOpt.size())};
+                    continue;
+                }
+
+                if (argument == "--emit-import-bundle")
+                {
+                    if (index + 1 < argc)
+                    {
+                        options.importBundleOutputPath = std::string{argv[++index]};
+                    }
+                    else
+                    {
+                        std::cerr << "BOLT-E1004 MissingImportBundle: expected path after --emit-import-bundle option.\n";
                         return std::nullopt;
                     }
                     continue;

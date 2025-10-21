@@ -38,6 +38,10 @@ namespace
         if (text == "use") return TokenKind::KeywordUse;
         if (text == "extern") return TokenKind::KeywordExtern;
         if (text == "intrinsic") return TokenKind::KeywordIntrinsic;
+        if (text == "new") return TokenKind::KeywordNew;
+        if (text == "delete") return TokenKind::KeywordDelete;
+        if (text == "constructor") return TokenKind::KeywordConstructor;
+        if (text == "destructor") return TokenKind::KeywordDestructor;
         if (text == "true") return TokenKind::KeywordTrue;
         if (text == "false") return TokenKind::KeywordFalse;
         if (text == "null") return TokenKind::KeywordNull;
@@ -142,13 +146,35 @@ namespace bolt::frontend
                 emitSingle(TokenKind::Dot);
                 break;
             case '+':
-                emitSingle(TokenKind::Plus);
+            {
+                advance();
+                if (match('+'))
+                {
+                    pushToken(TokenKind::PlusPlus, startLocation, m_location, "++");
+                }
+                else if (match('='))
+                {
+                    pushToken(TokenKind::PlusEquals, startLocation, m_location, "+=");
+                }
+                else
+                {
+                    pushToken(TokenKind::Plus, startLocation, m_location, "+");
+                }
                 break;
+            }
             case '-':
                 advance();
                 if (match('>'))
                 {
                     pushToken(TokenKind::Arrow, startLocation, m_location, "->");
+                }
+                else if (match('-'))
+                {
+                    pushToken(TokenKind::MinusMinus, startLocation, m_location, "--");
+                }
+                else if (match('='))
+                {
+                    pushToken(TokenKind::MinusEquals, startLocation, m_location, "-=");
                 }
                 else
                 {
@@ -209,8 +235,18 @@ namespace bolt::frontend
                 emitSingle(TokenKind::Percent);
                 break;
             case '&':
-                emitSingle(TokenKind::Ampersand);
+            {
+                advance();
+                if (match('&'))
+                {
+                    pushToken(TokenKind::AmpersandAmpersand, startLocation, m_location, "&&");
+                }
+                else
+                {
+                    pushToken(TokenKind::Ampersand, startLocation, m_location, "&");
+                }
                 break;
+            }
             case '|':
                 emitSingle(TokenKind::Pipe);
                 break;
