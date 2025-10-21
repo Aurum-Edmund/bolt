@@ -50,4 +50,47 @@ namespace
         auto options = parser.parse(static_cast<int>(std::size(argv)), const_cast<char**>(argv));
         EXPECT_FALSE(options.has_value());
     }
+
+    TEST(CommandLineParserTest, ParsesEmitImportBundleEqualsForm)
+    {
+        const char* argv[] = {
+            "boltcc",
+            "--emit-import-bundle=out/imports.json",
+            "input.bolt"
+        };
+
+        bolt::CommandLineParser parser;
+        auto options = parser.parse(static_cast<int>(std::size(argv)), const_cast<char**>(argv));
+        ASSERT_TRUE(options.has_value());
+        ASSERT_TRUE(options->importBundleOutputPath.has_value());
+        EXPECT_EQ(*options->importBundleOutputPath, "out/imports.json");
+    }
+
+    TEST(CommandLineParserTest, ParsesEmitImportBundleSeparateArgument)
+    {
+        const char* argv[] = {
+            "boltcc",
+            "--emit-import-bundle",
+            "bundle.json",
+            "input.bolt"
+        };
+
+        bolt::CommandLineParser parser;
+        auto options = parser.parse(static_cast<int>(std::size(argv)), const_cast<char**>(argv));
+        ASSERT_TRUE(options.has_value());
+        ASSERT_TRUE(options->importBundleOutputPath.has_value());
+        EXPECT_EQ(*options->importBundleOutputPath, "bundle.json");
+    }
+
+    TEST(CommandLineParserTest, MissingEmitImportBundleValueFails)
+    {
+        const char* argv[] = {
+            "boltcc",
+            "--emit-import-bundle"
+        };
+
+        bolt::CommandLineParser parser;
+        auto options = parser.parse(static_cast<int>(std::size(argv)), const_cast<char**>(argv));
+        EXPECT_FALSE(options.has_value());
+    }
 } // namespace
