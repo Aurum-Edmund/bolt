@@ -12,15 +12,10 @@
 ## Kanban
 
 ### To Do
-- High-level IR type system expansion (algebraic data types, generics, references).
-- Backend scaffolding: instruction selection tables and linear scan register allocator.
-- Runtime stubs plus Air ABI shims for freestanding x86-64 builds.
-- Broaden golden and negative diagnostic suites.
+- Stage-0 backlog complete. Follow-up workstreams (type system expansion, backend scaffolding, runtime/ABI shims, broader diagnostics) now tracked under the [Stage-1 board](bolt_compiler_task_board_stage1.md).
 
 ### Doing
-- Import resolver integration (canonical module paths, pending-resolution reporting).
-- Middle-IR metadata expansion and canonical hashing updates.
-- Parser diagnostic coverage and recovery polish.
+- None. Stage-0 execution closed; transition to Stage-1 planning.
 
 ### Done
 - Lexer with diagnostics.
@@ -65,6 +60,7 @@
 - Runtime atomic helpers now include fetch-and/fetch-or/fetch-xor operations across all integer widths with dedicated unit tests so the bitwise atomic surface stays stable for upcoming MIR lowering.
 - Linker CLI now falls back to `BOLT_SYSROOT`/`BOLT_RUNTIME_ROOT` environment defaults when the corresponding flags are omitted, keeping scripted builds ergonomic without overriding explicit command-line configuration.
 - Linker CLI and planner now honor `--map`, validating destination directories and forwarding map generation to Windows (`/MAP`) and Air (`--Map=`) toolchains with fresh documentation and unit coverage.
+- Added a `bolt-ld` dry-run smoke test (`bolt_ld_dry_run`) that exercises runtime discovery, linker planning, and map reporting without relying on external linkers.
 - Import resolver now threads canonical module paths through MIR resolved-import metadata, driver notices, and JSON import bundles with dedicated regression coverage guarding the canonical flow.
 - MIR pass library exposes a control-flow graph builder that records block predecessors and successors from terminator metadata, with linear and branching unit tests priming SSA construction.
 - MIR pass library now ships a dominator tree builder with immediate-dominator edges, dominance queries, and regression tests to unblock the SSA conversion pass stack.
@@ -72,7 +68,7 @@
 - MIR SSA groundwork now includes a phi-placement planner that consumes dominance frontiers, yields deterministic insertion blocks, and carries diamond/loop unit coverage for regression safety.
 - MIR SSA conversion pass now inserts phi instructions, renames temporaries with deterministic versioning, surfaces `BOLT-E4301`/`BOLT-E4302` diagnostics for missing definitions, and updates printer/canonical output with SSA operands under new regression tests.
 - MIR verifier enforces that live-qualified functions retain concrete return types and return instructions so later passes cannot break live invariants.
-- live enforcement diagnostics now emit dedicated codes (`BOLT-E4101`–`BOLT-E4105`) for signature and block invariants, with unit coverage for each failure mode.
+- live enforcement diagnostics now emit dedicated codes (`BOLT-E4101`–`BOLT-E4106`) for signature and block invariants, covering unreachable blocks alongside return and terminator checks with unit coverage for each failure mode.
 - Lexer recognises compound arithmetic/logical operators and lifecycle keywords (`new`, `delete`) plus the `external` modifier, with unit tests locking the token stream down for Stage-0.
 - Parser and binder normalise `Type*`/`Type&` syntax into canonical `pointer<>`/`reference<>` forms; regression suites exercise chained suffix combinations to keep smart-pointer metadata intact.
 - Runtime library now exposes deterministic allocation (`bolt_new`, `bolt_delete`) and smart-pointer helpers (`bolt_shared_pointer_make`/`copy`/`move`/`is_valid`/`release`), with runtime unit tests covering zero-initialisation, explicit copy semantics, move transfer, and destructor dispatch.
@@ -84,10 +80,10 @@
 
 ## Milestones
 - **M0 (Completed)** Stage-0 lexical analyser, parser, and binder pipeline online.
-- **M1 (Active)** Import resolution framework feeding canonical MIR metadata.
-- **M2 (Planned)** Middle-IR SSA, live enforcement, and diagnostic passes.
-- **M3 (Planned)** Backend scaffolding with instruction selection and register allocation seeds.
-- **M4 (Planned)** Runtime stubs, Air ABI shims, and freestanding image linkage.
+- **M1 (Completed)** Import resolution framework feeding canonical MIR metadata.
+- **M2 (Deferred to Stage-1)** Middle-IR SSA, live enforcement, and diagnostic passes.
+- **M3 (Deferred to Stage-1)** Backend scaffolding with instruction selection and register allocation seeds.
+- **M4 (Deferred to Stage-1)** Runtime stubs, Air ABI shims, and freestanding image linkage.
 
 ---
 
@@ -132,20 +128,11 @@ bolt/
 
 ## Today's Focus
 
-Runtime/Linker Acceleration Plan: finalize stub APIs, implement helpers, integrate bolt-ld wrapper, add automation.
-1. Extend MIR live-barrier enforcement now that the SSA conversion pass is wired into the driver pipeline.
-2. Define initial backend scaffolding milestones (instruction selection, register allocation).
-3. Map runtime stub requirements to upcoming build steps.
-4. Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).
+Stage-0 complete. Establish Stage-1 planning artifacts to cover type-system expansion, backend scaffolding, and freestanding runtime/linker milestones.
 
 **Notes:**
-- MIR SSA plan: start with pruned IDOM construction, insert Phi nodes, enforce live barriers before lowering to back end.
-- live enforcement: dedicate MIR pass to ensure side-effect ordering and fence handling prior to SSA conversion.
-- Backend scaffolding: define instruction selection tables, linear scan register allocator, and object emission stub.
-- Runtime stubs: `_start` entry, panic abort routine, memory copy and memory fill helpers, atomic intrinsics aligned with Air ABI shims.
-- Linker integration: emit `.exe` (Windows), `.air` (Air executable), and link archives (`.lib` for Windows, `.zap` for Air/Bolt), then bundle runtime stubs plus resolved import metadata.
-- Runtime/linker execution plan: finalize stub APIs, implement helpers, integrate bolt-ld wrapper, add automation, and document `link` keyword usage.
-- Suggestion: add compiler fix-it hints for missing semicolons to reduce developer friction when exhaustion strikes.
+- Archive of Stage-0 context and board retained under `Context/archive/` for reference.
+- Outstanding ideas (e.g., additional fix-it hints) should migrate to the Stage-1 planning board.
 
 ## Task Log
 - All Stage-0 task log items completed; future tasks tracked in the Kanban lists above.

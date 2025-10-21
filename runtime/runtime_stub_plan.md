@@ -38,5 +38,6 @@ Stage‑0 requires a minimal freestanding runtime so compiled Bolt programs can 
 - Added `bolt_atomic_fetch_and`/`bolt_atomic_fetch_or`/`bolt_atomic_fetch_xor` helpers for all supported widths so bitwise atomics
   required by Stage-0 lowering are available with matching unit coverage.
 - Implemented deterministic allocation helpers (`bolt_new`, `bolt_delete`) and a shared-pointer runtime (`bolt_shared_pointer_make`/`copy`/`move`/`is_valid`/`release`) to back the new pointer syntax and object validity checks. Unit coverage exercises zero-initialisation, copy semantics, move semantics, and destructor invocation.
+- Added a `bolt-ld` dry-run smoke test (`bolt_ld_dry_run`) that exercises runtime discovery and linker planning without external toolchain dependencies, covering the Stage-0 automation requirement.
 
 

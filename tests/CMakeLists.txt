@@ -55,3 +55,21 @@ if (TARGET boltcc)
             -DOUTPUT=${_golden_output}
             -P ${CMAKE_SOURCE_DIR}/tests/golden/RunMirGolden.cmake)
 endif ()
+
+if (TARGET bolt_ld)
+    set(_smoke_dir "${CMAKE_BINARY_DIR}/smoke")
+    set(_smoke_object "${_smoke_dir}/stage0_stub.o")
+    set(_smoke_output "${_smoke_dir}/stage0_image.air")
+    set(_smoke_map "${_smoke_dir}/stage0_image.map")
+    set(_smoke_linker "${_smoke_dir}/linker_stub.sh")
+    add_test(NAME bolt_ld_dry_run
+        COMMAND ${CMAKE_COMMAND}
+            -DBOLT_LD=$<TARGET_FILE:bolt_ld>
+            -DRUNTIME_ROOT=$<TARGET_FILE_DIR:bolt_runtime>
+            -DLINKER_SCRIPT=${CMAKE_SOURCE_DIR}/compiler/linker/scripts/air.ld
+            -DOUTPUT_PATH=${_smoke_output}
+            -DOBJECT_PATH=${_smoke_object}
+            -DSTUB_LINKER=${_smoke_linker}
+            -DMAP_PATH=${_smoke_map}
+            -P ${CMAKE_SOURCE_DIR}/tests/smoke/RunBoltLdDryRun.cmake)
+endif ()

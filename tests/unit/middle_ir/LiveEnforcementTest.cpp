@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -134,6 +135,52 @@ public integer function demo() {
         EXPECT_EQ(diagnostics.front().code, "BOLT-E4105");
         EXPECT_EQ(diagnostics.front().functionName, "misordered");
         EXPECT_NE(diagnostics.front().detail.find("must terminate with return or branch"), std::string::npos);
+    }
+
+    TEST(LiveEnforcementTest, RejectsUnreachableBlocksInLiveFunction)
+    {
+        Module module;
+        Function function;
+        function.name = "unreachable";
+        function.returnIsLive = true;
+        function.hasReturnType = true;
+
+        BasicBlock entry;
+        entry.id = 0;
+        entry.name = "entry";
+        Instruction branch;
+        branch.kind = InstructionKind::Branch;
+        branch.successors.push_back(1);
+        entry.instructions.push_back(branch);
+
+        BasicBlock reachable;
+        reachable.id = 1;
+        reachable.name = "reachable";
+        Instruction ret;
+        ret.kind = InstructionKind::Return;
+        reachable.instructions.push_back(ret);
+
+        BasicBlock unreachable;
+        unreachable.id = 2;
+        unreachable.name = "dead";
+        Instruction deadReturn;
+        deadReturn.kind = InstructionKind::Return;
+        unreachable.instructions.push_back(deadReturn);
+
+        function.blocks.push_back(entry);
+        function.blocks.push_back(reachable);
+        function.blocks.push_back(unreachable);
+        module.functions.push_back(function);
+
+        std::vector<LiveDiagnostic> diagnostics;
+        EXPECT_FALSE(enforceLive(module, diagnostics));
+        ASSERT_FALSE(diagnostics.empty());
+        const auto unreachableIt = std::find_if(diagnostics.begin(), diagnostics.end(), [](const LiveDiagnostic& diagnostic) {
+            return diagnostic.code == "BOLT-E4106";
+        });
+        ASSERT_NE(unreachableIt, diagnostics.end());
+        EXPECT_EQ(unreachableIt->functionName, "unreachable");
+        EXPECT_NE(unreachableIt->detail.find("dead"), std::string::npos);
     }
 }
 } // namespace bolt::mir
