@@ -65,9 +65,10 @@
 - Captured the follow-up review outcome for the phi-placement helper and queued SSA conversion work as the next Stage-0 focus area.
 - MIR SSA conversion pass now inserts phi nodes, renames temporaries, reports `BOLT-E4301`/`BOLT-E4302` for missing definitions, enriches printer/canonical dumps with SSA operands, and ships diamond control-flow coverage through dedicated unit tests.
 - Driver pipeline now runs the SSA conversion pass after live enforcement, emitting `BOLT-E4300` failures when SSA conversion breaks and guaranteeing canonical MIR reaches verification.
+- MIR verifier now enforces that live-qualified functions keep concrete return types and return instructions so later passes cannot violate live invariants.
 
 ## Progress Metric
-- **Estimated Stage-0 completion:** ~94%
+- **Estimated Stage-0 completion:** ~95%
 
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).
