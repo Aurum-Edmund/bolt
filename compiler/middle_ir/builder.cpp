@@ -19,6 +19,9 @@ namespace bolt::mir
         fn.blocks.clear();
         fn.nextBlockId = 0;
         fn.nextValueId = 0;
+        fn.isBlueprintConstructor = false;
+        fn.isBlueprintDestructor = false;
+        fn.blueprintName.reset();
         return fn;
     }
 

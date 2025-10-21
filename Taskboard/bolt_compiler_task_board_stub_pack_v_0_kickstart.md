@@ -78,6 +78,7 @@
 - Runtime library now exposes deterministic allocation (`bolt_new`, `bolt_delete`) and smart-pointer helpers (`bolt_shared_pointer_make`/`copy`/`move`/`is_valid`/`release`), with runtime unit tests covering zero-initialisation, explicit copy semantics, move transfer, and destructor dispatch.
 - Documentation (glossary, specification, runtime plan) now captures the smart pointer model, lifecycle keywords, operator surface, and object validity rules so tooling and reference material stay aligned.
 - Blueprint construction now relies on blueprint-named functions (`BlueprintName`) with `~BlueprintName` destructors, replacing temporary constructor/destructor modifiers across implementation and documentation.
+- Binder now records constructor/destructor lifecycle metadata, assigns deterministic defaults to constructor parameters, warns (`BOLT-W2210`) when reference parameters need explicit arguments, and rejects destructor parameters with `BOLT-E2230`; MIR lowering, docs, and regression suites reflect the rules.
 
 ---
 

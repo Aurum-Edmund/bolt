@@ -258,18 +258,32 @@ namespace bolt
                     hir::Module boundModule = binder.bind();
                     const auto& binderDiagnostics = binder.diagnostics();
 
+                    bool binderHadErrors = false;
                     if (!binderDiagnostics.empty())
                     {
                         for (const auto& diagnostic : binderDiagnostics)
                         {
-                            std::cerr << diagnostic.code << ' '
+                            std::cerr << diagnostic.code;
+                            if (diagnostic.isWarning)
+                            {
+                                std::cerr << " [warning]";
+                            }
+                            std::cerr << ' '
                                       << "L" << diagnostic.span.begin.line << ":C" << diagnostic.span.begin.column
                                       << " -> "
                                       << diagnostic.message << '\n';
+                            if (!diagnostic.isWarning)
+                            {
+                                binderHadErrors = true;
+                            }
                         }
-                        exitCode = 1;
+                        if (binderHadErrors)
+                        {
+                            exitCode = 1;
+                        }
                     }
-                    else
+
+                    if (!binderHadErrors)
                     {
                         std::cout << "[notice] Bound module symbols (functions: "
                                   << boundModule.functions.size()

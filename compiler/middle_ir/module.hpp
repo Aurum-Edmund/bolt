@@ -68,6 +68,9 @@ namespace bolt::mir
             std::string typeName;
             std::string name;
             bool isLive{false};
+            bool hasDefaultValue{false};
+            bool requiresExplicitValue{false};
+            std::string defaultValue;
         };
         std::vector<Parameter> parameters;
         bool hasReturnType{false};
@@ -76,6 +79,9 @@ namespace bolt::mir
         std::vector<BasicBlock> blocks;
         std::uint32_t nextBlockId{0};
         std::uint32_t nextValueId{0};
+        bool isBlueprintConstructor{false};
+        bool isBlueprintDestructor{false};
+        std::optional<std::string> blueprintName;
     };
 
     struct Module

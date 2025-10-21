@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <string>
 
 #include "lexer.hpp"
@@ -151,6 +152,47 @@ public link integer function staticFunctionTest(integer value) {
         EXPECT_EQ(secondBlock.instructions[0].detail, "modifiers: public");
         EXPECT_EQ(secondBlock.instructions[1].detail, "field integer secondField");
         EXPECT_EQ(secondBlock.instructions.back().kind, InstructionKind::Return);
+    }
+
+    TEST(LoweringTest, EmitsConstructorParameterDefaults)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint Sample {
+    integer value;
+}
+
+public void function Sample(integer value) {}
+)";
+
+        auto hirModule = buildHir(source);
+        Module mirModule = lowerFromHir(hirModule);
+        ASSERT_TRUE(verify(mirModule));
+
+        const auto constructorIt = std::find_if(
+            mirModule.functions.begin(),
+            mirModule.functions.end(),
+            [](const Function& fn) { return fn.name == "Sample"; });
+        ASSERT_NE(constructorIt, mirModule.functions.end());
+
+        const auto& constructor = *constructorIt;
+        EXPECT_TRUE(constructor.isBlueprintConstructor);
+        ASSERT_TRUE(constructor.blueprintName.has_value());
+        EXPECT_EQ(*constructor.blueprintName, "Sample");
+        ASSERT_EQ(constructor.parameters.size(), 1u);
+        EXPECT_TRUE(constructor.parameters.front().hasDefaultValue);
+        EXPECT_EQ(constructor.parameters.front().defaultValue, "0");
+
+        ASSERT_EQ(constructor.blocks.size(), 1u);
+        const auto& block = constructor.blocks.front();
+        const auto paramDetail = std::find_if(
+            block.instructions.begin(),
+            block.instructions.end(),
+            [](const Instruction& inst) {
+                return inst.detail.find("param integer value") != std::string::npos;
+            });
+        ASSERT_NE(paramDetail, block.instructions.end());
+        EXPECT_NE(paramDetail->detail.find("default=0"), std::string::npos);
     }
 }
 } // namespace bolt::mir

@@ -67,7 +67,11 @@ public live integer32 function request(live integer32 param) {
     {
         const std::string source = R"(package demo.tests; module demo.tests;
 
-public void function Widget() {}
+public blueprint Widget {
+    integer value;
+}
+
+public void function Widget(integer value) {}
 public void function ~Widget() {}
 )";
 
@@ -80,8 +84,111 @@ public void function ~Widget() {}
         ASSERT_TRUE(binder.diagnostics().empty());
 
         ASSERT_EQ(module.functions.size(), 2u);
-        EXPECT_EQ(module.functions[0].name, "Widget");
-        EXPECT_EQ(module.functions[1].name, "~Widget");
+        const auto& constructor = module.functions[0];
+        const auto& destructor = module.functions[1];
+        EXPECT_EQ(constructor.name, "Widget");
+        EXPECT_TRUE(constructor.isBlueprintConstructor);
+        EXPECT_FALSE(constructor.isBlueprintDestructor);
+        ASSERT_TRUE(constructor.blueprintName.has_value());
+        EXPECT_EQ(*constructor.blueprintName, "Widget");
+        ASSERT_EQ(constructor.parameters.size(), 1u);
+        EXPECT_TRUE(constructor.parameters.front().hasDefaultValue);
+        EXPECT_EQ(constructor.parameters.front().defaultValue, "0");
+        EXPECT_FALSE(constructor.parameters.front().requiresExplicitValue);
+
+        EXPECT_EQ(destructor.name, "~Widget");
+        EXPECT_TRUE(destructor.isBlueprintDestructor);
+        EXPECT_FALSE(destructor.isBlueprintConstructor);
+        ASSERT_TRUE(destructor.blueprintName.has_value());
+        EXPECT_EQ(*destructor.blueprintName, "Widget");
+    }
+
+    TEST(BinderTest, ConstructorParametersCaptureSaneDefaults)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint Sample {
+    integer value;
+}
+
+public void function Sample(integer value, float amount, integer* pointerValue) {}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty());
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        const auto& constructor = module.functions.front();
+        ASSERT_EQ(constructor.parameters.size(), 3u);
+        EXPECT_TRUE(constructor.parameters[0].hasDefaultValue);
+        EXPECT_EQ(constructor.parameters[0].defaultValue, "0");
+        EXPECT_TRUE(constructor.parameters[1].hasDefaultValue);
+        EXPECT_EQ(constructor.parameters[1].defaultValue, "0.0");
+        EXPECT_TRUE(constructor.parameters[2].hasDefaultValue);
+        EXPECT_EQ(constructor.parameters[2].defaultValue, "null");
+        EXPECT_FALSE(constructor.parameters[0].requiresExplicitValue);
+        EXPECT_FALSE(constructor.parameters[1].requiresExplicitValue);
+        EXPECT_FALSE(constructor.parameters[2].requiresExplicitValue);
+    }
+
+    TEST(BinderTest, ConstructorReferenceParameterRequiresExplicitValue)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint Holder {
+    integer value;
+}
+
+public void function Holder(integer& value) {}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        const auto& diags = binder.diagnostics();
+        ASSERT_EQ(diags.size(), 1u);
+        EXPECT_EQ(diags.front().code, "BOLT-W2210");
+        EXPECT_TRUE(diags.front().isWarning);
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        const auto& constructor = module.functions.front();
+        ASSERT_EQ(constructor.parameters.size(), 1u);
+        EXPECT_FALSE(constructor.parameters.front().hasDefaultValue);
+        EXPECT_TRUE(constructor.parameters.front().requiresExplicitValue);
+    }
+
+    TEST(BinderTest, DestructorRejectsParameters)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint Widget {
+    integer value;
+}
+
+public void function ~Widget(integer value) {}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        const auto& diags = binder.diagnostics();
+        ASSERT_EQ(diags.size(), 1u);
+        EXPECT_EQ(diags.front().code, "BOLT-E2230");
+        EXPECT_FALSE(diags.front().isWarning);
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        EXPECT_TRUE(module.functions.front().isBlueprintDestructor);
     }
 
     TEST(BinderTest, DuplicateFunctionAttributeEmitsDiagnostic)

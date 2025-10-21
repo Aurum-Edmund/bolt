@@ -38,6 +38,8 @@
 ### Lifecycle Keywords and Runtime Support
 - Blueprint construction and teardown use the blueprint name itself (`BlueprintName`) and its destructor counterpart (`~BlueprintName`). These identifiers flow through the front end for Stage‑0 planning without altering semantics yet.
 - `new` allocates zero-initialised storage; `delete` releases it. The runtime implementation (`bolt_new` / `bolt_delete`) guarantees deterministic zero-fill so automatic variables observe sane defaults.
+- Constructor parameters gain deterministic defaults when omitted: integer-like scalars fall back to `0`, floating-point scalars fall back to `0.0`, and managed pointers fall back to `null`. References cannot be defaulted; the compiler emits `BOLT-W2210` when a constructor parameter of reference type lacks an explicit argument.
+- Destructors are parameterless by contract. Any parameter in a destructor signature yields `BOLT-E2230`.
 - Smart pointer helpers: `bolt_shared_pointer_make`, `bolt_shared_pointer_copy`, `bolt_shared_pointer_move`, `bolt_shared_pointer_is_valid`, and `bolt_shared_pointer_release` manage reference counts without mutexes or background threads.
 
 ### Operators (Tokenised in Stage‑0)

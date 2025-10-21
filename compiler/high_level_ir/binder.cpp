@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <optional>
 #include <unordered_set>
 
 namespace bolt::hir
@@ -146,6 +147,57 @@ namespace bolt::hir
 
             return result;
         }
+
+        bool startsWith(std::string_view text, std::string_view prefix)
+        {
+            return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
+        }
+
+        bool isPointerType(std::string_view typeText)
+        {
+            return startsWith(typeText, "pointer<") || startsWith(typeText, "sharedPointer<");
+        }
+
+        bool isReferenceType(std::string_view typeText)
+        {
+            return startsWith(typeText, "reference<");
+        }
+
+        std::optional<std::string> defaultValueForType(std::string_view typeText)
+        {
+            if (typeText.empty())
+            {
+                return std::string{"{}"};
+            }
+
+            if (isReferenceType(typeText))
+            {
+                return std::nullopt;
+            }
+
+            if (isPointerType(typeText))
+            {
+                return std::string{"null"};
+            }
+
+            if (startsWith(typeText, "integer") || startsWith(typeText, "natural") || startsWith(typeText, "signed")
+                || startsWith(typeText, "unsigned"))
+            {
+                return std::string{"0"};
+            }
+
+            if (startsWith(typeText, "float") || startsWith(typeText, "double"))
+            {
+                return std::string{"0.0"};
+            }
+
+            if (typeText == "bool")
+            {
+                return std::string{"false"};
+            }
+
+            return std::string{"{}"};
+        }
     } // namespace
 
     Binder::Binder(const bolt::frontend::CompilationUnit& ast, std::string_view modulePath)
@@ -159,6 +211,7 @@ namespace bolt::hir
         m_diagnostics.clear();
         m_functionSymbols.clear();
         m_blueprintSymbols.clear();
+        m_knownBlueprintNames.clear();
 
         Module module{};
         module.packageName = m_ast.module.packageName;
@@ -189,6 +242,14 @@ namespace bolt::hir
             importEntry.modulePath = importDecl.modulePath;
             importEntry.span = importDecl.span;
             module.imports.emplace_back(std::move(importEntry));
+        }
+
+        for (const auto& blueprint : m_ast.blueprints)
+        {
+            if (!blueprint.name.empty())
+            {
+                m_knownBlueprintNames.emplace(blueprint.name);
+            }
         }
 
         for (const auto& function : m_ast.functions)
@@ -319,6 +380,16 @@ namespace bolt::hir
         diag.code = code;
         diag.message = message;
         diag.span = span;
+        m_diagnostics.emplace_back(std::move(diag));
+    }
+
+    void Binder::emitWarning(const std::string& code, const std::string& message, SourceSpan span)
+    {
+        Diagnostic diag;
+        diag.code = code;
+        diag.message = message;
+        diag.span = span;
+        diag.isWarning = true;
         m_diagnostics.emplace_back(std::move(diag));
     }
 
@@ -546,6 +617,8 @@ void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std:
             converted.returnType.text = normalizeTypeText(converted.returnType.text);
         }
 
+        applyBlueprintLifecycle(converted);
+
         return converted;
     }
 
@@ -615,6 +688,58 @@ void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std:
         applyLiveQualifier(converted.type, converted.isLive, "field '" + converted.name + "' in blueprint '" + blueprintName + "'", converted.type.span);
         converted.type.text = normalizeTypeText(converted.type.text);
         return converted;
+    }
+
+    void Binder::applyBlueprintLifecycle(Function& function)
+    {
+        if (function.name.empty())
+        {
+            return;
+        }
+
+        const bool isDestructor = function.name.front() == '~';
+        std::string candidateName = isDestructor ? function.name.substr(1) : function.name;
+        if (candidateName.empty())
+        {
+            return;
+        }
+
+        if (m_knownBlueprintNames.find(candidateName) == m_knownBlueprintNames.end())
+        {
+            return;
+        }
+
+        function.blueprintName = candidateName;
+        if (isDestructor)
+        {
+            function.isBlueprintDestructor = true;
+            if (!function.parameters.empty())
+            {
+                SourceSpan span = function.parameters.front().span;
+                emitError("BOLT-E2230", "Destructor '~" + candidateName + "' must not declare parameters.", span);
+            }
+            return;
+        }
+
+        function.isBlueprintConstructor = true;
+        for (auto& parameter : function.parameters)
+        {
+            const auto defaultValue = defaultValueForType(parameter.type.text);
+            if (defaultValue.has_value())
+            {
+                parameter.hasDefaultValue = true;
+                parameter.defaultValue = *defaultValue;
+                parameter.requiresExplicitValue = false;
+            }
+            else
+            {
+                parameter.requiresExplicitValue = true;
+                emitWarning(
+                    "BOLT-W2210",
+                    "Constructor parameter '" + parameter.name + "' in blueprint '" + candidateName + "' requires an explicit value.",
+                    parameter.span);
+            }
+        }
     }
 
     Blueprint Binder::convertBlueprint(const bolt::frontend::BlueprintDeclaration& blueprint)
