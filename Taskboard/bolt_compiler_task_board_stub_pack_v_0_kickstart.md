@@ -13,7 +13,7 @@
 
 ### To Do
 - High-level IR type system expansion (algebraic data types, generics, references).
-- Middle-IR SSA renaming and live-barrier enforcement passes.
+- Middle-IR live-barrier enforcement passes and SSA verification integration.
 - Backend scaffolding: instruction selection tables and linear scan register allocator.
 - Runtime stubs plus Air ABI shims for freestanding x86-64 builds.
 - Broaden golden and negative diagnostic suites.
@@ -67,6 +67,7 @@
 - MIR pass library now ships a dominator tree builder with immediate-dominator edges, dominance queries, and regression tests to unblock the SSA conversion pass stack.
 - MIR pass library now ships a dominance frontier builder that combines the control-flow graph and dominator tree, with diamond and loop regression tests keeping SSA placement data stable.
 - MIR SSA groundwork now includes a phi-placement planner that consumes dominance frontiers, yields deterministic insertion blocks, and carries diamond/loop unit coverage for regression safety.
+- MIR SSA conversion pass now inserts phi instructions, renames temporaries with deterministic versioning, surfaces `BOLT-E4301`/`BOLT-E4302` diagnostics for missing definitions, and updates printer/canonical output with SSA operands under new regression tests.
 
 ---
 
@@ -121,7 +122,7 @@ bolt/
 ## Today's Focus
 
 Runtime/Linker Acceleration Plan: finalize stub APIs, implement helpers, integrate bolt-ld wrapper, add automation.
-1. Outline MIR SSA and live enforcement plan for Stage-0.
+1. Extend MIR live-barrier enforcement now that the SSA conversion pass is wired into the driver pipeline.
 2. Define initial backend scaffolding milestones (instruction selection, register allocation).
 3. Map runtime stub requirements to upcoming build steps.
 4. Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).

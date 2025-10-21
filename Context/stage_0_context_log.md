@@ -62,13 +62,16 @@
 - MIR pass library now computes dominator trees with immediate-dominator relationships and dominance queries, priming the SSA conversion pass stack with dedicated unit coverage.
 - MIR pass library now computes dominance frontiers from the control-flow graph and dominator tree, covering diamond and loop shapes with unit tests so SSA construction has placement data ready.
 - MIR SSA groundwork now includes a phi-placement planner that consumes dominance frontiers, returns deterministic insertion sites, and ships with diamond/loop/unit coverage to anchor the conversion pass.
+- Captured the follow-up review outcome for the phi-placement helper and queued SSA conversion work as the next Stage-0 focus area.
+- MIR SSA conversion pass now inserts phi nodes, renames temporaries, reports `BOLT-E4301`/`BOLT-E4302` for missing definitions, enriches printer/canonical dumps with SSA operands, and ships diamond control-flow coverage through dedicated unit tests.
+- Driver pipeline now runs the SSA conversion pass after live enforcement, emitting `BOLT-E4300` failures when SSA conversion breaks and guaranteeing canonical MIR reaches verification.
 
 ## Progress Metric
-- **Estimated Stage-0 completion:** ~88?%
+- **Estimated Stage-0 completion:** ~94%
 
 ## Pending Tasks
 - Execute runtime/linker implementation plan (stub APIs, helper implementation, bolt-ld integration, automation).
-- Expand MIR live enforcement beyond baseline structural checks and implement SSA conversion passes.
+- Extend live-barrier diagnostics across the remaining MIR passes.
 
 ## Notes
 - Use the task board (`../Taskboard/bolt_compiler_task_board_stub_pack_v_0_kickstart.md`) to log task state and checklist progress.

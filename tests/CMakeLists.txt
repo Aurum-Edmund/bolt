@@ -13,6 +13,7 @@ set(BOLT_UNIT_TEST_SOURCES
     unit/middle_ir/DominatorTreeTest.cpp
     unit/middle_ir/DominanceFrontierTest.cpp
     unit/middle_ir/SsaPlacementTest.cpp
+    unit/middle_ir/SsaConversionTest.cpp
     unit/runtime/RuntimeHelpersTest.cpp
     unit/linker/LinkerCommandLineTest.cpp
     unit/linker/LinkerInvocationTest.cpp

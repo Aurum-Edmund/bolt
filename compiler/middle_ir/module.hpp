@@ -18,7 +18,8 @@ namespace bolt::mir
         Load,
         Store,
         Unary,
-        Binary
+        Binary,
+        Phi
     };
 
     enum class ValueKind : std::uint16_t
@@ -39,6 +40,7 @@ namespace bolt::mir
     struct Operand
     {
         Value value;
+        std::optional<std::uint32_t> predecessorBlockId;
     };
 
     struct Instruction
@@ -47,6 +49,8 @@ namespace bolt::mir
         std::vector<Operand> operands;
         std::string detail;
         std::vector<std::uint32_t> successors;
+        std::optional<Value> result;
+        std::optional<std::uint32_t> originalTemporaryId;
     };
 
     struct BasicBlock

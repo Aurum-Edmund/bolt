@@ -10,6 +10,7 @@
 #include "../middle_ir/verifier.hpp"
 #include "../middle_ir/canonical.hpp"
 #include "../middle_ir/passes/live_enforcement.hpp"
+#include "../middle_ir/passes/ssa_conversion.hpp"
 #include "command_line.hpp"
 #include "import_bundle_writer.hpp"
 
@@ -78,6 +79,18 @@ namespace bolt
             for (const auto& diagnostic : liveDiagnostics)
             {
                 std::cerr << diagnostic.code << " live invariant violation in function '" << diagnostic.functionName
+                          << "': " << diagnostic.detail << "\n";
+            }
+            return false;
+        }
+
+        std::vector<mir::passes::SsaDiagnostic> ssaDiagnostics;
+        if (!mir::passes::convertToSsa(mirModule, ssaDiagnostics))
+        {
+            std::cerr << "BOLT-E4300 MirSsaConversionFailed: module '" << mirModule.canonicalModulePath << "'.\n";
+            for (const auto& diagnostic : ssaDiagnostics)
+            {
+                std::cerr << diagnostic.code << " ssa invariant violation in function '" << diagnostic.functionName
                           << "': " << diagnostic.detail << "\n";
             }
             return false;
