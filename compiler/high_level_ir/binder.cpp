@@ -300,6 +300,13 @@ namespace bolt::hir
                     return base;
                 }
 
+                const std::size_t primaryEnd = m_index;
+                if (primaryEnd > typeStart)
+                {
+                    base.text = trimCopy(m_text.substr(typeStart, primaryEnd - typeStart));
+                    base.originalText = base.text;
+                }
+
                 skipWhitespace();
                 while (match('['))
                 {
@@ -317,6 +324,23 @@ namespace bolt::hir
                     }
 
                     arrayType.genericArguments.emplace_back(std::move(base));
+                    TypeReference& element = arrayType.genericArguments.back();
+
+                    std::string elementText = element.text.empty() ? element.originalText : element.text;
+                    if (elementText.empty())
+                    {
+                        elementText = element.qualifiedName();
+                    }
+
+                    arrayType.text = elementText;
+                    arrayType.text.push_back('[');
+                    if (arrayType.arrayLength.has_value())
+                    {
+                        arrayType.text += std::to_string(*arrayType.arrayLength);
+                    }
+                    arrayType.text.push_back(']');
+                    arrayType.originalText = arrayType.text;
+
                     base = std::move(arrayType);
                     skipWhitespace();
                 }
