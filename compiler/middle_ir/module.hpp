@@ -6,6 +6,8 @@
 #include <string_view>
 #include <vector>
 
+#include "../common/type.hpp"
+
 namespace bolt::mir
 {
     enum class InstructionKind : std::uint16_t
@@ -60,12 +62,14 @@ namespace bolt::mir
         std::vector<Instruction> instructions;
     };
 
+    using bolt::common::TypeReference;
+
     struct Function
     {
         std::string name;
         struct Parameter
         {
-            std::string typeName;
+            TypeReference type;
             std::string name;
             bool isLive{false};
             bool hasDefaultValue{false};
@@ -74,7 +78,7 @@ namespace bolt::mir
         };
         std::vector<Parameter> parameters;
         bool hasReturnType{false};
-        std::string returnType;
+        TypeReference returnType;
         bool returnIsLive{false};
         std::vector<BasicBlock> blocks;
         std::uint32_t nextBlockId{0};
