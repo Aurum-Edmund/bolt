@@ -32,6 +32,17 @@ namespace bolt::mir
 {
 namespace
 {
+    TypeReference makeBuiltinType(const std::string& name)
+    {
+        TypeReference type{};
+        type.kind = bolt::common::TypeKind::Named;
+        type.name.components.emplace_back(name);
+        type.isBuiltin = true;
+        type.text = name;
+        type.originalText = name;
+        return type;
+    }
+
     TEST(LiveEnforcementTest, AcceptsSimpleModule)
     {
         const std::string source = R"(package demo.tests; module demo.tests;
@@ -54,7 +65,7 @@ public integer function demo() {
         Function function;
         function.name = "demo";
         Function::Parameter parameter{};
-        parameter.typeName = "integer";
+        parameter.type = makeBuiltinType("integer");
         parameter.name = "value";
         parameter.isLive = true;
         function.parameters.push_back(parameter);
@@ -97,6 +108,7 @@ public integer function demo() {
         function.name = "noBlocks";
         function.returnIsLive = true;
         function.hasReturnType = true;
+        function.returnType = makeBuiltinType("integer");
         module.functions.push_back(function);
 
         std::vector<LiveDiagnostic> diagnostics;
@@ -113,7 +125,7 @@ public integer function demo() {
         Function function;
         function.name = "misordered";
         Function::Parameter parameter{};
-        parameter.typeName = "integer";
+        parameter.type = makeBuiltinType("integer");
         parameter.name = "value";
         parameter.isLive = true;
         function.parameters.push_back(parameter);
@@ -144,6 +156,7 @@ public integer function demo() {
         function.name = "unreachable";
         function.returnIsLive = true;
         function.hasReturnType = true;
+        function.returnType = makeBuiltinType("integer");
 
         BasicBlock entry;
         entry.id = 0;

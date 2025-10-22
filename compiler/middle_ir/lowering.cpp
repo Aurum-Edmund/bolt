@@ -110,9 +110,9 @@ namespace bolt::mir
             if (hirFunction.hasReturnType)
             {
                 mirFunction.hasReturnType = true;
-                mirFunction.returnType = hirFunction.returnType.text;
+                mirFunction.returnType = hirFunction.returnType;
                 mirFunction.returnIsLive = hirFunction.returnIsLive;
-                std::string detail = "return " + hirFunction.returnType.text;
+                std::string detail = "return " + mirFunction.returnType.text;
                 if (hirFunction.returnIsLive)
                 {
                     detail += " [live]";
@@ -123,7 +123,7 @@ namespace bolt::mir
             for (const auto& parameter : hirFunction.parameters)
             {
                 Function::Parameter mirParameter{};
-                mirParameter.typeName = parameter.type.text;
+                mirParameter.type = parameter.type;
                 mirParameter.name = parameter.name;
                 mirParameter.isLive = parameter.isLive;
                 mirParameter.hasDefaultValue = parameter.hasDefaultValue;

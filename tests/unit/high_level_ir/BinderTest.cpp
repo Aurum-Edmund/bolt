@@ -191,6 +191,71 @@ public void function ~Widget(integer value) {}
         EXPECT_TRUE(module.functions.front().isBlueprintDestructor);
     }
 
+    TEST(BinderTest, CapturesTypeReferenceMetadata)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public std.core.result.Result<void, WriteError> function process(
+    pointer<byte> buffer,
+    reference<std.core.result.Result<void, WriteError>> state) {
+    return state;
+}
+
+public blueprint Holder {
+    pointer<byte> data;
+    reference<pointer<byte>> nested;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty());
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        const auto& fn = module.functions.front();
+        ASSERT_TRUE(fn.hasReturnType);
+        EXPECT_EQ(fn.returnType.kind, TypeKind::Named);
+        EXPECT_TRUE(fn.returnType.isGeneric());
+        ASSERT_EQ(fn.returnType.name.components.size(), 4u);
+        EXPECT_EQ(fn.returnType.name.components[0], "std");
+        EXPECT_EQ(fn.returnType.name.components[3], "Result");
+        ASSERT_EQ(fn.returnType.genericArguments.size(), 2u);
+        EXPECT_EQ(fn.returnType.genericArguments[0].text, "void");
+        EXPECT_EQ(fn.returnType.genericArguments[1].text, "WriteError");
+
+        ASSERT_EQ(fn.parameters.size(), 2u);
+        const auto& bufferParam = fn.parameters[0];
+        EXPECT_EQ(bufferParam.type.kind, TypeKind::Pointer);
+        ASSERT_EQ(bufferParam.type.genericArguments.size(), 1u);
+        EXPECT_EQ(bufferParam.type.genericArguments[0].text, "byte");
+
+        const auto& stateParam = fn.parameters[1];
+        EXPECT_EQ(stateParam.type.kind, TypeKind::Reference);
+        ASSERT_EQ(stateParam.type.genericArguments.size(), 1u);
+        const auto& stateInner = stateParam.type.genericArguments[0];
+        EXPECT_EQ(stateInner.kind, TypeKind::Named);
+        EXPECT_TRUE(stateInner.isGeneric());
+        ASSERT_EQ(stateInner.genericArguments.size(), 2u);
+        EXPECT_EQ(stateInner.genericArguments[0].text, "void");
+        EXPECT_EQ(stateInner.genericArguments[1].text, "WriteError");
+
+        ASSERT_EQ(module.blueprints.size(), 1u);
+        const auto& blueprint = module.blueprints.front();
+        ASSERT_EQ(blueprint.fields.size(), 2u);
+        EXPECT_EQ(blueprint.fields[0].type.kind, TypeKind::Pointer);
+        ASSERT_EQ(blueprint.fields[0].type.genericArguments.size(), 1u);
+        EXPECT_EQ(blueprint.fields[0].type.genericArguments[0].text, "byte");
+        EXPECT_EQ(blueprint.fields[1].type.kind, TypeKind::Reference);
+        ASSERT_EQ(blueprint.fields[1].type.genericArguments.size(), 1u);
+        EXPECT_EQ(blueprint.fields[1].type.genericArguments[0].kind, TypeKind::Pointer);
+        ASSERT_EQ(blueprint.fields[1].type.genericArguments[0].genericArguments.size(), 1u);
+        EXPECT_EQ(blueprint.fields[1].type.genericArguments[0].genericArguments[0].text, "byte");
+    }
+
     TEST(BinderTest, DuplicateFunctionAttributeEmitsDiagnostic)
     {
         const std::string source = R"(package demo.tests; module demo.tests;
