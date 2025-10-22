@@ -14,7 +14,7 @@ namespace bolt::mir
         fn.name = std::string{name};
         fn.parameters.clear();
         fn.hasReturnType = false;
-        fn.returnType.clear();
+        fn.returnType = TypeReference{};
         fn.returnIsLive = false;
         fn.blocks.clear();
         fn.nextBlockId = 0;

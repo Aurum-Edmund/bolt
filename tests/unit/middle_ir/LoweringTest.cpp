@@ -65,6 +65,51 @@ public live integer32 function demoFunc(live integer32 value) {
         EXPECT_EQ(terminator.detail, "function");
     }
 
+    TEST(LoweringTest, PropagatesTypeMetadata)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public std.core.result.Result<void, WriteError> function process(
+    pointer<byte> buffer,
+    reference<std.core.result.Result<void, WriteError>> state) {
+    return state;
+}
+)";
+
+        auto hirModule = buildHir(source);
+        Module mirModule = lowerFromHir(hirModule);
+        ASSERT_TRUE(verify(mirModule));
+
+        const auto fnIt = std::find_if(mirModule.functions.begin(), mirModule.functions.end(), [](const Function& fn) {
+            return fn.name == "process";
+        });
+        ASSERT_NE(fnIt, mirModule.functions.end());
+
+        const auto& fn = *fnIt;
+        ASSERT_TRUE(fn.hasReturnType);
+        EXPECT_EQ(fn.returnType.kind, bolt::common::TypeKind::Named);
+        EXPECT_TRUE(fn.returnType.isGeneric());
+        ASSERT_EQ(fn.returnType.genericArguments.size(), 2u);
+        EXPECT_EQ(fn.returnType.genericArguments[0].text, "void");
+        EXPECT_EQ(fn.returnType.genericArguments[1].text, "WriteError");
+
+        ASSERT_EQ(fn.parameters.size(), 2u);
+        const auto& bufferParam = fn.parameters[0];
+        EXPECT_EQ(bufferParam.type.kind, bolt::common::TypeKind::Pointer);
+        ASSERT_EQ(bufferParam.type.genericArguments.size(), 1u);
+        EXPECT_EQ(bufferParam.type.genericArguments[0].text, "byte");
+
+        const auto& stateParam = fn.parameters[1];
+        EXPECT_EQ(stateParam.type.kind, bolt::common::TypeKind::Reference);
+        ASSERT_EQ(stateParam.type.genericArguments.size(), 1u);
+        const auto& stateInner = stateParam.type.genericArguments[0];
+        EXPECT_EQ(stateInner.kind, bolt::common::TypeKind::Named);
+        EXPECT_TRUE(stateInner.isGeneric());
+        ASSERT_EQ(stateInner.genericArguments.size(), 2u);
+        EXPECT_EQ(stateInner.genericArguments[0].text, "void");
+        EXPECT_EQ(stateInner.genericArguments[1].text, "WriteError");
+    }
+
     TEST(LoweringTest, EmitsBlueprintDetails)
     {
         const std::string source = R"(package demo.tests; module demo.tests;
