@@ -71,7 +71,7 @@ public live integer32 function demoFunc(live integer32 value) {
 
 public std.core.result.Result<void, WriteError> function process(
     pointer<byte> buffer,
-    pointer<const byte> readonlyBuffer,
+    pointer<constant byte> readonlyBuffer,
     reference<std.core.result.Result<void, WriteError>> state) {
     return state;
 }
@@ -106,8 +106,8 @@ public std.core.result.Result<void, WriteError> function process(
         const auto& readonlyInner = readonlyParam.type.genericArguments[0];
         EXPECT_EQ(readonlyInner.kind, bolt::common::TypeKind::Named);
         ASSERT_EQ(readonlyInner.qualifiers.size(), 1u);
-        EXPECT_EQ(readonlyInner.qualifiers.front(), "const");
-        EXPECT_EQ(readonlyInner.text, "const byte");
+        EXPECT_EQ(readonlyInner.qualifiers.front(), "constant");
+        EXPECT_EQ(readonlyInner.text, "constant byte");
 
         const auto& stateParam = fn.parameters[2];
         EXPECT_EQ(stateParam.type.kind, bolt::common::TypeKind::Reference);

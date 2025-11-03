@@ -1,6 +1,6 @@
 # Stage-1 Context Log
 
-**Last updated:** 2025-11-03
+**Last updated:** 2025-11-04
 **Session lead:** Codex (GPT-5)
 
 ---
@@ -12,7 +12,8 @@
 - Stage-0 deliverables archived; SSA conversion, linker automation, and runtime helpers are available as a foundation for Stage-1.
 - Task board for Stage-1 created to capture type-system, backend scaffolding, runtime, and diagnostic expansion workstreams.
 - Extended HIR type parsing to preserve nested array metadata and verified MIR lowering keeps the structure intact via new unit coverage.
-- Added qualifier-aware type parsing so const-qualified pointer and blueprint metadata survive binder capture and MIR lowering.
+- Added qualifier-aware type parsing so constant-qualified pointer and blueprint metadata survive binder capture and MIR lowering.
+- Renamed the Bolt qualifier keyword from `const` to `constant` across parsing, metadata propagation, and unit coverage.
 
 ## Progress Metric
 - **Estimated Stage-1 completion:** 7%

@@ -262,7 +262,7 @@ namespace bolt::hir
 
         bool isQualifierIdentifier(std::string_view identifier)
         {
-            static constexpr std::array<std::string_view, 1> qualifiers{"const"};
+            static constexpr std::array<std::string_view, 1> qualifiers{"constant"};
             return std::find(qualifiers.begin(), qualifiers.end(), identifier) != qualifiers.end();
         }
 
