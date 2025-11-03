@@ -30,6 +30,10 @@ void* bolt_memory_copy(void* destination, const void* source, size_t bytes);
 /*
  * Memory fill helper (see glossary "Memory Fill").
  * Fills `bytes` bytes at destination with the provided byte value.
+ * Returns destination.
+ */
+void* bolt_memory_fill(void* destination, int value, size_t bytes);
+
 /*
  * Allocates zero-initialized storage of `size` bytes. Returns NULL when the
  * host cannot satisfy the allocation request. Callers must release the
@@ -155,11 +159,6 @@ bool bolt_atomic_compare_exchange_u64(volatile uint64_t* object,
     uint64_t desired,
     boltAtomicOrder successOrder,
     boltAtomicOrder failureOrder);
-
-alue.
- * Returns destination.
- */
-void* bolt_memory_fill(void* destination, int value, size_t bytes);
 
 #ifdef __cplusplus
 }
