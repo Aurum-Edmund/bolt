@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ast.hpp"
+#include "../common/type.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -10,13 +11,10 @@
 
 namespace bolt::hir
 {
+    using bolt::common::QualifiedName;
+    using bolt::common::TypeKind;
+    using bolt::common::TypeReference;
     using bolt::frontend::SourceSpan;
-
-    struct TypeReference
-    {
-        std::string text;
-        SourceSpan span;
-    };
 
     struct Attribute
     {

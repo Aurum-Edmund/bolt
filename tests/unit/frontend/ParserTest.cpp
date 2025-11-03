@@ -312,6 +312,45 @@ public integer function build(integer* instance) {
         ASSERT_EQ(function.parameters.size(), 1u);
         EXPECT_EQ(function.parameters[0].typeName, "integer*");
     }
+
+    TEST(ParserTest, CapturesConstantQualifiedTypes)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint ConstantCarrier {
+    pointer<constant byte> payload;
+    constant byte terminator;
+}
+
+public pointer<constant byte> function toView(pointer<constant byte> input, constant byte sentinel) {
+    return input;
+}
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        CompilationUnit unit = parseSource(source, diagnostics);
+
+        ASSERT_TRUE(diagnostics.empty())
+            << "First diagnostic: " << diagnostics.front().code << " - " << diagnostics.front().message;
+
+        ASSERT_EQ(unit.blueprints.size(), 1u);
+        const auto& blueprint = unit.blueprints.front();
+        ASSERT_EQ(blueprint.fields.size(), 2u);
+        EXPECT_EQ(blueprint.fields[0].typeName, "pointer<constant byte>");
+        EXPECT_EQ(blueprint.fields[0].name, "payload");
+        EXPECT_EQ(blueprint.fields[1].typeName, "constant byte");
+        EXPECT_EQ(blueprint.fields[1].name, "terminator");
+
+        ASSERT_EQ(unit.functions.size(), 1u);
+        const auto& function = unit.functions.front();
+        ASSERT_TRUE(function.returnType.has_value());
+        EXPECT_EQ(function.returnType.value(), "pointer<constant byte>");
+        ASSERT_EQ(function.parameters.size(), 2u);
+        EXPECT_EQ(function.parameters[0].typeName, "pointer<constant byte>");
+        EXPECT_EQ(function.parameters[0].name, "input");
+        EXPECT_EQ(function.parameters[1].typeName, "constant byte");
+        EXPECT_EQ(function.parameters[1].name, "sentinel");
+    }
 }
 } // namespace bolt::frontend
 
