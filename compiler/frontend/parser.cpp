@@ -655,7 +655,7 @@ namespace bolt::frontend
             diag.span = legacyName.span;
             m_diagnostics.emplace_back(std::move(diag));
 
-            TypeCapture legacyType = parseTypeUntil({TokenKind::Semicolon, TokenKind::RightBrace, TokenKind::LeftBracket});
+            TypeCapture legacyType = parseTypeUntil({TokenKind::Semicolon, TokenKind::RightBrace});
             if (legacyType.valid)
             {
                 field.typeName = legacyType.text;
@@ -672,7 +672,7 @@ namespace bolt::frontend
             return field;
         }
 
-        TypeCapture typeCapture = parseTypeBeforeName({TokenKind::Semicolon, TokenKind::RightBrace, TokenKind::LeftBracket});
+        TypeCapture typeCapture = parseTypeBeforeName({TokenKind::Semicolon, TokenKind::RightBrace});
         if (!typeCapture.valid)
         {
             Diagnostic diag;
@@ -796,7 +796,6 @@ namespace bolt::frontend
                     || next.kind == TokenKind::Semicolon
                     || next.kind == TokenKind::RightBrace
                     || next.kind == TokenKind::Equals
-                    || next.kind == TokenKind::LeftBracket
                     || next.kind == TokenKind::EndOfFile)
                 {
                     break;

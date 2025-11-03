@@ -65,6 +65,162 @@ public live integer32 function demoFunc(live integer32 value) {
         EXPECT_EQ(terminator.detail, "function");
     }
 
+    TEST(LoweringTest, PropagatesTypeMetadata)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public std.core.result.Result<void, WriteError> function process(
+    pointer<byte> buffer,
+    pointer<constant byte> readonlyBuffer,
+    reference<std.core.result.Result<void, WriteError>> state) {
+    return state;
+}
+)";
+
+        auto hirModule = buildHir(source);
+        Module mirModule = lowerFromHir(hirModule);
+        ASSERT_TRUE(verify(mirModule));
+
+        const auto fnIt = std::find_if(mirModule.functions.begin(), mirModule.functions.end(), [](const Function& fn) {
+            return fn.name == "process";
+        });
+        ASSERT_NE(fnIt, mirModule.functions.end());
+
+        const auto& fn = *fnIt;
+        ASSERT_TRUE(fn.hasReturnType);
+        EXPECT_EQ(fn.returnType.kind, bolt::common::TypeKind::Named);
+        EXPECT_TRUE(fn.returnType.isGeneric());
+        ASSERT_EQ(fn.returnType.genericArguments.size(), 2u);
+        EXPECT_EQ(fn.returnType.genericArguments[0].text, "void");
+        EXPECT_EQ(fn.returnType.genericArguments[1].text, "WriteError");
+
+        ASSERT_EQ(fn.parameters.size(), 3u);
+        const auto& bufferParam = fn.parameters[0];
+        EXPECT_EQ(bufferParam.type.kind, bolt::common::TypeKind::Pointer);
+        ASSERT_EQ(bufferParam.type.genericArguments.size(), 1u);
+        EXPECT_EQ(bufferParam.type.genericArguments[0].text, "byte");
+
+        const auto& readonlyParam = fn.parameters[1];
+        EXPECT_EQ(readonlyParam.type.kind, bolt::common::TypeKind::Pointer);
+        ASSERT_EQ(readonlyParam.type.genericArguments.size(), 1u);
+        const auto& readonlyInner = readonlyParam.type.genericArguments[0];
+        EXPECT_EQ(readonlyInner.kind, bolt::common::TypeKind::Named);
+        ASSERT_EQ(readonlyInner.qualifiers.size(), 1u);
+        EXPECT_EQ(readonlyInner.qualifiers.front(), "constant");
+        EXPECT_EQ(readonlyInner.text, "constant byte");
+
+        const auto& stateParam = fn.parameters[2];
+        EXPECT_EQ(stateParam.type.kind, bolt::common::TypeKind::Reference);
+        ASSERT_EQ(stateParam.type.genericArguments.size(), 1u);
+        const auto& stateInner = stateParam.type.genericArguments[0];
+        EXPECT_EQ(stateInner.kind, bolt::common::TypeKind::Named);
+        EXPECT_TRUE(stateInner.isGeneric());
+        ASSERT_EQ(stateInner.genericArguments.size(), 2u);
+        EXPECT_EQ(stateInner.genericArguments[0].text, "void");
+        EXPECT_EQ(stateInner.genericArguments[1].text, "WriteError");
+    }
+
+    TEST(LoweringTest, PropagatesArrayTypeMetadata)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public void function reshape(pointer<byte>[4][2] blocks, integer[] dynamicValues) {
+    return;
+}
+)";
+
+        auto hirModule = buildHir(source);
+        Module mirModule = lowerFromHir(hirModule);
+        ASSERT_TRUE(verify(mirModule));
+
+        const auto fnIt = std::find_if(mirModule.functions.begin(), mirModule.functions.end(), [](const Function& fn) {
+            return fn.name == "reshape";
+        });
+        ASSERT_NE(fnIt, mirModule.functions.end());
+
+        const auto& fn = *fnIt;
+        ASSERT_EQ(fn.parameters.size(), 2u);
+
+        const auto& blocksParam = fn.parameters[0];
+        EXPECT_EQ(blocksParam.type.text, "pointer<byte>[4][2]");
+        EXPECT_EQ(blocksParam.type.kind, bolt::common::TypeKind::Array);
+        ASSERT_TRUE(blocksParam.type.arrayLength.has_value());
+        EXPECT_EQ(*blocksParam.type.arrayLength, 2u);
+        ASSERT_EQ(blocksParam.type.genericArguments.size(), 1u);
+        const auto& blocksInnerArray = blocksParam.type.genericArguments[0];
+        EXPECT_EQ(blocksInnerArray.text, "pointer<byte>[4]");
+        EXPECT_EQ(blocksInnerArray.kind, bolt::common::TypeKind::Array);
+        ASSERT_TRUE(blocksInnerArray.arrayLength.has_value());
+        EXPECT_EQ(*blocksInnerArray.arrayLength, 4u);
+        ASSERT_EQ(blocksInnerArray.genericArguments.size(), 1u);
+        const auto& blocksElement = blocksInnerArray.genericArguments[0];
+        EXPECT_EQ(blocksElement.kind, bolt::common::TypeKind::Pointer);
+        EXPECT_EQ(blocksElement.text, "pointer<byte>");
+        ASSERT_EQ(blocksElement.genericArguments.size(), 1u);
+        EXPECT_EQ(blocksElement.genericArguments[0].text, "byte");
+
+        const auto& dynamicParam = fn.parameters[1];
+        EXPECT_EQ(dynamicParam.type.text, "integer[]");
+        EXPECT_EQ(dynamicParam.type.kind, bolt::common::TypeKind::Array);
+        EXPECT_FALSE(dynamicParam.type.arrayLength.has_value());
+        ASSERT_EQ(dynamicParam.type.genericArguments.size(), 1u);
+        EXPECT_EQ(dynamicParam.type.genericArguments[0].text, "integer");
+    }
+
+    TEST(LoweringTest, PropagatesConstantArrayMetadata)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public void function checksum(constant byte[16] payload) {
+    return;
+}
+
+public blueprint Packet {
+    constant byte[32] digest;
+    pointer<constant byte[8]> view;
+}
+)";
+
+        auto hirModule = buildHir(source);
+        Module mirModule = lowerFromHir(hirModule);
+        ASSERT_TRUE(verify(mirModule));
+
+        const auto fnIt = std::find_if(mirModule.functions.begin(), mirModule.functions.end(), [](const Function& fn) {
+            return fn.name == "checksum";
+        });
+        ASSERT_NE(fnIt, mirModule.functions.end());
+
+        const auto& fn = *fnIt;
+        ASSERT_EQ(fn.parameters.size(), 1u);
+        const auto& payloadParam = fn.parameters.front();
+        EXPECT_EQ(payloadParam.type.kind, bolt::common::TypeKind::Array);
+        EXPECT_EQ(payloadParam.type.text, "constant byte[16]");
+        ASSERT_EQ(payloadParam.type.genericArguments.size(), 1u);
+        const auto& payloadElement = payloadParam.type.genericArguments.front();
+        EXPECT_EQ(payloadElement.kind, bolt::common::TypeKind::Named);
+        ASSERT_EQ(payloadElement.qualifiers.size(), 1u);
+        EXPECT_EQ(payloadElement.qualifiers.front(), "constant");
+        EXPECT_EQ(payloadElement.text, "constant byte");
+
+        const auto blueprintIt = std::find_if(mirModule.functions.begin(), mirModule.functions.end(), [](const Function& fn) {
+            return fn.name == "blueprint.Packet";
+        });
+        ASSERT_NE(blueprintIt, mirModule.functions.end());
+
+        const auto& blueprintFn = *blueprintIt;
+        ASSERT_EQ(blueprintFn.blocks.size(), 1u);
+        const auto& block = blueprintFn.blocks.front();
+        const auto digestDetail = std::find_if(block.instructions.begin(), block.instructions.end(), [](const Instruction& inst) {
+            return inst.detail == "field constant byte[32] digest";
+        });
+        ASSERT_NE(digestDetail, block.instructions.end());
+
+        const auto viewDetail = std::find_if(block.instructions.begin(), block.instructions.end(), [](const Instruction& inst) {
+            return inst.detail == "field pointer<constant byte[8]> view";
+        });
+        ASSERT_NE(viewDetail, block.instructions.end());
+    }
+
     TEST(LoweringTest, EmitsBlueprintDetails)
     {
         const std::string source = R"(package demo.tests; module demo.tests;
