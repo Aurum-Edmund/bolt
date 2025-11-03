@@ -77,7 +77,8 @@ public void function ~Widget() {}
 
         std::vector<frontend::Diagnostic> parseDiagnostics;
         auto unit = parseCompilationUnit(source, parseDiagnostics);
-        ASSERT_TRUE(parseDiagnostics.empty());
+        ASSERT_TRUE(parseDiagnostics.empty())
+            << "First diagnostic: " << parseDiagnostics.front().code << " - " << parseDiagnostics.front().message;
 
         Binder binder{unit, "binder-test"};
         Module module = binder.bind();
@@ -189,6 +190,180 @@ public void function ~Widget(integer value) {}
 
         ASSERT_EQ(module.functions.size(), 1u);
         EXPECT_TRUE(module.functions.front().isBlueprintDestructor);
+    }
+
+    TEST(BinderTest, CapturesTypeReferenceMetadata)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public std.core.result.Result<void, WriteError> function process(
+    pointer<byte> buffer,
+    pointer<constant byte> readonlyBuffer,
+    reference<std.core.result.Result<void, WriteError>> state) {
+    return state;
+}
+
+public blueprint Holder {
+    pointer<byte> data;
+    pointer<constant byte> readonly;
+    reference<pointer<byte>> nested;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty());
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        const auto& fn = module.functions.front();
+        ASSERT_TRUE(fn.hasReturnType);
+        EXPECT_EQ(fn.returnType.kind, TypeKind::Named);
+        EXPECT_TRUE(fn.returnType.isGeneric());
+        ASSERT_EQ(fn.returnType.name.components.size(), 4u);
+        EXPECT_EQ(fn.returnType.name.components[0], "std");
+        EXPECT_EQ(fn.returnType.name.components[3], "Result");
+        ASSERT_EQ(fn.returnType.genericArguments.size(), 2u);
+        EXPECT_EQ(fn.returnType.genericArguments[0].text, "void");
+        EXPECT_EQ(fn.returnType.genericArguments[1].text, "WriteError");
+
+        ASSERT_EQ(fn.parameters.size(), 3u);
+        const auto& bufferParam = fn.parameters[0];
+        EXPECT_EQ(bufferParam.type.kind, TypeKind::Pointer);
+        ASSERT_EQ(bufferParam.type.genericArguments.size(), 1u);
+        EXPECT_EQ(bufferParam.type.genericArguments[0].text, "byte");
+
+        const auto& readonlyParam = fn.parameters[1];
+        EXPECT_EQ(readonlyParam.type.kind, TypeKind::Pointer);
+        ASSERT_EQ(readonlyParam.type.genericArguments.size(), 1u);
+        const auto& readonlyInner = readonlyParam.type.genericArguments[0];
+        EXPECT_EQ(readonlyInner.kind, TypeKind::Named);
+        ASSERT_EQ(readonlyInner.qualifiers.size(), 1u);
+        EXPECT_EQ(readonlyInner.qualifiers.front(), "constant");
+        EXPECT_TRUE(readonlyInner.hasQualifier("constant"));
+        EXPECT_EQ(readonlyInner.text, "constant byte");
+        ASSERT_EQ(readonlyInner.name.components.size(), 1u);
+        EXPECT_EQ(readonlyInner.name.components.front(), "byte");
+
+        const auto& stateParam = fn.parameters[2];
+        EXPECT_EQ(stateParam.type.kind, TypeKind::Reference);
+        ASSERT_EQ(stateParam.type.genericArguments.size(), 1u);
+        const auto& stateInner = stateParam.type.genericArguments[0];
+        EXPECT_EQ(stateInner.kind, TypeKind::Named);
+        EXPECT_TRUE(stateInner.isGeneric());
+        ASSERT_EQ(stateInner.genericArguments.size(), 2u);
+        EXPECT_EQ(stateInner.genericArguments[0].text, "void");
+        EXPECT_EQ(stateInner.genericArguments[1].text, "WriteError");
+
+        ASSERT_EQ(module.blueprints.size(), 1u);
+        const auto& blueprint = module.blueprints.front();
+        ASSERT_EQ(blueprint.fields.size(), 3u);
+        EXPECT_EQ(blueprint.fields[0].type.kind, TypeKind::Pointer);
+        ASSERT_EQ(blueprint.fields[0].type.genericArguments.size(), 1u);
+        EXPECT_EQ(blueprint.fields[0].type.genericArguments[0].text, "byte");
+        ASSERT_EQ(blueprint.fields[1].type.kind, TypeKind::Pointer);
+        ASSERT_EQ(blueprint.fields[1].type.genericArguments.size(), 1u);
+        const auto& readonlyFieldInner = blueprint.fields[1].type.genericArguments[0];
+        EXPECT_EQ(readonlyFieldInner.kind, TypeKind::Named);
+        ASSERT_EQ(readonlyFieldInner.qualifiers.size(), 1u);
+        EXPECT_EQ(readonlyFieldInner.qualifiers.front(), "constant");
+        EXPECT_TRUE(readonlyFieldInner.hasQualifier("constant"));
+        EXPECT_EQ(readonlyFieldInner.text, "constant byte");
+        ASSERT_EQ(readonlyFieldInner.name.components.size(), 1u);
+        EXPECT_EQ(readonlyFieldInner.name.components.front(), "byte");
+        EXPECT_EQ(blueprint.fields[2].type.kind, TypeKind::Reference);
+        ASSERT_EQ(blueprint.fields[2].type.genericArguments.size(), 1u);
+        EXPECT_EQ(blueprint.fields[2].type.genericArguments[0].kind, TypeKind::Pointer);
+        ASSERT_EQ(blueprint.fields[2].type.genericArguments[0].genericArguments.size(), 1u);
+        EXPECT_EQ(blueprint.fields[2].type.genericArguments[0].genericArguments[0].text, "byte");
+    }
+
+    TEST(BinderTest, CapturesArrayTypeMetadata)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public void function reshape(pointer<byte>[4][2] blocks, integer[] dynamicValues) {
+    return;
+}
+
+public blueprint Matrix {
+    integer[8][3] data;
+    reference<pointer<byte>[4]> nested;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty());
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        const auto& fn = module.functions.front();
+        ASSERT_EQ(fn.parameters.size(), 2u);
+
+        const auto& blocksParam = fn.parameters[0];
+        EXPECT_EQ(blocksParam.type.text, "pointer<byte>[4][2]");
+        EXPECT_EQ(blocksParam.type.kind, TypeKind::Array);
+        ASSERT_TRUE(blocksParam.type.arrayLength.has_value());
+        EXPECT_EQ(*blocksParam.type.arrayLength, 2u);
+        ASSERT_EQ(blocksParam.type.genericArguments.size(), 1u);
+        const auto& blocksInnerArray = blocksParam.type.genericArguments[0];
+        EXPECT_EQ(blocksInnerArray.text, "pointer<byte>[4]");
+        EXPECT_EQ(blocksInnerArray.kind, TypeKind::Array);
+        ASSERT_TRUE(blocksInnerArray.arrayLength.has_value());
+        EXPECT_EQ(*blocksInnerArray.arrayLength, 4u);
+        ASSERT_EQ(blocksInnerArray.genericArguments.size(), 1u);
+        const auto& blocksElement = blocksInnerArray.genericArguments[0];
+        EXPECT_EQ(blocksElement.text, "pointer<byte>");
+        EXPECT_EQ(blocksElement.kind, TypeKind::Pointer);
+        ASSERT_EQ(blocksElement.genericArguments.size(), 1u);
+        EXPECT_EQ(blocksElement.genericArguments[0].text, "byte");
+
+        const auto& dynamicParam = fn.parameters[1];
+        EXPECT_EQ(dynamicParam.type.text, "integer[]");
+        EXPECT_EQ(dynamicParam.type.kind, TypeKind::Array);
+        EXPECT_FALSE(dynamicParam.type.arrayLength.has_value());
+        ASSERT_EQ(dynamicParam.type.genericArguments.size(), 1u);
+        EXPECT_EQ(dynamicParam.type.genericArguments[0].text, "integer");
+
+        ASSERT_EQ(module.blueprints.size(), 1u);
+        const auto& blueprint = module.blueprints.front();
+        ASSERT_EQ(blueprint.fields.size(), 2u);
+
+        const auto& dataField = blueprint.fields[0];
+        EXPECT_EQ(dataField.type.text, "integer[8][3]");
+        EXPECT_EQ(dataField.type.kind, TypeKind::Array);
+        ASSERT_TRUE(dataField.type.arrayLength.has_value());
+        EXPECT_EQ(*dataField.type.arrayLength, 3u);
+        ASSERT_EQ(dataField.type.genericArguments.size(), 1u);
+        const auto& dataInner = dataField.type.genericArguments[0];
+        EXPECT_EQ(dataInner.text, "integer[8]");
+        EXPECT_EQ(dataInner.kind, TypeKind::Array);
+        ASSERT_TRUE(dataInner.arrayLength.has_value());
+        EXPECT_EQ(*dataInner.arrayLength, 8u);
+        ASSERT_EQ(dataInner.genericArguments.size(), 1u);
+        EXPECT_EQ(dataInner.genericArguments[0].text, "integer");
+
+        const auto& nestedField = blueprint.fields[1];
+        EXPECT_EQ(nestedField.type.kind, TypeKind::Reference);
+        ASSERT_EQ(nestedField.type.genericArguments.size(), 1u);
+        const auto& nestedInner = nestedField.type.genericArguments[0];
+        EXPECT_EQ(nestedInner.kind, TypeKind::Array);
+        EXPECT_EQ(nestedInner.text, "pointer<byte>[4]");
+        ASSERT_TRUE(nestedInner.arrayLength.has_value());
+        EXPECT_EQ(*nestedInner.arrayLength, 4u);
+        ASSERT_EQ(nestedInner.genericArguments.size(), 1u);
+        const auto& nestedElement = nestedInner.genericArguments[0];
+        EXPECT_EQ(nestedElement.kind, TypeKind::Pointer);
+        EXPECT_EQ(nestedElement.text, "pointer<byte>");
+        ASSERT_EQ(nestedElement.genericArguments.size(), 1u);
+        EXPECT_EQ(nestedElement.genericArguments[0].text, "byte");
     }
 
     TEST(BinderTest, DuplicateFunctionAttributeEmitsDiagnostic)
