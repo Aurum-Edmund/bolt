@@ -1,6 +1,6 @@
 # Stage-1 Context Log
 
-**Last updated:** 2025-11-06
+**Last updated:** 2025-11-03
 **Session lead:** Codex (GPT-5)
 
 ---
@@ -16,9 +16,11 @@
 - Renamed the Bolt qualifier keyword to the full word `constant`, updating parsing, metadata propagation, and unit coverage.
 - Hardened frontend coverage for the `constant` keyword with lexer and parser regression tests that pin the qualifier spelling in type-first syntax.
 - Cleared remaining documentation references to the abbreviated qualifier so the language glossary now presents the canonical spelling exclusively.
+- Expanded frontend, binder, and MIR regression suites to cover `constant` qualifiers on fixed-length arrays and pointer-to-array signatures.
+- Hardened the binder by rejecting duplicate `constant` qualifiers and added regression coverage to guard the new validation.
 
 ## Progress Metric
-- **Estimated Stage-1 completion:** 7%
+- **Estimated Stage-1 completion:** 9%
 
 ## Pending Tasks
 - Prioritise high-level IR type-system expansion items for implementation order.

@@ -351,6 +351,42 @@ public pointer<constant byte> function toView(pointer<constant byte> input, cons
         EXPECT_EQ(function.parameters[1].typeName, "constant byte");
         EXPECT_EQ(function.parameters[1].name, "sentinel");
     }
+
+    TEST(ParserTest, CapturesConstantQualifiedArrayTypes)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint ConstantArrays {
+    constant byte[32] digest;
+    pointer<constant byte[8]> view;
+}
+
+public void function checksum(constant byte[16] payload) {
+    return;
+}
+)";
+
+        std::vector<Diagnostic> diagnostics;
+        CompilationUnit unit = parseSource(source, diagnostics);
+
+        ASSERT_TRUE(diagnostics.empty())
+            << "First diagnostic: " << diagnostics.front().code << " - " << diagnostics.front().message;
+
+        ASSERT_EQ(unit.blueprints.size(), 1u);
+        const auto& blueprint = unit.blueprints.front();
+        ASSERT_EQ(blueprint.fields.size(), 2u);
+        EXPECT_EQ(blueprint.fields[0].typeName, "constant byte[32]");
+        EXPECT_EQ(blueprint.fields[0].name, "digest");
+        EXPECT_EQ(blueprint.fields[1].typeName, "pointer<constant byte[8]>");
+        EXPECT_EQ(blueprint.fields[1].name, "view");
+
+        ASSERT_EQ(unit.functions.size(), 1u);
+        const auto& function = unit.functions.front();
+        EXPECT_EQ(function.name, "checksum");
+        ASSERT_EQ(function.parameters.size(), 1u);
+        EXPECT_EQ(function.parameters[0].typeName, "constant byte[16]");
+        EXPECT_EQ(function.parameters[0].name, "payload");
+    }
 }
 } // namespace bolt::frontend
 

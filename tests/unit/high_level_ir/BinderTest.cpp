@@ -366,6 +366,92 @@ public blueprint Matrix {
         EXPECT_EQ(nestedElement.genericArguments[0].text, "byte");
     }
 
+    TEST(BinderTest, CapturesConstantArrayMetadata)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public void function checksum(constant byte[16] payload) {
+    return;
+}
+
+public blueprint Packet {
+    constant byte[32] digest;
+    pointer<constant byte[8]> view;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        Module module = binder.bind();
+        ASSERT_TRUE(binder.diagnostics().empty());
+
+        ASSERT_EQ(module.functions.size(), 1u);
+        const auto& fn = module.functions.front();
+        ASSERT_EQ(fn.parameters.size(), 1u);
+
+        const auto& payloadParam = fn.parameters[0];
+        EXPECT_EQ(payloadParam.type.kind, TypeKind::Array);
+        EXPECT_EQ(payloadParam.type.text, "constant byte[16]");
+        ASSERT_EQ(payloadParam.type.genericArguments.size(), 1u);
+        const auto& payloadElement = payloadParam.type.genericArguments[0];
+        EXPECT_EQ(payloadElement.kind, TypeKind::Named);
+        ASSERT_EQ(payloadElement.qualifiers.size(), 1u);
+        EXPECT_EQ(payloadElement.qualifiers.front(), "constant");
+        EXPECT_EQ(payloadElement.text, "constant byte");
+
+        ASSERT_EQ(module.blueprints.size(), 1u);
+        const auto& blueprint = module.blueprints.front();
+        ASSERT_EQ(blueprint.fields.size(), 2u);
+
+        const auto& digestField = blueprint.fields[0];
+        EXPECT_EQ(digestField.type.kind, TypeKind::Array);
+        EXPECT_EQ(digestField.type.text, "constant byte[32]");
+        ASSERT_EQ(digestField.type.genericArguments.size(), 1u);
+        const auto& digestElement = digestField.type.genericArguments[0];
+        EXPECT_EQ(digestElement.kind, TypeKind::Named);
+        ASSERT_EQ(digestElement.qualifiers.size(), 1u);
+        EXPECT_EQ(digestElement.qualifiers.front(), "constant");
+        EXPECT_EQ(digestElement.text, "constant byte");
+
+        const auto& viewField = blueprint.fields[1];
+        EXPECT_EQ(viewField.type.kind, TypeKind::Pointer);
+        ASSERT_EQ(viewField.type.genericArguments.size(), 1u);
+        const auto& viewInner = viewField.type.genericArguments[0];
+        EXPECT_EQ(viewInner.kind, TypeKind::Array);
+        EXPECT_EQ(viewInner.text, "constant byte[8]");
+        ASSERT_EQ(viewInner.genericArguments.size(), 1u);
+        const auto& viewElement = viewInner.genericArguments[0];
+        EXPECT_EQ(viewElement.kind, TypeKind::Named);
+        ASSERT_EQ(viewElement.qualifiers.size(), 1u);
+        EXPECT_EQ(viewElement.qualifiers.front(), "constant");
+        EXPECT_EQ(viewElement.text, "constant byte");
+    }
+
+    TEST(BinderTest, DuplicateConstantQualifierEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public void function duplicate(constant constant byte value) {
+    return;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2300");
+        EXPECT_NE(diagnostics.front().message.find("Unable to parse type"), std::string::npos);
+    }
+
     TEST(BinderTest, DuplicateFunctionAttributeEmitsDiagnostic)
     {
         const std::string source = R"(package demo.tests; module demo.tests;

@@ -28,6 +28,7 @@ This document is the canonical, unified specification of the **Bolt programming 
 - **Errors** use `Result<T, E>`; **optionals** use `Optional<T>`.
 - **C‑style casts**: `(T) expression` between pointers, integers, and `byte`. No implicit narrowing conversions.
 - **Fixed‑size arrays** are allowed (for example, `byte buffer[32];` and `byte hello[] = { 'h','i' };`). Arrays decay to pointers when passed as parameters.
+- **Type qualifiers**: `constant` may prefix a type once; repeating the qualifier is rejected by the frontend.
 - **Kernel markers** annotate external bindings to platform or hardware using square brackets, for example `[kernel_allocation]`, `[kernel_serial]`, `[kernel_time]`, `[kernel_sync]`, `[kernel_vfs]`.
 
 ---

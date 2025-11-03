@@ -167,6 +167,60 @@ public void function reshape(pointer<byte>[4][2] blocks, integer[] dynamicValues
         EXPECT_EQ(dynamicParam.type.genericArguments[0].text, "integer");
     }
 
+    TEST(LoweringTest, PropagatesConstantArrayMetadata)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public void function checksum(constant byte[16] payload) {
+    return;
+}
+
+public blueprint Packet {
+    constant byte[32] digest;
+    pointer<constant byte[8]> view;
+}
+)";
+
+        auto hirModule = buildHir(source);
+        Module mirModule = lowerFromHir(hirModule);
+        ASSERT_TRUE(verify(mirModule));
+
+        const auto fnIt = std::find_if(mirModule.functions.begin(), mirModule.functions.end(), [](const Function& fn) {
+            return fn.name == "checksum";
+        });
+        ASSERT_NE(fnIt, mirModule.functions.end());
+
+        const auto& fn = *fnIt;
+        ASSERT_EQ(fn.parameters.size(), 1u);
+        const auto& payloadParam = fn.parameters.front();
+        EXPECT_EQ(payloadParam.type.kind, bolt::common::TypeKind::Array);
+        EXPECT_EQ(payloadParam.type.text, "constant byte[16]");
+        ASSERT_EQ(payloadParam.type.genericArguments.size(), 1u);
+        const auto& payloadElement = payloadParam.type.genericArguments.front();
+        EXPECT_EQ(payloadElement.kind, bolt::common::TypeKind::Named);
+        ASSERT_EQ(payloadElement.qualifiers.size(), 1u);
+        EXPECT_EQ(payloadElement.qualifiers.front(), "constant");
+        EXPECT_EQ(payloadElement.text, "constant byte");
+
+        const auto blueprintIt = std::find_if(mirModule.functions.begin(), mirModule.functions.end(), [](const Function& fn) {
+            return fn.name == "blueprint.Packet";
+        });
+        ASSERT_NE(blueprintIt, mirModule.functions.end());
+
+        const auto& blueprintFn = *blueprintIt;
+        ASSERT_EQ(blueprintFn.blocks.size(), 1u);
+        const auto& block = blueprintFn.blocks.front();
+        const auto digestDetail = std::find_if(block.instructions.begin(), block.instructions.end(), [](const Instruction& inst) {
+            return inst.detail == "field constant byte[32] digest";
+        });
+        ASSERT_NE(digestDetail, block.instructions.end());
+
+        const auto viewDetail = std::find_if(block.instructions.begin(), block.instructions.end(), [](const Instruction& inst) {
+            return inst.detail == "field pointer<constant byte[8]> view";
+        });
+        ASSERT_NE(viewDetail, block.instructions.end());
+    }
+
     TEST(LoweringTest, EmitsBlueprintDetails)
     {
         const std::string source = R"(package demo.tests; module demo.tests;

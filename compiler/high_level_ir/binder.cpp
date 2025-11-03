@@ -306,12 +306,18 @@ namespace bolt::hir
                 skipWhitespace();
                 const std::size_t typeStart = m_index;
                 std::vector<std::string> qualifiers;
+                std::unordered_set<std::string> seenQualifiers;
                 while (true)
                 {
                     auto qualifier = tryParseQualifier();
                     if (!qualifier.has_value())
                     {
                         break;
+                    }
+                    if (!seenQualifiers.insert(*qualifier).second)
+                    {
+                        m_failed = true;
+                        return TypeReference{};
                     }
                     qualifiers.emplace_back(std::move(*qualifier));
                     skipWhitespace();
