@@ -198,12 +198,14 @@ public void function ~Widget(integer value) {}
 
 public std.core.result.Result<void, WriteError> function process(
     pointer<byte> buffer,
+    pointer<const byte> readonlyBuffer,
     reference<std.core.result.Result<void, WriteError>> state) {
     return state;
 }
 
 public blueprint Holder {
     pointer<byte> data;
+    pointer<const byte> readonly;
     reference<pointer<byte>> nested;
 }
 )";
@@ -228,13 +230,25 @@ public blueprint Holder {
         EXPECT_EQ(fn.returnType.genericArguments[0].text, "void");
         EXPECT_EQ(fn.returnType.genericArguments[1].text, "WriteError");
 
-        ASSERT_EQ(fn.parameters.size(), 2u);
+        ASSERT_EQ(fn.parameters.size(), 3u);
         const auto& bufferParam = fn.parameters[0];
         EXPECT_EQ(bufferParam.type.kind, TypeKind::Pointer);
         ASSERT_EQ(bufferParam.type.genericArguments.size(), 1u);
         EXPECT_EQ(bufferParam.type.genericArguments[0].text, "byte");
 
-        const auto& stateParam = fn.parameters[1];
+        const auto& readonlyParam = fn.parameters[1];
+        EXPECT_EQ(readonlyParam.type.kind, TypeKind::Pointer);
+        ASSERT_EQ(readonlyParam.type.genericArguments.size(), 1u);
+        const auto& readonlyInner = readonlyParam.type.genericArguments[0];
+        EXPECT_EQ(readonlyInner.kind, TypeKind::Named);
+        ASSERT_EQ(readonlyInner.qualifiers.size(), 1u);
+        EXPECT_EQ(readonlyInner.qualifiers.front(), "const");
+        EXPECT_TRUE(readonlyInner.hasQualifier("const"));
+        EXPECT_EQ(readonlyInner.text, "const byte");
+        ASSERT_EQ(readonlyInner.name.components.size(), 1u);
+        EXPECT_EQ(readonlyInner.name.components.front(), "byte");
+
+        const auto& stateParam = fn.parameters[2];
         EXPECT_EQ(stateParam.type.kind, TypeKind::Reference);
         ASSERT_EQ(stateParam.type.genericArguments.size(), 1u);
         const auto& stateInner = stateParam.type.genericArguments[0];
@@ -246,15 +260,25 @@ public blueprint Holder {
 
         ASSERT_EQ(module.blueprints.size(), 1u);
         const auto& blueprint = module.blueprints.front();
-        ASSERT_EQ(blueprint.fields.size(), 2u);
+        ASSERT_EQ(blueprint.fields.size(), 3u);
         EXPECT_EQ(blueprint.fields[0].type.kind, TypeKind::Pointer);
         ASSERT_EQ(blueprint.fields[0].type.genericArguments.size(), 1u);
         EXPECT_EQ(blueprint.fields[0].type.genericArguments[0].text, "byte");
-        EXPECT_EQ(blueprint.fields[1].type.kind, TypeKind::Reference);
+        ASSERT_EQ(blueprint.fields[1].type.kind, TypeKind::Pointer);
         ASSERT_EQ(blueprint.fields[1].type.genericArguments.size(), 1u);
-        EXPECT_EQ(blueprint.fields[1].type.genericArguments[0].kind, TypeKind::Pointer);
-        ASSERT_EQ(blueprint.fields[1].type.genericArguments[0].genericArguments.size(), 1u);
-        EXPECT_EQ(blueprint.fields[1].type.genericArguments[0].genericArguments[0].text, "byte");
+        const auto& readonlyFieldInner = blueprint.fields[1].type.genericArguments[0];
+        EXPECT_EQ(readonlyFieldInner.kind, TypeKind::Named);
+        ASSERT_EQ(readonlyFieldInner.qualifiers.size(), 1u);
+        EXPECT_EQ(readonlyFieldInner.qualifiers.front(), "const");
+        EXPECT_TRUE(readonlyFieldInner.hasQualifier("const"));
+        EXPECT_EQ(readonlyFieldInner.text, "const byte");
+        ASSERT_EQ(readonlyFieldInner.name.components.size(), 1u);
+        EXPECT_EQ(readonlyFieldInner.name.components.front(), "byte");
+        EXPECT_EQ(blueprint.fields[2].type.kind, TypeKind::Reference);
+        ASSERT_EQ(blueprint.fields[2].type.genericArguments.size(), 1u);
+        EXPECT_EQ(blueprint.fields[2].type.genericArguments[0].kind, TypeKind::Pointer);
+        ASSERT_EQ(blueprint.fields[2].type.genericArguments[0].genericArguments.size(), 1u);
+        EXPECT_EQ(blueprint.fields[2].type.genericArguments[0].genericArguments[0].text, "byte");
     }
 
     TEST(BinderTest, CapturesArrayTypeMetadata)

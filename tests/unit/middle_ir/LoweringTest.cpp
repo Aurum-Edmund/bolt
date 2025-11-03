@@ -71,6 +71,7 @@ public live integer32 function demoFunc(live integer32 value) {
 
 public std.core.result.Result<void, WriteError> function process(
     pointer<byte> buffer,
+    pointer<const byte> readonlyBuffer,
     reference<std.core.result.Result<void, WriteError>> state) {
     return state;
 }
@@ -93,13 +94,22 @@ public std.core.result.Result<void, WriteError> function process(
         EXPECT_EQ(fn.returnType.genericArguments[0].text, "void");
         EXPECT_EQ(fn.returnType.genericArguments[1].text, "WriteError");
 
-        ASSERT_EQ(fn.parameters.size(), 2u);
+        ASSERT_EQ(fn.parameters.size(), 3u);
         const auto& bufferParam = fn.parameters[0];
         EXPECT_EQ(bufferParam.type.kind, bolt::common::TypeKind::Pointer);
         ASSERT_EQ(bufferParam.type.genericArguments.size(), 1u);
         EXPECT_EQ(bufferParam.type.genericArguments[0].text, "byte");
 
-        const auto& stateParam = fn.parameters[1];
+        const auto& readonlyParam = fn.parameters[1];
+        EXPECT_EQ(readonlyParam.type.kind, bolt::common::TypeKind::Pointer);
+        ASSERT_EQ(readonlyParam.type.genericArguments.size(), 1u);
+        const auto& readonlyInner = readonlyParam.type.genericArguments[0];
+        EXPECT_EQ(readonlyInner.kind, bolt::common::TypeKind::Named);
+        ASSERT_EQ(readonlyInner.qualifiers.size(), 1u);
+        EXPECT_EQ(readonlyInner.qualifiers.front(), "const");
+        EXPECT_EQ(readonlyInner.text, "const byte");
+
+        const auto& stateParam = fn.parameters[2];
         EXPECT_EQ(stateParam.type.kind, bolt::common::TypeKind::Reference);
         ASSERT_EQ(stateParam.type.genericArguments.size(), 1u);
         const auto& stateInner = stateParam.type.genericArguments[0];

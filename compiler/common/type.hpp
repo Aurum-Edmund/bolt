@@ -2,6 +2,7 @@
 
 #include "../frontend/token.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -59,6 +60,7 @@ namespace bolt::common
         TypeKind kind{TypeKind::Invalid};
         QualifiedName name;
         std::vector<TypeReference> genericArguments;
+        std::vector<std::string> qualifiers;
         std::optional<std::uint64_t> arrayLength;
         bool isBuiltin{false};
         std::string text;
@@ -98,6 +100,11 @@ namespace bolt::common
         [[nodiscard]] std::string_view baseName() const noexcept
         {
             return name.last();
+        }
+
+        [[nodiscard]] bool hasQualifier(std::string_view qualifier) const noexcept
+        {
+            return std::find(qualifiers.begin(), qualifiers.end(), qualifier) != qualifiers.end();
         }
     };
 } // namespace bolt::common

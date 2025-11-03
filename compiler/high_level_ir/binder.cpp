@@ -205,6 +205,11 @@ namespace bolt::hir
             return std::isalnum(static_cast<unsigned char>(ch)) != 0 || ch == '_';
         }
 
+        bool isIdentifierStart(char ch)
+        {
+            return std::isalpha(static_cast<unsigned char>(ch)) != 0 || ch == '_';
+        }
+
         bool hasPrefix(std::string_view text, std::string_view prefix)
         {
             return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
@@ -255,6 +260,12 @@ namespace bolt::hir
             return name.components.size() == 1 && name.components.front() == "reference";
         }
 
+        bool isQualifierIdentifier(std::string_view identifier)
+        {
+            static constexpr std::array<std::string_view, 1> qualifiers{"const"};
+            return std::find(qualifiers.begin(), qualifiers.end(), identifier) != qualifiers.end();
+        }
+
         class TypeParser
         {
         public:
@@ -294,11 +305,24 @@ namespace bolt::hir
             {
                 skipWhitespace();
                 const std::size_t typeStart = m_index;
+                std::vector<std::string> qualifiers;
+                while (true)
+                {
+                    auto qualifier = tryParseQualifier();
+                    if (!qualifier.has_value())
+                    {
+                        break;
+                    }
+                    qualifiers.emplace_back(std::move(*qualifier));
+                    skipWhitespace();
+                }
                 TypeReference base = parsePrimary();
                 if (m_failed)
                 {
                     return base;
                 }
+
+                base.qualifiers = std::move(qualifiers);
 
                 const std::size_t primaryEnd = m_index;
                 if (primaryEnd > typeStart)
@@ -514,6 +538,34 @@ namespace bolt::hir
                 }
 
                 return value;
+            }
+
+            std::optional<std::string> tryParseQualifier()
+            {
+                if (atEnd())
+                {
+                    return std::nullopt;
+                }
+
+                const std::size_t start = m_index;
+                if (!isIdentifierStart(m_text[m_index]))
+                {
+                    return std::nullopt;
+                }
+
+                while (m_index < m_text.size() && isIdentifierChar(m_text[m_index]))
+                {
+                    ++m_index;
+                }
+
+                std::string_view candidate = m_text.substr(start, m_index - start);
+                if (!isQualifierIdentifier(candidate))
+                {
+                    m_index = start;
+                    return std::nullopt;
+                }
+
+                return std::string{candidate};
             }
 
             void skipWhitespace()
