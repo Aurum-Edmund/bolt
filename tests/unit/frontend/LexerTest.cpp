@@ -88,5 +88,31 @@ namespace
         EXPECT_TRUE(sawNew);
         EXPECT_TRUE(sawDelete);
     }
+
+    TEST(LexerTest, RecognizesConstantQualifierKeyword)
+    {
+        const std::string source = "constant integer value";
+
+        Lexer lexer{source, "keywords"};
+        lexer.lex();
+
+        const auto& tokens = lexer.tokens();
+        ASSERT_FALSE(tokens.empty());
+
+        bool sawConstant = false;
+        for (const auto& token : tokens)
+        {
+            if (token.kind == TokenKind::KeywordConstant)
+            {
+                sawConstant = true;
+                break;
+            }
+        }
+
+        EXPECT_TRUE(sawConstant);
+        ASSERT_GE(tokens.size(), 2u);
+        EXPECT_NE(tokens[1].kind, TokenKind::KeywordConstant)
+            << "Only the qualifier token should lex as KeywordConstant.";
+    }
 }
 } // namespace bolt::frontend
