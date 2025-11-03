@@ -300,6 +300,11 @@ namespace bolt::hir
                 return !m_failed;
             }
 
+            const std::optional<std::string>& duplicateQualifier() const noexcept
+            {
+                return m_duplicateQualifier;
+            }
+
         private:
             TypeReference parseType()
             {
@@ -316,6 +321,7 @@ namespace bolt::hir
                     }
                     if (!seenQualifiers.insert(*qualifier).second)
                     {
+                        m_duplicateQualifier = *qualifier;
                         m_failed = true;
                         return TypeReference{};
                     }
@@ -601,6 +607,7 @@ namespace bolt::hir
             std::string_view m_text;
             std::size_t m_index{0};
             bool m_failed{false};
+            std::optional<std::string> m_duplicateQualifier;
         };
     } // namespace
 
@@ -896,7 +903,17 @@ TypeReference Binder::buildTypeReference(
     TypeReference parsed = parser.parse();
     if (!parser.success() || !parsed.isValid())
     {
-        emitError("BOLT-E2300", "Unable to parse type '" + normalized + "' for " + subject + ".", typeSpan);
+        if (const auto& duplicate = parser.duplicateQualifier())
+        {
+            emitError(
+                "BOLT-E2301",
+                "Duplicate '" + *duplicate + "' qualifier is not allowed for " + subject + ".",
+                typeSpan);
+        }
+        else
+        {
+            emitError("BOLT-E2300", "Unable to parse type '" + normalized + "' for " + subject + ".", typeSpan);
+        }
         reference.kind = TypeKind::Invalid;
         reference.isBuiltin = false;
         return reference;

@@ -1,6 +1,6 @@
 # Stage-1 Context Log
 
-**Last updated:** 2025-11-03
+**Last updated:** 2025-11-04
 **Session lead:** Codex (GPT-5)
 
 ---
@@ -18,6 +18,7 @@
 - Cleared remaining documentation references to the abbreviated qualifier so the language glossary now presents the canonical spelling exclusively.
 - Expanded frontend, binder, and MIR regression suites to cover `constant` qualifiers on fixed-length arrays and pointer-to-array signatures.
 - Hardened the binder by rejecting duplicate `constant` qualifiers and added regression coverage to guard the new validation.
+- Added a dedicated binder diagnostic for repeated qualifiers so duplicate `constant` usage surfaces as BOLT-E2301 with a targeted message.
 
 ## Progress Metric
 - **Estimated Stage-1 completion:** 9%

@@ -448,8 +448,8 @@ public void function duplicate(constant constant byte value) {
 
         const auto& diagnostics = binder.diagnostics();
         ASSERT_FALSE(diagnostics.empty());
-        EXPECT_EQ(diagnostics.front().code, "BOLT-E2300");
-        EXPECT_NE(diagnostics.front().message.find("Unable to parse type"), std::string::npos);
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2301");
+        EXPECT_NE(diagnostics.front().message.find("Duplicate 'constant' qualifier"), std::string::npos);
     }
 
     TEST(BinderTest, DuplicateFunctionAttributeEmitsDiagnostic)
