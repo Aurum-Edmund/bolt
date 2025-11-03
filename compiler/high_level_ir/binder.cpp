@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <limits>
 #include <optional>
 #include <unordered_set>
 
@@ -198,6 +199,403 @@ namespace bolt::hir
 
             return std::string{"{}"};
         }
+
+        bool isIdentifierChar(char ch)
+        {
+            return std::isalnum(static_cast<unsigned char>(ch)) != 0 || ch == '_';
+        }
+
+        bool isIdentifierStart(char ch)
+        {
+            return std::isalpha(static_cast<unsigned char>(ch)) != 0 || ch == '_';
+        }
+
+        bool hasPrefix(std::string_view text, std::string_view prefix)
+        {
+            return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
+        }
+
+        bool isBuiltinIdentifier(std::string_view identifier)
+        {
+            static constexpr std::array<std::string_view, 7> exactBuiltins{
+                "void",
+                "bool",
+                "byte",
+                "char",
+                "float",
+                "double",
+                "pointerSizedInteger"
+            };
+
+            if (std::find(exactBuiltins.begin(), exactBuiltins.end(), identifier) != exactBuiltins.end())
+            {
+                return true;
+            }
+
+            return hasPrefix(identifier, "integer") || hasPrefix(identifier, "natural") || hasPrefix(identifier, "signed")
+                || hasPrefix(identifier, "unsigned") || hasPrefix(identifier, "float");
+        }
+
+        bool isBuiltinQualified(const QualifiedName& name)
+        {
+            if (name.components.size() != 1)
+            {
+                return false;
+            }
+            return isBuiltinIdentifier(name.components.front());
+        }
+
+        bool isPointerName(const QualifiedName& name)
+        {
+            if (name.components.size() != 1)
+            {
+                return false;
+            }
+            const auto& base = name.components.front();
+            return base == "pointer" || base == "sharedPointer";
+        }
+
+        bool isReferenceName(const QualifiedName& name)
+        {
+            return name.components.size() == 1 && name.components.front() == "reference";
+        }
+
+        bool isQualifierIdentifier(std::string_view identifier)
+        {
+            static constexpr std::array<std::string_view, 1> qualifiers{"const"};
+            return std::find(qualifiers.begin(), qualifiers.end(), identifier) != qualifiers.end();
+        }
+
+        class TypeParser
+        {
+        public:
+            explicit TypeParser(std::string_view text)
+                : m_text(text)
+            {
+            }
+
+            TypeReference parse()
+            {
+                skipWhitespace();
+                const std::size_t start = m_index;
+                TypeReference type = parseType();
+                skipWhitespace();
+                if (!atEnd())
+                {
+                    m_failed = true;
+                }
+
+                if (!m_failed)
+                {
+                    const std::size_t end = m_index;
+                    type.text = trimCopy(m_text.substr(start, end - start));
+                    type.originalText = type.text;
+                }
+
+                return type;
+            }
+
+            bool success() const noexcept
+            {
+                return !m_failed;
+            }
+
+        private:
+            TypeReference parseType()
+            {
+                skipWhitespace();
+                const std::size_t typeStart = m_index;
+                std::vector<std::string> qualifiers;
+                while (true)
+                {
+                    auto qualifier = tryParseQualifier();
+                    if (!qualifier.has_value())
+                    {
+                        break;
+                    }
+                    qualifiers.emplace_back(std::move(*qualifier));
+                    skipWhitespace();
+                }
+                TypeReference base = parsePrimary();
+                if (m_failed)
+                {
+                    return base;
+                }
+
+                base.qualifiers = std::move(qualifiers);
+
+                const std::size_t primaryEnd = m_index;
+                if (primaryEnd > typeStart)
+                {
+                    base.text = trimCopy(m_text.substr(typeStart, primaryEnd - typeStart));
+                    base.originalText = base.text;
+                }
+
+                skipWhitespace();
+                while (match('['))
+                {
+                    skipWhitespace();
+                    TypeReference arrayType{};
+                    arrayType.kind = TypeKind::Array;
+                    arrayType.isBuiltin = false;
+
+                    arrayType.arrayLength = parseArrayLength();
+                    skipWhitespace();
+                    if (!match(']'))
+                    {
+                        m_failed = true;
+                        return arrayType;
+                    }
+
+                    arrayType.genericArguments.emplace_back(std::move(base));
+                    TypeReference& element = arrayType.genericArguments.back();
+
+                    std::string elementText = element.text.empty() ? element.originalText : element.text;
+                    if (elementText.empty())
+                    {
+                        elementText = element.qualifiedName();
+                    }
+
+                    arrayType.text = elementText;
+                    arrayType.text.push_back('[');
+                    if (arrayType.arrayLength.has_value())
+                    {
+                        arrayType.text += std::to_string(*arrayType.arrayLength);
+                    }
+                    arrayType.text.push_back(']');
+                    arrayType.originalText = arrayType.text;
+
+                    base = std::move(arrayType);
+                    skipWhitespace();
+                }
+
+                const std::size_t typeEnd = m_index;
+                base.text = trimCopy(m_text.substr(typeStart, typeEnd - typeStart));
+                base.originalText = base.text;
+                return base;
+            }
+
+            TypeReference parsePrimary()
+            {
+                QualifiedName name = parseQualifiedName();
+                if (m_failed)
+                {
+                    return TypeReference{};
+                }
+
+                TypeReference type{};
+                type.kind = TypeKind::Named;
+                type.name = std::move(name);
+                type.isBuiltin = isBuiltinQualified(type.name);
+
+                skipWhitespace();
+                if (match('<'))
+                {
+                    skipWhitespace();
+                    if (match('>'))
+                    {
+                        m_failed = true;
+                        return type;
+                    }
+
+                    while (true)
+                    {
+                        TypeReference argument = parseType();
+                        if (m_failed)
+                        {
+                            return type;
+                        }
+                        type.genericArguments.emplace_back(std::move(argument));
+                        skipWhitespace();
+                        if (match('>'))
+                        {
+                            break;
+                        }
+                        if (!match(','))
+                        {
+                            m_failed = true;
+                            return type;
+                        }
+                        skipWhitespace();
+                    }
+                }
+
+                if (isPointerName(type.name))
+                {
+                    type.kind = TypeKind::Pointer;
+                    type.isBuiltin = true;
+                    if (type.genericArguments.size() != 1)
+                    {
+                        m_failed = true;
+                    }
+                }
+                else if (isReferenceName(type.name))
+                {
+                    type.kind = TypeKind::Reference;
+                    type.isBuiltin = true;
+                    if (type.genericArguments.size() != 1)
+                    {
+                        m_failed = true;
+                    }
+                }
+
+                return type;
+            }
+
+            QualifiedName parseQualifiedName()
+            {
+                skipWhitespace();
+                QualifiedName name{};
+                std::string identifier = parseIdentifier();
+                if (identifier.empty())
+                {
+                    m_failed = true;
+                    return name;
+                }
+                name.components.emplace_back(std::move(identifier));
+
+                while (true)
+                {
+                    skipWhitespace();
+                    if (match('.'))
+                    {
+                        skipWhitespace();
+                        std::string part = parseIdentifier();
+                        if (part.empty())
+                        {
+                            m_failed = true;
+                            return name;
+                        }
+                        name.components.emplace_back(std::move(part));
+                        continue;
+                    }
+
+                    if (m_index + 1 < m_text.size() && m_text[m_index] == ':' && m_text[m_index + 1] == ':')
+                    {
+                        m_index += 2;
+                        skipWhitespace();
+                        std::string part = parseIdentifier();
+                        if (part.empty())
+                        {
+                            m_failed = true;
+                            return name;
+                        }
+                        name.components.emplace_back(std::move(part));
+                        continue;
+                    }
+
+                    break;
+                }
+
+                return name;
+            }
+
+            std::string parseIdentifier()
+            {
+                const std::size_t start = m_index;
+                while (m_index < m_text.size() && isIdentifierChar(m_text[m_index]))
+                {
+                    ++m_index;
+                }
+
+                if (start == m_index)
+                {
+                    m_failed = true;
+                    return std::string{};
+                }
+
+                return std::string{m_text.substr(start, m_index - start)};
+            }
+
+            std::optional<std::uint64_t> parseArrayLength()
+            {
+                skipWhitespace();
+                std::uint64_t value = 0;
+                bool hasDigits = false;
+
+                while (m_index < m_text.size())
+                {
+                    const char ch = m_text[m_index];
+                    if (!std::isdigit(static_cast<unsigned char>(ch)))
+                    {
+                        break;
+                    }
+
+                    hasDigits = true;
+                    const std::uint64_t digit = static_cast<std::uint64_t>(ch - '0');
+                    if (value > (std::numeric_limits<std::uint64_t>::max() - digit) / 10)
+                    {
+                        m_failed = true;
+                        return std::nullopt;
+                    }
+                    value = value * 10 + digit;
+                    ++m_index;
+                }
+
+                if (!hasDigits)
+                {
+                    return std::nullopt;
+                }
+
+                return value;
+            }
+
+            std::optional<std::string> tryParseQualifier()
+            {
+                if (atEnd())
+                {
+                    return std::nullopt;
+                }
+
+                const std::size_t start = m_index;
+                if (!isIdentifierStart(m_text[m_index]))
+                {
+                    return std::nullopt;
+                }
+
+                while (m_index < m_text.size() && isIdentifierChar(m_text[m_index]))
+                {
+                    ++m_index;
+                }
+
+                std::string_view candidate = m_text.substr(start, m_index - start);
+                if (!isQualifierIdentifier(candidate))
+                {
+                    m_index = start;
+                    return std::nullopt;
+                }
+
+                return std::string{candidate};
+            }
+
+            void skipWhitespace()
+            {
+                while (m_index < m_text.size() && std::isspace(static_cast<unsigned char>(m_text[m_index])) != 0)
+                {
+                    ++m_index;
+                }
+            }
+
+            bool match(char expected)
+            {
+                if (m_index < m_text.size() && m_text[m_index] == expected)
+                {
+                    ++m_index;
+                    return true;
+                }
+                return false;
+            }
+
+            bool atEnd() const noexcept
+            {
+                return m_index >= m_text.size();
+            }
+
+        private:
+            std::string_view m_text;
+            std::size_t m_index{0};
+            bool m_failed{false};
+        };
     } // namespace
 
     Binder::Binder(const bolt::frontend::CompilationUnit& ast, std::string_view modulePath)
@@ -439,24 +837,69 @@ std::optional<std::uint64_t> Binder::parseUnsigned(const bolt::frontend::Attribu
     return std::nullopt;
 }
 
-void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std::string& subject, const SourceSpan& span)
+void Binder::applyLiveQualifier(std::string& typeText, bool& isLive, const std::string& subject, const SourceSpan& span)
 {
     constexpr std::string_view qualifier = "live";
-    if (typeRef.text.rfind(qualifier, 0) != 0)
+    std::string trimmed = trimCopy(typeText);
+    if (trimmed.empty())
     {
+        typeText = std::move(trimmed);
         return;
     }
 
-    std::string remainder = typeRef.text.substr(qualifier.size());
+    if (trimmed.rfind(qualifier, 0) != 0)
+    {
+        typeText = std::move(trimmed);
+        return;
+    }
+
+    std::string remainder = trimmed.substr(qualifier.size());
     const auto first = remainder.find_first_not_of(" \t\r\n");
     if (first == std::string::npos)
     {
         emitError("BOLT-E2217", "live qualifier on " + subject + " must reference a concrete type.", span);
+        typeText.clear();
         return;
     }
     const auto last = remainder.find_last_not_of(" \t\r\n");
-    typeRef.text = remainder.substr(first, last - first + 1);
+    typeText = remainder.substr(first, last - first + 1);
     isLive = true;
+}
+
+TypeReference Binder::buildTypeReference(
+    const std::string& typeText,
+    const SourceSpan& typeSpan,
+    bool& isLive,
+    const std::string& subject)
+{
+    TypeReference reference{};
+    reference.span = typeSpan;
+    reference.originalText = typeText;
+
+    std::string workingText = typeText;
+    applyLiveQualifier(workingText, isLive, subject, typeSpan);
+    std::string normalized = normalizeTypeText(workingText);
+    reference.text = normalized;
+
+    if (normalized.empty())
+    {
+        return reference;
+    }
+
+    TypeParser parser{normalized};
+    TypeReference parsed = parser.parse();
+    if (!parser.success() || !parsed.isValid())
+    {
+        emitError("BOLT-E2300", "Unable to parse type '" + normalized + "' for " + subject + ".", typeSpan);
+        reference.kind = TypeKind::Invalid;
+        reference.isBuiltin = false;
+        return reference;
+    }
+
+    parsed.text = normalized;
+    parsed.originalText = typeText;
+    parsed.span = typeSpan;
+    return parsed;
 }
 
     Function Binder::convertFunction(const bolt::frontend::FunctionDeclaration& function)
@@ -583,11 +1026,12 @@ void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std:
         {
             Parameter param;
             param.name = parameter.name;
-            param.type.text = parameter.typeName;
-            param.type.span = parameter.typeSpan;
             param.span = parameter.span;
-            applyLiveQualifier(param.type, param.isLive, "parameter '" + param.name + "' in function '" + converted.name + "'", param.type.span);
-            param.type.text = normalizeTypeText(param.type.text);
+            param.type = buildTypeReference(
+                parameter.typeName,
+                parameter.typeSpan,
+                param.isLive,
+                "parameter '" + param.name + "' in function '" + converted.name + "'");
             converted.parameters.emplace_back(std::move(param));
         }
 
@@ -607,14 +1051,13 @@ void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std:
 
         if (function.returnType.has_value())
         {
-            converted.returnType.text = *function.returnType;
-            if (function.returnTypeSpan.has_value())
-            {
-                converted.returnType.span = *function.returnTypeSpan;
-            }
+            SourceSpan returnSpan = function.returnTypeSpan.has_value() ? *function.returnTypeSpan : SourceSpan{};
+            converted.returnType = buildTypeReference(
+                *function.returnType,
+                returnSpan,
+                converted.returnIsLive,
+                "return type of function '" + converted.name + "'");
             converted.hasReturnType = true;
-            applyLiveQualifier(converted.returnType, converted.returnIsLive, "return type of function '" + converted.name + "'", converted.returnType.span);
-            converted.returnType.text = normalizeTypeText(converted.returnType.text);
         }
 
         applyBlueprintLifecycle(converted);
@@ -626,8 +1069,6 @@ void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std:
     {
         BlueprintField converted{};
         converted.name = field.name;
-        converted.type.text = field.typeName;
-        converted.type.span = field.typeSpan;
         converted.span = field.span;
 
         for (const auto& attribute : field.attributes)
@@ -685,8 +1126,11 @@ void Binder::applyLiveQualifier(TypeReference& typeRef, bool& isLive, const std:
             }
         }
 
-        applyLiveQualifier(converted.type, converted.isLive, "field '" + converted.name + "' in blueprint '" + blueprintName + "'", converted.type.span);
-        converted.type.text = normalizeTypeText(converted.type.text);
+        converted.type = buildTypeReference(
+            field.typeName,
+            field.typeSpan,
+            converted.isLive,
+            "field '" + converted.name + "' in blueprint '" + blueprintName + "'");
         return converted;
     }
 
