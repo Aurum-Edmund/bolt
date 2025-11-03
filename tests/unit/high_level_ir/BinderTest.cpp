@@ -475,6 +475,50 @@ public void function misspelt(const byte value) {
         EXPECT_NE(diagnostics.front().message.find("use 'constant'"), std::string::npos);
     }
 
+    TEST(BinderTest, TrailingConstantQualifierEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public void function misplaced(integer constant value) {
+    return;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2303");
+        EXPECT_NE(diagnostics.front().message.find("before the type name"), std::string::npos);
+    }
+
+    TEST(BinderTest, TrailingQualifierInsideGenericArgumentEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public pointer<byte> function wrap(pointer<constant byte constant> payload) {
+    return payload;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2303");
+        EXPECT_NE(diagnostics.front().message.find("before the type name"), std::string::npos);
+    }
+
     TEST(BinderTest, TypeNamesStartingWithConstAreAccepted)
     {
         const std::string source = R"(package demo.tests; module demo.tests;

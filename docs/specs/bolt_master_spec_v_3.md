@@ -28,7 +28,7 @@ This document is the canonical, unified specification of the **Bolt programming 
 - **Errors** use `Result<T, E>`; **optionals** use `Optional<T>`.
 - **C‑style casts**: `(T) expression` between pointers, integers, and `byte`. No implicit narrowing conversions.
 - **Fixed‑size arrays** are allowed (for example, `byte buffer[32];` and `byte hello[] = { 'h','i' };`). Arrays decay to pointers when passed as parameters.
-- **Type qualifiers**: `constant` may prefix a type once; repeating the qualifier is rejected by the frontend with diagnostic `BOLT-E2301`. Unrecognised qualifiers are rejected with diagnostic `BOLT-E2302`, and legacy `const` usage surfaces the same diagnostic with a fix-it message pointing to `constant`.
+- **Type qualifiers**: `constant` must prefix the type name and may appear only once. Repeating the qualifier triggers diagnostic `BOLT-E2301`, while placing it after the type raises `BOLT-E2303` with guidance to reposition the keyword, even when the misplaced keyword appears inside generic argument lists. Unrecognised qualifiers are rejected with diagnostic `BOLT-E2302`, and legacy `const` usage surfaces the same diagnostic with a fix-it message pointing to `constant`.
 - **Kernel markers** annotate external bindings to platform or hardware using square brackets, for example `[kernel_allocation]`, `[kernel_serial]`, `[kernel_time]`, `[kernel_sync]`, `[kernel_vfs]`.
 
 ---

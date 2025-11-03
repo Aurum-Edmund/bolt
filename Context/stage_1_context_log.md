@@ -1,6 +1,6 @@
 # Stage-1 Context Log
 
-**Last updated:** 2025-11-07
+**Last updated:** 2025-11-09
 **Session lead:** Codex (GPT-5)
 
 ---
@@ -22,9 +22,11 @@
 - Introduced an explicit binder diagnostic (BOLT-E2302) for unknown type qualifiers to enforce the canonical `constant` spelling.
 - Narrowed the legacy qualifier guard so standalone `const` tokens trigger BOLT-E2302 while allowing type names that begin with the prefix, and added binder coverage for the acceptance case.
 - Enhanced the legacy qualifier diagnostic to recommend the canonical `constant` keyword so developers receive a guided fix.
+- Added a binder regression for postfix qualifier mistakes and introduced diagnostic BOLT-E2303 so trailing `constant` usage points developers to prefix the keyword.
+- Extended qualifier validation to nested generic arguments so postfix `constant` tokens inside angle brackets also raise BOLT-E2303 with guided messaging.
 
 ## Progress Metric
-- **Estimated Stage-1 completion:** 11%
+- **Estimated Stage-1 completion:** 13%
 
 ## Pending Tasks
 - Prioritise high-level IR type-system expansion items for implementation order.

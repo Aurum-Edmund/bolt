@@ -276,6 +276,27 @@ namespace bolt::hir
                 skipWhitespace();
                 if (!atEnd())
                 {
+                    if (!m_failed)
+                    {
+                        std::string_view remaining = m_text.substr(m_index);
+                        const auto first = remaining.find_first_not_of(" \t\r\n");
+                        if (first != std::string_view::npos)
+                        {
+                            remaining.remove_prefix(first);
+                            static constexpr std::array<std::string_view, 2> knownQualifiers{"constant", "const"};
+                            for (std::string_view qualifier : knownQualifiers)
+                            {
+                                if (remaining.size() >= qualifier.size()
+                                    && remaining.compare(0, qualifier.size(), qualifier) == 0
+                                    && (remaining.size() == qualifier.size()
+                                        || !isIdentifierChar(remaining[qualifier.size()])))
+                                {
+                                    m_trailingQualifier = std::string{qualifier};
+                                    break;
+                                }
+                            }
+                        }
+                    }
                     m_failed = true;
                 }
 
@@ -304,7 +325,48 @@ namespace bolt::hir
                 return m_unknownQualifier;
             }
 
+            const std::optional<std::string>& trailingQualifier() const noexcept
+            {
+                return m_trailingQualifier;
+            }
+
         private:
+            void recordTrailingQualifierCandidate()
+            {
+                if (m_trailingQualifier.has_value() || m_unknownQualifier.has_value())
+                {
+                    return;
+                }
+
+                std::size_t index = m_index;
+                while (index < m_text.size() && std::isspace(static_cast<unsigned char>(m_text[index])) != 0)
+                {
+                    ++index;
+                }
+
+                if (index >= m_text.size())
+                {
+                    return;
+                }
+
+                std::string_view remaining = m_text.substr(index);
+                static constexpr std::array<std::string_view, 2> qualifiers{"constant", "const"};
+                for (std::string_view qualifier : qualifiers)
+                {
+                    if (remaining.size() < qualifier.size())
+                    {
+                        continue;
+                    }
+
+                    if (remaining.compare(0, qualifier.size(), qualifier) == 0
+                        && (remaining.size() == qualifier.size() || !isIdentifierChar(remaining[qualifier.size()])))
+                    {
+                        m_trailingQualifier = std::string{qualifier};
+                        return;
+                    }
+                }
+            }
+
             TypeReference parseType()
             {
                 skipWhitespace();
@@ -358,6 +420,7 @@ namespace bolt::hir
                     skipWhitespace();
                     if (!match(']'))
                     {
+                        recordTrailingQualifierCandidate();
                         m_failed = true;
                         return arrayType;
                     }
@@ -428,6 +491,7 @@ namespace bolt::hir
                         }
                         if (!match(','))
                         {
+                            recordTrailingQualifierCandidate();
                             m_failed = true;
                             return type;
                         }
@@ -649,6 +713,7 @@ namespace bolt::hir
             bool m_failed{false};
             std::optional<std::string> m_duplicateQualifier;
             std::optional<std::string> m_unknownQualifier;
+            std::optional<std::string> m_trailingQualifier;
         };
     } // namespace
 
@@ -944,7 +1009,23 @@ TypeReference Binder::buildTypeReference(
     TypeReference parsed = parser.parse();
     if (!parser.success() || !parsed.isValid())
     {
-        if (const auto& duplicate = parser.duplicateQualifier())
+        if (const auto& trailing = parser.trailingQualifier())
+        {
+            std::string message;
+            if (*trailing == "const")
+            {
+                message =
+                    "Legacy 'const' qualifier must appear before the type name for " + subject
+                    + "; use 'constant' before the type.";
+            }
+            else
+            {
+                message =
+                    "Type qualifier '" + *trailing + "' must appear before the type name for " + subject + ".";
+            }
+            emitError("BOLT-E2303", std::move(message), typeSpan);
+        }
+        else if (const auto& duplicate = parser.duplicateQualifier())
         {
             emitError(
                 "BOLT-E2301",
