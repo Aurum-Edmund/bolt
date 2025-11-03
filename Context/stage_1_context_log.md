@@ -1,6 +1,6 @@
 # Stage-1 Context Log
 
-**Last updated:** 2025-11-05
+**Last updated:** 2025-11-06
 **Session lead:** Codex (GPT-5)
 
 ---
@@ -14,6 +14,7 @@
 - Extended HIR type parsing to preserve nested array metadata and verified MIR lowering keeps the structure intact via new unit coverage.
 - Added qualifier-aware type parsing so constant-qualified pointer and blueprint metadata survive binder capture and MIR lowering.
 - Renamed the Bolt qualifier keyword to the full word `constant`, updating parsing, metadata propagation, and unit coverage.
+- Hardened frontend coverage for the `constant` keyword with lexer and parser regression tests that pin the qualifier spelling in type-first syntax.
 - Cleared remaining documentation references to the abbreviated qualifier so the language glossary now presents the canonical spelling exclusively.
 
 ## Progress Metric
