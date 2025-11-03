@@ -1,6 +1,6 @@
 # Stage-1 Context Log
 
-**Last updated:** 2025-11-04
+**Last updated:** 2025-11-07
 **Session lead:** Codex (GPT-5)
 
 ---
@@ -19,9 +19,12 @@
 - Expanded frontend, binder, and MIR regression suites to cover `constant` qualifiers on fixed-length arrays and pointer-to-array signatures.
 - Hardened the binder by rejecting duplicate `constant` qualifiers and added regression coverage to guard the new validation.
 - Added a dedicated binder diagnostic for repeated qualifiers so duplicate `constant` usage surfaces as BOLT-E2301 with a targeted message.
+- Introduced an explicit binder diagnostic (BOLT-E2302) for unknown type qualifiers to enforce the canonical `constant` spelling.
+- Narrowed the legacy qualifier guard so standalone `const` tokens trigger BOLT-E2302 while allowing type names that begin with the prefix, and added binder coverage for the acceptance case.
+- Enhanced the legacy qualifier diagnostic to recommend the canonical `constant` keyword so developers receive a guided fix.
 
 ## Progress Metric
-- **Estimated Stage-1 completion:** 9%
+- **Estimated Stage-1 completion:** 11%
 
 ## Pending Tasks
 - Prioritise high-level IR type-system expansion items for implementation order.

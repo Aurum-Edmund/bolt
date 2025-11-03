@@ -452,6 +452,52 @@ public void function duplicate(constant constant byte value) {
         EXPECT_NE(diagnostics.front().message.find("Duplicate 'constant' qualifier"), std::string::npos);
     }
 
+    TEST(BinderTest, UnknownQualifierEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public void function misspelt(const byte value) {
+    return;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2302");
+        EXPECT_NE(diagnostics.front().message.find("Legacy 'const' qualifier"), std::string::npos);
+        EXPECT_NE(diagnostics.front().message.find("use 'constant'"), std::string::npos);
+    }
+
+    TEST(BinderTest, TypeNamesStartingWithConstAreAccepted)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint Constellation {
+    integer32 magnitude;
+}
+
+public void function observe(Constellation target) {
+    return;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        EXPECT_TRUE(binder.diagnostics().empty());
+    }
+
     TEST(BinderTest, DuplicateFunctionAttributeEmitsDiagnostic)
     {
         const std::string source = R"(package demo.tests; module demo.tests;

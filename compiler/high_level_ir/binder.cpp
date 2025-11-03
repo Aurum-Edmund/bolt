@@ -260,12 +260,6 @@ namespace bolt::hir
             return name.components.size() == 1 && name.components.front() == "reference";
         }
 
-        bool isQualifierIdentifier(std::string_view identifier)
-        {
-            static constexpr std::array<std::string_view, 1> qualifiers{"constant"};
-            return std::find(qualifiers.begin(), qualifiers.end(), identifier) != qualifiers.end();
-        }
-
         class TypeParser
         {
         public:
@@ -305,6 +299,11 @@ namespace bolt::hir
                 return m_duplicateQualifier;
             }
 
+            const std::optional<std::string>& unknownQualifier() const noexcept
+            {
+                return m_unknownQualifier;
+            }
+
         private:
             TypeReference parseType()
             {
@@ -317,6 +316,10 @@ namespace bolt::hir
                     auto qualifier = tryParseQualifier();
                     if (!qualifier.has_value())
                     {
+                        if (m_failed)
+                        {
+                            return TypeReference{};
+                        }
                         break;
                     }
                     if (!seenQualifiers.insert(*qualifier).second)
@@ -559,25 +562,62 @@ namespace bolt::hir
                     return std::nullopt;
                 }
 
-                const std::size_t start = m_index;
+                static constexpr std::array<std::string_view, 1> qualifiers{"constant"};
+
+                for (std::string_view qualifier : qualifiers)
+                {
+                    if (m_index + qualifier.size() > m_text.size())
+                    {
+                        continue;
+                    }
+
+                    if (m_text.compare(m_index, qualifier.size(), qualifier) == 0)
+                    {
+                        const std::size_t end = m_index + qualifier.size();
+                        if (end < m_text.size() && isIdentifierChar(m_text[end]))
+                        {
+                            continue;
+                        }
+
+                        m_index = end;
+                        return std::string{qualifier};
+                    }
+                }
+
+                static constexpr std::string_view legacyQualifier{"const"};
+                if (m_index + legacyQualifier.size() <= m_text.size()
+                    && m_text.compare(m_index, legacyQualifier.size(), legacyQualifier) == 0)
+                {
+                    const std::size_t end = m_index + legacyQualifier.size();
+                    if (end == m_text.size() || !isIdentifierChar(m_text[end]))
+                    {
+                        m_unknownQualifier = std::string{legacyQualifier};
+                        m_failed = true;
+                        return std::nullopt;
+                    }
+                }
+
                 if (!isIdentifierStart(m_text[m_index]))
                 {
                     return std::nullopt;
                 }
 
+                const std::size_t start = m_index;
                 while (m_index < m_text.size() && isIdentifierChar(m_text[m_index]))
                 {
                     ++m_index;
                 }
 
                 std::string_view candidate = m_text.substr(start, m_index - start);
-                if (!isQualifierIdentifier(candidate))
+                if (!candidate.empty() && candidate == legacyQualifier)
                 {
-                    m_index = start;
+                    m_unknownQualifier = std::string{candidate};
+                    m_failed = true;
                     return std::nullopt;
                 }
 
-                return std::string{candidate};
+                m_index = start;
+                return std::nullopt;
             }
 
             void skipWhitespace()
@@ -608,6 +648,7 @@ namespace bolt::hir
             std::size_t m_index{0};
             bool m_failed{false};
             std::optional<std::string> m_duplicateQualifier;
+            std::optional<std::string> m_unknownQualifier;
         };
     } // namespace
 
@@ -909,6 +950,22 @@ TypeReference Binder::buildTypeReference(
                 "BOLT-E2301",
                 "Duplicate '" + *duplicate + "' qualifier is not allowed for " + subject + ".",
                 typeSpan);
+        }
+        else if (const auto& unknown = parser.unknownQualifier())
+        {
+            std::string message;
+            if (*unknown == "const")
+            {
+                message =
+                    "Legacy 'const' qualifier is not supported for " + subject +
+                    "; use 'constant' instead.";
+            }
+            else
+            {
+                message =
+                    "Unknown type qualifier '" + *unknown + "' is not supported for " + subject + ".";
+            }
+            emitError("BOLT-E2302", std::move(message), typeSpan);
         }
         else
         {
