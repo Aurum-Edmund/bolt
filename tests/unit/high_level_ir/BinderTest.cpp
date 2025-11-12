@@ -475,6 +475,28 @@ public void function misspelt(const byte value) {
         EXPECT_NE(diagnostics.front().message.find("use 'constant'"), std::string::npos);
     }
 
+    TEST(BinderTest, DuplicateLiveQualifierEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public live integer function example(live live integer value) {
+    return value;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2218");
+        EXPECT_NE(diagnostics.front().message.find("Duplicate 'live' qualifier"), std::string::npos);
+    }
+
     TEST(BinderTest, TrailingConstantQualifierEmitsDiagnostic)
     {
         const std::string source = R"(package demo.tests; module demo.tests;

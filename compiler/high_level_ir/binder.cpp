@@ -973,15 +973,50 @@ void Binder::applyLiveQualifier(std::string& typeText, bool& isLive, const std::
     }
 
     std::string remainder = trimmed.substr(qualifier.size());
-    const auto first = remainder.find_first_not_of(" \t\r\n");
-    if (first == std::string::npos)
+    bool reportedDuplicateLive = false;
+
+    while (true)
+    {
+        const auto first = remainder.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos)
+        {
+            emitError("BOLT-E2217", "live qualifier on " + subject + " must reference a concrete type.", span);
+            typeText.clear();
+            return;
+        }
+
+        remainder.erase(0, first);
+
+        if (remainder.size() >= qualifier.size()
+            && remainder.compare(0, qualifier.size(), qualifier) == 0
+            && (remainder.size() == qualifier.size() || !isIdentifierChar(remainder[qualifier.size()])))
+        {
+            if (!reportedDuplicateLive)
+            {
+                emitError(
+                    "BOLT-E2218",
+                    "Duplicate 'live' qualifier is not allowed for " + subject + ".",
+                    span);
+                reportedDuplicateLive = true;
+            }
+
+            remainder.erase(0, qualifier.size());
+            continue;
+        }
+
+        break;
+    }
+
+    const auto last = remainder.find_last_not_of(" \t\r\n");
+    if (last == std::string::npos)
     {
         emitError("BOLT-E2217", "live qualifier on " + subject + " must reference a concrete type.", span);
         typeText.clear();
         return;
     }
-    const auto last = remainder.find_last_not_of(" \t\r\n");
-    typeText = remainder.substr(first, last - first + 1);
+
+    remainder.erase(last + 1);
+    typeText = std::move(remainder);
     isLive = true;
 }
 
