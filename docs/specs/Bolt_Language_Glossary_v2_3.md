@@ -83,6 +83,8 @@ public blueprint UartControl {
 ## Memory Model and live value
 **live value (volatile):**
 - Front-end analysis records live qualifiers alongside type metadata so MIR/LIR passes can honour ordering and visibility guarantees.
+- The qualifier may appear at most once before a type; repeating `live` triggers binder diagnostic `BOLT-E2218`.
+- Valid surfaces include function return types, parameters, and blueprint fields; the binder enforces the same diagnostics (`BOLT-E2217`, `BOLT-E2218`, `BOLT-E2219`) across each surface and strips misplaced tokens before type metadata is captured.
 loat64.
 - Use explicit width forms (for example, integer16, integer64, loat32) when exact sizing or interop requirements demand it.
 - Compiler diagnostics and canonical MIR output prefer the alias form unless a width-specific type is declared.
@@ -179,7 +181,7 @@ profile kernelFreestanding {
     exceptions off
     bounds off
     rtti off
-    reflection off
+| `constant` | **constant** | Immutable compile-time value. |
 }
 ```
 
