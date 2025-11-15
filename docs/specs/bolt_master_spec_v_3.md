@@ -28,6 +28,8 @@ This document is the canonical, unified specification of the **Bolt programming 
 - **Errors** use `Result<T, E>`; **optionals** use `Optional<T>`.
 - **C‑style casts**: `(T) expression` between pointers, integers, and `byte`. No implicit narrowing conversions.
 - **Fixed‑size arrays** are allowed (for example, `byte buffer[32];` and `byte hello[] = { 'h','i' };`). Arrays decay to pointers when passed as parameters.
+- **Type qualifiers**: `constant` must prefix the type name and may appear only once. Repeating the qualifier triggers diagnostic `BOLT-E2301`, while placing it after the type raises `BOLT-E2303` with guidance to reposition the keyword, even when the misplaced keyword appears inside generic argument lists. Unrecognised qualifiers are rejected with diagnostic `BOLT-E2302`, and legacy `const` usage surfaces the same diagnostic with a fix-it message pointing to `constant`.
+- **Live qualifiers**: `live` may prefix a return or parameter type exactly once. Missing concrete type information raises `BOLT-E2217`, duplicate prefixes surface `BOLT-E2218` with guidance to remove the extra keyword, and misplaced tokens after the type (including inside generic arguments) raise `BOLT-E2219` with a fix-it to move `live` ahead of the type name.
 - **Kernel markers** annotate external bindings to platform or hardware using square brackets, for example `[kernel_allocation]`, `[kernel_serial]`, `[kernel_time]`, `[kernel_sync]`, `[kernel_vfs]`.
 
 ---
@@ -262,7 +264,7 @@ public blueprint Pair<A, B> { A first; B second; };
 
 public blueprint Slice<T> { pointer<T> data; unsigned64 length; };
 public blueprint Span<T>  { pointer<T> data; unsigned64 length; };
-public blueprint View<T>  { pointer<const T> data; unsigned64 length; };
+public blueprint View<T>  { pointer<constant T> data; unsigned64 length; };
 
 public blueprint RangeU64 { unsigned64 start; unsigned64 end_exclusive; };
 
@@ -301,9 +303,9 @@ public T unwrap_or<T,E>(Result<T,E> r, T fallback) { if (r.ok) { return r.value;
 package std.core; module bytes;
 use std.core as core;
 
-public core.View<T> view_from_ptr<T>(pointer<const T> p, unsigned64 n) { return core.View<T>{ data: p, length: n }; };
+public core.View<T> view_from_ptr<T>(pointer<constant T> p, unsigned64 n) { return core.View<T>{ data: p, length: n }; };
 public core.Span<T> span_from_ptr<T>(pointer<T> p, unsigned64 n)      { return core.Span<T>{ data: p, length: n }; };
-public core.View<byte> view_from_cstring(pointer<const byte> p) { unsigned64 n = 0; while (p[n] != 0) { n += 1; } return core.View<byte>{ data: p, length: n }; };
+public core.View<byte> view_from_cstring(pointer<constant byte> p) { unsigned64 n = 0; while (p[n] != 0) { n += 1; } return core.View<byte>{ data: p, length: n }; };
 ```
 
 ### std/core/assert.bolt
@@ -445,7 +447,7 @@ package std.memory; module view_span;
 use std.core as core;
 
 public core.Span<byte> span_from_buffer(pointer<byte> p, unsigned64 capacity) { core.Span<byte> s; s.data = p; s.length = capacity; return s; };
-public core.View<byte> view_from_buffer(pointer<const byte> p, unsigned64 length) { core.View<byte> v; v.data = p; v.length = length; return v; };
+public core.View<byte> view_from_buffer(pointer<constant byte> p, unsigned64 length) { core.View<byte> v; v.data = p; v.length = length; return v; };
 public core.Span<T> span_slice<T>(core.Span<T> s, unsigned64 start, unsigned64 count) { core.Span<T> out; out.data = s.data + start; out.length = count; return out; };
 public core.View<T> view_slice<T>(core.View<T> v, unsigned64 start, unsigned64 count) { core.View<T> out; out.data = v.data + start; out.length = count; return out; };
 ```
@@ -541,7 +543,7 @@ public blueprint BufferedWriter { writer.Writer inner; pointer<byte> buf; unsign
 public BufferedWriter with_buffer(writer.Writer inner, core.Span<byte> storage) { BufferedWriter b; b.inner = inner; b.buf = storage.data; b.length = 0; b.capacity = storage.length; return b; };
 
 public res.Result<void, BwError> flush(BufferedWriter* b) {
-    core.View<byte> v = core.View<byte>{ data: (pointer<const byte>)b->buf, length: b->length };
+    core.View<byte> v = core.View<byte>{ data: (pointer<constant byte>)b->buf, length: b->length };
     auto r = writer.write_all(&b->inner, v);
     if (!r.ok) { return res.error<void, BwError>(BwError.FlushFailed); }
     b->length = 0; return res.ok<void, BwError>({});
@@ -563,9 +565,9 @@ intrinsic void intrinsic_memcpy(pointer<byte> dst, pointer<byte> src, unsigned64
 package std.io; module console_format;
 use std.core as core; use std.core.result as res; use std.io.console as console; use std.io.writer as writer; use std.memory.view_span as vs; use std.text.format_int as fmti;
 
-public void print_line_bytes(core.View<byte> bytes) { writer.Writer w = console.out(); (void)writer.write_all(&w, bytes); byte nl[1] = {'\n'}; core.View<byte> newline = vs.view_from_buffer((pointer<const byte>)&nl[0], 1); (void)writer.write_all(&w, newline); };
+public void print_line_bytes(core.View<byte> bytes) { writer.Writer w = console.out(); (void)writer.write_all(&w, bytes); byte nl[1] = {'\n'}; core.View<byte> newline = vs.view_from_buffer((pointer<constant byte>)&nl[0], 1); (void)writer.write_all(&w, newline); };
 
-public void print_u64(unsigned64 v) { writer.Writer w = console.out(); byte buf[32]; core.Span<byte> span = vs.span_from_buffer(&buf[0], 32); res.Result<unsigned64, fmti.FormatError> r = fmti.u64_to_ascii(v, span); if (r.ok) { core.View<byte> out = core.View<byte>{ data: (pointer<const byte>)&buf[0], length: r.value }; (void)writer.write_all(&w, out); } byte nl[1] = {'\n'}; core.View<byte> newline = vs.view_from_buffer((pointer<const byte>)&nl[0], 1); (void)writer.write_all(&w, newline); };
+public void print_u64(unsigned64 v) { writer.Writer w = console.out(); byte buf[32]; core.Span<byte> span = vs.span_from_buffer(&buf[0], 32); res.Result<unsigned64, fmti.FormatError> r = fmti.u64_to_ascii(v, span); if (r.ok) { core.View<byte> out = core.View<byte>{ data: (pointer<constant byte>)&buf[0], length: r.value }; (void)writer.write_all(&w, out); } byte nl[1] = {'\n'}; core.View<byte> newline = vs.view_from_buffer((pointer<constant byte>)&nl[0], 1); (void)writer.write_all(&w, newline); };
 ```
 
 ---
@@ -592,9 +594,9 @@ public res.Result<void, StringError> append_byte(String* s, byte b) { auto rr = 
 
 public res.Result<void, StringError> append_view(String* s, core.View<byte> v) { auto r = buffer.write_bytes(&s->buffer, v); if (!r.ok) { return res.error<void, StringError>(StringError.AllocationFailed); } return res.ok<void, StringError>({}); };
 
-public core.View<byte> as_view(String* s) { core.View<byte> v; v.data = (pointer<const byte>)s->buffer.data; v.length = s->buffer.length; return v; };
+public core.View<byte> as_view(String* s) { core.View<byte> v; v.data = (pointer<constant byte>)s->buffer.data; v.length = s->buffer.length; return v; };
 
-public res.Result<core.View<byte>, StringError> slice(String* s, unsigned64 start, unsigned64 end_excl) { if ((start > end_excl) || (end_excl > s->buffer.length)) { return res.error<core.View<byte>, StringError>(StringError.OutOfRange); } core.View<byte> v; v.data = (pointer<const byte>)(s->buffer.data + start); v.length = (end_excl - start); return res.ok<core.View<byte>, StringError>(v); };
+public res.Result<core.View<byte>, StringError> slice(String* s, unsigned64 start, unsigned64 end_excl) { if ((start > end_excl) || (end_excl > s->buffer.length)) { return res.error<core.View<byte>, StringError>(StringError.OutOfRange); } core.View<byte> v; v.data = (pointer<constant byte>)(s->buffer.data + start); v.length = (end_excl - start); return res.ok<core.View<byte>, StringError>(v); };
 
 public res.Result<void, StringError> insert(String* s, unsigned64 index, core.View<byte> v) { if (index > s->buffer.length) { return res.error<void, StringError>(StringError.OutOfRange); } auto rr = reserve(s, v.length); if (!rr.ok) { return rr; } unsigned64 i = s->buffer.length; while (i > index) { s->buffer.data[i + v.length - 1] = s->buffer.data[i - 1]; i -= 1; } intrinsic_memcpy(s->buffer.data + index, (pointer<byte>)v.data, v.length); s->buffer.length += v.length; return res.ok<void, StringError>({}); };
 
@@ -902,7 +904,7 @@ public res.Result<p.Path, PathOpError> join(p.Path a, p.Path b, core.Span<byte> 
     if (len == 0 || outbuf.data[len - 1] != '/') { if (len + 1 > outbuf.length) { return res.error<p.Path, PathOpError>(PathOpError.TooLong); } outbuf.data[len] = '/'; len += 1; }
     if (len + b.bytes.length > outbuf.length) { return res.error<p.Path, PathOpError>(PathOpError.TooLong); }
     intrinsic_memcpy(outbuf.data + len, (pointer<byte>)b.bytes.data, b.bytes.length); len += b.bytes.length;
-    p.Path out; out.bytes = core.View<byte>{ data: (pointer<const byte>)outbuf.data, length: len }; return res.ok<p.Path, PathOpError>(out);
+    p.Path out; out.bytes = core.View<byte>{ data: (pointer<constant byte>)outbuf.data, length: len }; return res.ok<p.Path, PathOpError>(out);
 };
 
 public res.Result<p.Path, PathOpError> normalize(p.Path inpath, core.Span<byte> outbuf) {
@@ -913,7 +915,7 @@ public res.Result<p.Path, PathOpError> normalize(p.Path inpath, core.Span<byte> 
         if (o + 1 > outbuf.length) { return res.error<p.Path, PathOpError>(PathOpError.TooLong); }
         outbuf.data[o++] = c; i += 1;
     }
-    p.Path out; out.bytes = core.View<byte>{ data: (pointer<const byte>)outbuf.data, length: o }; return res.ok<p.Path, PathOpError>(out);
+    p.Path out; out.bytes = core.View<byte>{ data: (pointer<constant byte>)outbuf.data, length: o }; return res.ok<p.Path, PathOpError>(out);
 };
 
 intrinsic void intrinsic_memcpy(pointer<byte> dst, pointer<byte> src, unsigned64 n);
@@ -1247,7 +1249,7 @@ static boolean enabled(Level current, Level msg) {
 static void write_line(writer.Writer* w, core.View<byte> v) {
     (void)writer.write_all(w, v);
     byte nl[1] = { '\n' };
-    core.View<byte> newline = core.View<byte>{ data: (pointer<const byte>)&nl[0], length: 1 };
+    core.View<byte> newline = core.View<byte>{ data: (pointer<constant byte>)&nl[0], length: 1 };
     (void)writer.write_all(w, newline);
 };
 
@@ -1424,7 +1426,7 @@ use std.logger as log;
 public void main() {
     wr.Writer w = con.out();
     byte hello[] = { 'b','o','l','t',' ','o','n','!','\n' };
-    core.View<byte> v = core.View<byte>{ data: (pointer<const byte>)&hello[0], length: 9 };
+    core.View<byte> v = core.View<byte>{ data: (pointer<constant byte>)&hello[0], length: 9 };
     (void)wr.write_all(&w, v);
 
     // logger
@@ -1434,7 +1436,7 @@ public void main() {
     std.logger.configure(r.outputs, r.level);
 
     byte msg[] = { 'h','e','l','l','o' };
-    log.info(core.View<byte>{ data: (pointer<const byte>)&msg[0], length: 5 });
+    log.info(core.View<byte>{ data: (pointer<constant byte>)&msg[0], length: 5 });
 }
 ```
 
