@@ -183,7 +183,7 @@ profile kernelFreestanding {
     exceptions off
     bounds off
     rtti off
-    reflection off
+| `constant` | **constant** | Immutable compile-time value. |
 }
 ```
 
