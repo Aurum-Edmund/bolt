@@ -40,6 +40,7 @@ namespace
         type.isBuiltin = true;
         type.text = name;
         type.originalText = name;
+        type.normalizedText = name;
         return type;
     }
 

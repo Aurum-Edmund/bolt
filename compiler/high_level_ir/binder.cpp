@@ -305,6 +305,7 @@ namespace bolt::hir
                     const std::size_t end = m_index;
                     type.text = trimCopy(m_text.substr(start, end - start));
                     type.originalText = type.text;
+                    common::populateNormalizedTypeText(type);
                 }
 
                 return type;
@@ -450,6 +451,7 @@ namespace bolt::hir
                 const std::size_t typeEnd = m_index;
                 base.text = trimCopy(m_text.substr(typeStart, typeEnd - typeStart));
                 base.originalText = base.text;
+                common::populateNormalizedTypeText(base);
                 return base;
             }
 

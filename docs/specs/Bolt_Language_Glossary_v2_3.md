@@ -177,7 +177,9 @@ Freestanding or kernel builds **must** enable the following flags:
 | `volatile` | **live value** | Side-effecting read or write; not optimized away. |
 ```bolt
 profile kernelFreestanding {
-    panic abort
+> **Canonical type strings** — The Stage-1 binder normalizes every type reference (qualifiers, generics, arrays, pointers, and references) into a canonical string. The canonical text flows into HIR and MIR metadata so diagnostics and backend passes can compare or display types without re-parsing user input.
+
+| `constant` | **constant** | Immutable compile-time value. |
     exceptions off
     bounds off
     rtti off

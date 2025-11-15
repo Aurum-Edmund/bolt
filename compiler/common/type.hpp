@@ -65,6 +65,7 @@ namespace bolt::common
         bool isBuiltin{false};
         std::string text;
         std::string originalText;
+        std::string normalizedText;
         bolt::frontend::SourceSpan span{};
 
         [[nodiscard]] bool isValid() const noexcept
@@ -107,5 +108,96 @@ namespace bolt::common
             return std::find(qualifiers.begin(), qualifiers.end(), qualifier) != qualifiers.end();
         }
     };
+
+    namespace detail
+    {
+        inline std::string joinQualifiers(const std::vector<std::string>& qualifiers)
+        {
+            if (qualifiers.empty())
+            {
+                return {};
+            }
+
+            std::string result = qualifiers.front();
+            for (std::size_t index = 1; index < qualifiers.size(); ++index)
+            {
+                result.push_back(' ');
+                result += qualifiers[index];
+            }
+            return result;
+        }
+    } // namespace detail
+
+    inline std::string buildNormalizedTypeText(const TypeReference& type)
+    {
+        if (type.kind == TypeKind::Invalid)
+        {
+            return {};
+        }
+
+        std::string result;
+
+        if (!type.qualifiers.empty())
+        {
+            result = detail::joinQualifiers(type.qualifiers);
+            result.push_back(' ');
+        }
+
+        if (type.kind == TypeKind::Array)
+        {
+            if (!type.genericArguments.empty())
+            {
+                result += buildNormalizedTypeText(type.genericArguments.front());
+            }
+            else
+            {
+                result += type.text;
+            }
+
+            result.push_back('[');
+            if (type.arrayLength.has_value())
+            {
+                result += std::to_string(*type.arrayLength);
+            }
+            result.push_back(']');
+            return result;
+        }
+
+        const std::string qualified = type.qualifiedName();
+        if (!qualified.empty())
+        {
+            result += qualified;
+        }
+        else
+        {
+            result += type.text;
+        }
+
+        if (!type.genericArguments.empty())
+        {
+            result.push_back('<');
+            for (std::size_t index = 0; index < type.genericArguments.size(); ++index)
+            {
+                if (index > 0)
+                {
+                    result += ", ";
+                }
+                result += buildNormalizedTypeText(type.genericArguments[index]);
+            }
+            result.push_back('>');
+        }
+
+        return result;
+    }
+
+    inline void populateNormalizedTypeText(TypeReference& type)
+    {
+        for (auto& argument : type.genericArguments)
+        {
+            populateNormalizedTypeText(argument);
+        }
+
+        type.normalizedText = buildNormalizedTypeText(type);
+    }
 } // namespace bolt::common
 

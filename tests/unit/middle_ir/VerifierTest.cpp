@@ -9,14 +9,15 @@ namespace bolt::mir
     {
         TypeReference makeBuiltinType(const std::string& name)
         {
-            TypeReference type{};
-            type.kind = bolt::common::TypeKind::Named;
-            type.name.components.emplace_back(name);
-            type.isBuiltin = true;
-            type.text = name;
-            type.originalText = name;
-            return type;
-        }
+        TypeReference type{};
+        type.kind = bolt::common::TypeKind::Named;
+        type.name.components.emplace_back(name);
+        type.isBuiltin = true;
+        type.text = name;
+        type.originalText = name;
+        type.normalizedText = name;
+        return type;
+    }
 
         Module makeModule(Function function)
         {

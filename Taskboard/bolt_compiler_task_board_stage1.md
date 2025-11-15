@@ -42,7 +42,8 @@
 ## Today's Focus
 
 Stage-1 execution underway. Continue expanding type-system coverage and plan backend scaffolding spikes in parallel so the MIR
-pipeline can immediately consume the richer metadata, including the newly captured blueprint field information.
+pipeline can immediately consume the richer metadata, including the newly captured blueprint field information and the canonical
+type strings now available on all TypeReferences.
 
 **Notes:**
 - Carry over outstanding suggestions (additional fix-it hints, parser recovery improvements) from Stage-0 once prioritised.

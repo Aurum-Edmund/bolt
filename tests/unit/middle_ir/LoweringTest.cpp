@@ -93,12 +93,17 @@ public std.core.result.Result<void, WriteError> function process(
         ASSERT_EQ(fn.returnType.genericArguments.size(), 2u);
         EXPECT_EQ(fn.returnType.genericArguments[0].text, "void");
         EXPECT_EQ(fn.returnType.genericArguments[1].text, "WriteError");
+        EXPECT_EQ(fn.returnType.normalizedText, "std.core.result.Result<void, WriteError>");
+        EXPECT_EQ(fn.returnType.genericArguments[0].normalizedText, "void");
+        EXPECT_EQ(fn.returnType.genericArguments[1].normalizedText, "WriteError");
 
         ASSERT_EQ(fn.parameters.size(), 3u);
         const auto& bufferParam = fn.parameters[0];
         EXPECT_EQ(bufferParam.type.kind, bolt::common::TypeKind::Pointer);
         ASSERT_EQ(bufferParam.type.genericArguments.size(), 1u);
         EXPECT_EQ(bufferParam.type.genericArguments[0].text, "byte");
+        EXPECT_EQ(bufferParam.type.normalizedText, "pointer<byte>");
+        EXPECT_EQ(bufferParam.type.genericArguments[0].normalizedText, "byte");
 
         const auto& readonlyParam = fn.parameters[1];
         EXPECT_EQ(readonlyParam.type.kind, bolt::common::TypeKind::Pointer);
@@ -108,6 +113,8 @@ public std.core.result.Result<void, WriteError> function process(
         ASSERT_EQ(readonlyInner.qualifiers.size(), 1u);
         EXPECT_EQ(readonlyInner.qualifiers.front(), "constant");
         EXPECT_EQ(readonlyInner.text, "constant byte");
+        EXPECT_EQ(readonlyParam.type.normalizedText, "pointer<constant byte>");
+        EXPECT_EQ(readonlyInner.normalizedText, "constant byte");
 
         const auto& stateParam = fn.parameters[2];
         EXPECT_EQ(stateParam.type.kind, bolt::common::TypeKind::Reference);
@@ -118,6 +125,8 @@ public std.core.result.Result<void, WriteError> function process(
         ASSERT_EQ(stateInner.genericArguments.size(), 2u);
         EXPECT_EQ(stateInner.genericArguments[0].text, "void");
         EXPECT_EQ(stateInner.genericArguments[1].text, "WriteError");
+        EXPECT_EQ(stateParam.type.normalizedText, "reference<std.core.result.Result<void, WriteError>>");
+        EXPECT_EQ(stateInner.normalizedText, "std.core.result.Result<void, WriteError>");
     }
 
     TEST(LoweringTest, PropagatesArrayTypeMetadata)
@@ -158,6 +167,10 @@ public void function reshape(pointer<byte>[4][2] blocks, integer[] dynamicValues
         EXPECT_EQ(blocksElement.text, "pointer<byte>");
         ASSERT_EQ(blocksElement.genericArguments.size(), 1u);
         EXPECT_EQ(blocksElement.genericArguments[0].text, "byte");
+        EXPECT_EQ(blocksParam.type.normalizedText, "pointer<byte>[4][2]");
+        EXPECT_EQ(blocksInnerArray.normalizedText, "pointer<byte>[4]");
+        EXPECT_EQ(blocksElement.normalizedText, "pointer<byte>");
+        EXPECT_EQ(blocksElement.genericArguments[0].normalizedText, "byte");
 
         const auto& dynamicParam = fn.parameters[1];
         EXPECT_EQ(dynamicParam.type.text, "integer[]");
@@ -165,6 +178,8 @@ public void function reshape(pointer<byte>[4][2] blocks, integer[] dynamicValues
         EXPECT_FALSE(dynamicParam.type.arrayLength.has_value());
         ASSERT_EQ(dynamicParam.type.genericArguments.size(), 1u);
         EXPECT_EQ(dynamicParam.type.genericArguments[0].text, "integer");
+        EXPECT_EQ(dynamicParam.type.normalizedText, "integer[]");
+        EXPECT_EQ(dynamicParam.type.genericArguments[0].normalizedText, "integer");
     }
 
     TEST(LoweringTest, PropagatesConstantArrayMetadata)
@@ -201,6 +216,8 @@ public blueprint Packet {
         ASSERT_EQ(payloadElement.qualifiers.size(), 1u);
         EXPECT_EQ(payloadElement.qualifiers.front(), "constant");
         EXPECT_EQ(payloadElement.text, "constant byte");
+        EXPECT_EQ(payloadParam.type.normalizedText, "constant byte[16]");
+        EXPECT_EQ(payloadElement.normalizedText, "constant byte");
 
         const auto blueprintIt = std::find_if(mirModule.functions.begin(), mirModule.functions.end(), [](const Function& fn) {
             return fn.name == "blueprint.Packet";
@@ -258,6 +275,8 @@ public blueprint Packet {
         EXPECT_EQ(digestElement.text, "constant byte");
         ASSERT_EQ(digestElement.qualifiers.size(), 1u);
         EXPECT_EQ(digestElement.qualifiers.front(), "constant");
+        EXPECT_EQ(digestField.type.normalizedText, "constant byte[32]");
+        EXPECT_EQ(digestElement.normalizedText, "constant byte");
 
         const auto& viewField = blueprint.fields[1];
         EXPECT_EQ(viewField.name, "view");
@@ -273,6 +292,9 @@ public blueprint Packet {
         EXPECT_EQ(viewElementInner.text, "constant byte");
         ASSERT_EQ(viewElementInner.qualifiers.size(), 1u);
         EXPECT_EQ(viewElementInner.qualifiers.front(), "constant");
+        EXPECT_EQ(viewField.type.normalizedText, "pointer<constant byte[8]>");
+        EXPECT_EQ(viewElement.normalizedText, "constant byte[8]");
+        EXPECT_EQ(viewElementInner.normalizedText, "constant byte");
     }
 
     TEST(LoweringTest, EmitsBlueprintDetails)
