@@ -19,7 +19,7 @@
 - Broaden golden and negative diagnostic suites.
 
 ### Doing
-- None yet; Stage-1 execution not started.
+- High-level IR type system expansion (qualifier enforcement, metadata propagation, MIR blueprint capture).
 
 ### Done
 - Stage-0 deliverables archived; SSA conversion, linker automation, and runtime helpers form the foundation for Stage-1.
@@ -41,7 +41,9 @@
 
 ## Today's Focus
 
-Stage-1 kick-off pending. Prioritise defining type-system design tasks and backend scaffolding spikes before deep implementation.
+Stage-1 execution underway. Continue expanding type-system coverage and plan backend scaffolding spikes in parallel so the MIR
+pipeline can immediately consume the richer metadata, including the newly captured blueprint field information and the canonical
+type strings now available on all TypeReferences and emitted detail dumps.
 
 **Notes:**
 - Carry over outstanding suggestions (additional fix-it hints, parser recovery improvements) from Stage-0 once prioritised.
