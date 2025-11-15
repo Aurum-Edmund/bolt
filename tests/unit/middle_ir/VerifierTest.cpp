@@ -7,6 +7,18 @@ namespace bolt::mir
 {
     namespace
     {
+        TypeReference makeBuiltinType(const std::string& name)
+        {
+        TypeReference type{};
+        type.kind = bolt::common::TypeKind::Named;
+        type.name.components.emplace_back(name);
+        type.isBuiltin = true;
+        type.text = name;
+        type.originalText = name;
+        type.normalizedText = name;
+        return type;
+    }
+
         Module makeModule(Function function)
         {
             Module module;
@@ -33,7 +45,7 @@ namespace bolt::mir
         Function function = makeBaseFunction();
         function.returnIsLive = true;
         function.hasReturnType = true;
-        function.returnType = "integer";
+        function.returnType = makeBuiltinType("integer");
 
         Instruction ret;
         ret.kind = InstructionKind::Return;
@@ -48,7 +60,7 @@ namespace bolt::mir
         Function function = makeBaseFunction();
         Function::Parameter parameter;
         parameter.name = "value";
-        parameter.typeName = "integer";
+        parameter.type = makeBuiltinType("integer");
         parameter.isLive = true;
         function.parameters.push_back(parameter);
 

@@ -31,6 +31,15 @@ namespace bolt::mir
             }
             return stream.str();
         }
+
+        const std::string& canonicalTypeText(const bolt::common::TypeReference& type)
+        {
+            if (!type.normalizedText.empty())
+            {
+                return type.normalizedText;
+            }
+            return type.text;
+        }
     } // namespace
 
     Module lowerFromHir(const hir::Module& hirModule)
@@ -110,9 +119,10 @@ namespace bolt::mir
             if (hirFunction.hasReturnType)
             {
                 mirFunction.hasReturnType = true;
-                mirFunction.returnType = hirFunction.returnType.text;
+                mirFunction.returnType = hirFunction.returnType;
                 mirFunction.returnIsLive = hirFunction.returnIsLive;
-                std::string detail = "return " + hirFunction.returnType.text;
+                std::string detail = "return ";
+                detail += canonicalTypeText(mirFunction.returnType);
                 if (hirFunction.returnIsLive)
                 {
                     detail += " [live]";
@@ -123,7 +133,7 @@ namespace bolt::mir
             for (const auto& parameter : hirFunction.parameters)
             {
                 Function::Parameter mirParameter{};
-                mirParameter.typeName = parameter.type.text;
+                mirParameter.type = parameter.type;
                 mirParameter.name = parameter.name;
                 mirParameter.isLive = parameter.isLive;
                 mirParameter.hasDefaultValue = parameter.hasDefaultValue;
@@ -131,7 +141,7 @@ namespace bolt::mir
                 mirParameter.defaultValue = parameter.defaultValue;
                 mirFunction.parameters.emplace_back(std::move(mirParameter));
                 std::string detail = "param ";
-                detail += parameter.type.text;
+                detail += canonicalTypeText(parameter.type);
                 detail += ' ';
                 detail += parameter.name;
                 if (parameter.isLive)
@@ -154,6 +164,22 @@ namespace bolt::mir
 
         for (const auto& blueprint : hirModule.blueprints)
         {
+            auto& mirBlueprint = builder.createBlueprint(blueprint.name);
+            mirBlueprint.modifiers = blueprint.modifiers;
+            mirBlueprint.isPacked = blueprint.isPacked;
+            mirBlueprint.alignmentBytes = blueprint.alignmentBytes;
+            mirBlueprint.fields.reserve(blueprint.fields.size());
+            for (const auto& field : blueprint.fields)
+            {
+                BlueprintField mirField{};
+                mirField.name = field.name;
+                mirField.type = field.type;
+                mirField.isLive = field.isLive;
+                mirField.bitWidth = field.bitWidth;
+                mirField.alignmentBytes = field.alignmentBytes;
+                mirBlueprint.fields.emplace_back(std::move(mirField));
+            }
+
             auto& mirFunction = builder.createFunction("blueprint." + blueprint.name);
             auto& entryBlock = builder.appendBlock(mirFunction, "entry");
 
@@ -173,7 +199,7 @@ namespace bolt::mir
             for (const auto& field : blueprint.fields)
             {
                 std::ostringstream stream;
-                stream << "field " << field.type.text << ' ' << field.name;
+                stream << "field " << canonicalTypeText(field.type) << ' ' << field.name;
                 if (field.isLive)
                 {
                     stream << " [live]";

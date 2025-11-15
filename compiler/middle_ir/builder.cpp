@@ -14,7 +14,7 @@ namespace bolt::mir
         fn.name = std::string{name};
         fn.parameters.clear();
         fn.hasReturnType = false;
-        fn.returnType.clear();
+        fn.returnType = TypeReference{};
         fn.returnIsLive = false;
         fn.blocks.clear();
         fn.nextBlockId = 0;
@@ -23,6 +23,18 @@ namespace bolt::mir
         fn.isBlueprintDestructor = false;
         fn.blueprintName.reset();
         return fn;
+    }
+
+    Blueprint& Builder::createBlueprint(std::string_view name)
+    {
+        m_module.blueprints.emplace_back();
+        Blueprint& blueprint = m_module.blueprints.back();
+        blueprint.name = std::string{name};
+        blueprint.modifiers.clear();
+        blueprint.fields.clear();
+        blueprint.isPacked = false;
+        blueprint.alignmentBytes.reset();
+        return blueprint;
     }
 
     BasicBlock& Builder::appendBlock(Function& function, std::string_view name)
