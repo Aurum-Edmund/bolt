@@ -541,6 +541,29 @@ public pointer<byte> function wrap(pointer<constant byte constant> payload) {
         EXPECT_NE(diagnostics.front().message.find("before the type name"), std::string::npos);
     }
 
+    TEST(BinderTest, MisplacedLiveQualifierEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public pointer<byte> function wrap(pointer<live byte> payload, integer live value) {
+    return payload;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2219");
+        EXPECT_NE(diagnostics.front().message.find("before the type"), std::string::npos);
+        EXPECT_NE(diagnostics.front().message.find("move 'live'"), std::string::npos);
+    }
+
     TEST(BinderTest, TypeNamesStartingWithConstAreAccepted)
     {
         const std::string source = R"(package demo.tests; module demo.tests;

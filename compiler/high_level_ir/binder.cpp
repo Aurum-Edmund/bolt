@@ -966,8 +966,60 @@ void Binder::applyLiveQualifier(std::string& typeText, bool& isLive, const std::
         return;
     }
 
+    auto stripMisplacedLive = [&](std::string& text) {
+        std::size_t searchIndex = 0;
+        bool reported = false;
+        while (searchIndex < text.size())
+        {
+            std::size_t position = text.find(qualifier, searchIndex);
+            if (position == std::string::npos)
+            {
+                break;
+            }
+
+            const bool hasLeadingIdentifier = position > 0 && isIdentifierChar(text[position - 1]);
+            const std::size_t end = position + qualifier.size();
+            const bool hasTrailingIdentifier = end < text.size() && isIdentifierChar(text[end]);
+
+            if (!hasLeadingIdentifier && !hasTrailingIdentifier)
+            {
+                if (!reported)
+                {
+                    emitError(
+                        "BOLT-E2219",
+                        "Live qualifier must appear before the type name for " + subject
+                            + "; move 'live' before the type.",
+                        span);
+                    reported = true;
+                }
+
+                std::size_t eraseStart = position;
+                while (eraseStart > 0
+                    && std::isspace(static_cast<unsigned char>(text[eraseStart - 1])) != 0)
+                {
+                    --eraseStart;
+                }
+
+                std::size_t eraseEnd = end;
+                while (eraseEnd < text.size() && std::isspace(static_cast<unsigned char>(text[eraseEnd])) != 0)
+                {
+                    ++eraseEnd;
+                }
+
+                text.erase(eraseStart, eraseEnd - eraseStart);
+                searchIndex = eraseStart;
+                continue;
+            }
+
+            searchIndex = end;
+        }
+
+        return reported;
+    };
+
     if (trimmed.rfind(qualifier, 0) != 0)
     {
+        (void)stripMisplacedLive(trimmed);
         typeText = std::move(trimmed);
         return;
     }
@@ -1006,6 +1058,8 @@ void Binder::applyLiveQualifier(std::string& typeText, bool& isLive, const std::
 
         break;
     }
+
+    stripMisplacedLive(remainder);
 
     const auto last = remainder.find_last_not_of(" \t\r\n");
     if (last == std::string::npos)
