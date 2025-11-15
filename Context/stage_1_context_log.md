@@ -1,6 +1,6 @@
 # Stage-1 Context Log
 
-**Last updated:** 2025-11-15
+**Last updated:** 2025-11-16
 **Session lead:** Codex (GPT-5)
 
 ---
@@ -31,9 +31,10 @@
 - Captured blueprint field metadata in MIR modules so qualifiers, array bounds, and alignment bits are available to upcoming backend passes alongside textual blueprint summaries.
 - Generated canonical normalized type strings for every TypeReference, propagated the canonical text into MIR metadata, and expanded regression suites to assert normalized output for pointers, arrays, generics, and qualifiers.
 - Switched MIR function and blueprint detail strings to canonical type text so textual dumps stay normalized with binder metadata and reflect qualifier and array enforcement work.
+- Enforced pointer and reference arity in the binder with diagnostics `BOLT-E2304`/`BOLT-E2305`, covering missing and extra target-type arguments through new regression tests.
 
 ## Progress Metric
-- **Estimated Stage-1 completion:** 32%
+- **Estimated Stage-1 completion:** 33%
 
 ## Pending Tasks
 - Prioritise high-level IR type-system expansion items for implementation order.

@@ -620,6 +620,94 @@ public pointer<byte> function wrap(pointer<live byte> payload, integer live valu
         EXPECT_NE(diagnostics.front().message.find("move 'live'"), std::string::npos);
     }
 
+    TEST(BinderTest, PointerWithoutTargetTypeEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public pointer<byte> function sample(pointer<> payload) {
+    return payload;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2304");
+        EXPECT_NE(diagnostics.front().message.find("requires a target type argument"), std::string::npos);
+    }
+
+    TEST(BinderTest, PointerWithMultipleTargetTypesEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint Sample {
+    pointer<byte, integer> payload;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2304");
+        EXPECT_NE(diagnostics.front().message.find("requires a target type argument"), std::string::npos);
+    }
+
+    TEST(BinderTest, ReferenceWithoutTargetTypeEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public reference<byte> function sample(reference<> payload) {
+    return payload;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2305");
+        EXPECT_NE(diagnostics.front().message.find("requires a target type argument"), std::string::npos);
+    }
+
+    TEST(BinderTest, ReferenceWithMultipleTargetTypesEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint Sample {
+    reference<byte, integer> payload;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2305");
+        EXPECT_NE(diagnostics.front().message.find("requires a target type argument"), std::string::npos);
+    }
+
     TEST(BinderTest, DuplicateLiveQualifierOnBlueprintFieldEmitsDiagnostic)
     {
         const std::string source = R"(package demo.tests; module demo.tests;

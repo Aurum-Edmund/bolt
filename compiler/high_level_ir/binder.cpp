@@ -268,6 +268,14 @@ namespace bolt::hir
             {
             }
 
+            struct ArityError
+            {
+                TypeKind kind{TypeKind::Invalid};
+                std::string typeName;
+                std::size_t expected{0};
+                std::size_t actual{0};
+            };
+
             TypeReference parse()
             {
                 skipWhitespace();
@@ -331,7 +339,27 @@ namespace bolt::hir
                 return m_trailingQualifier;
             }
 
+            const std::optional<ArityError>& arityError() const noexcept
+            {
+                return m_arityError;
+            }
+
         private:
+            void recordArityError(TypeKind kind, const QualifiedName& name, std::size_t expected, std::size_t actual)
+            {
+                if (m_arityError.has_value())
+                {
+                    return;
+                }
+
+                ArityError error;
+                error.kind = kind;
+                error.typeName = name.toString();
+                error.expected = expected;
+                error.actual = actual;
+                m_arityError = std::move(error);
+            }
+
             void recordTrailingQualifierCandidate()
             {
                 if (m_trailingQualifier.has_value() || m_unknownQualifier.has_value())
@@ -474,6 +502,18 @@ namespace bolt::hir
                     skipWhitespace();
                     if (match('>'))
                     {
+                        if (isPointerName(type.name))
+                        {
+                            type.kind = TypeKind::Pointer;
+                            type.isBuiltin = true;
+                            recordArityError(TypeKind::Pointer, type.name, 1, 0);
+                        }
+                        else if (isReferenceName(type.name))
+                        {
+                            type.kind = TypeKind::Reference;
+                            type.isBuiltin = true;
+                            recordArityError(TypeKind::Reference, type.name, 1, 0);
+                        }
                         m_failed = true;
                         return type;
                     }
@@ -483,6 +523,18 @@ namespace bolt::hir
                         TypeReference argument = parseType();
                         if (m_failed)
                         {
+                            if (isPointerName(type.name))
+                            {
+                                type.kind = TypeKind::Pointer;
+                                type.isBuiltin = true;
+                                recordArityError(TypeKind::Pointer, type.name, 1, type.genericArguments.size());
+                            }
+                            else if (isReferenceName(type.name))
+                            {
+                                type.kind = TypeKind::Reference;
+                                type.isBuiltin = true;
+                                recordArityError(TypeKind::Reference, type.name, 1, type.genericArguments.size());
+                            }
                             return type;
                         }
                         type.genericArguments.emplace_back(std::move(argument));
@@ -507,6 +559,7 @@ namespace bolt::hir
                     type.isBuiltin = true;
                     if (type.genericArguments.size() != 1)
                     {
+                        recordArityError(TypeKind::Pointer, type.name, 1, type.genericArguments.size());
                         m_failed = true;
                     }
                 }
@@ -516,6 +569,7 @@ namespace bolt::hir
                     type.isBuiltin = true;
                     if (type.genericArguments.size() != 1)
                     {
+                        recordArityError(TypeKind::Reference, type.name, 1, type.genericArguments.size());
                         m_failed = true;
                     }
                 }
@@ -716,6 +770,7 @@ namespace bolt::hir
             std::optional<std::string> m_duplicateQualifier;
             std::optional<std::string> m_unknownQualifier;
             std::optional<std::string> m_trailingQualifier;
+            std::optional<ArityError> m_arityError;
         };
     } // namespace
 
@@ -1098,11 +1153,11 @@ TypeReference Binder::buildTypeReference(
 
     TypeParser parser{normalized};
     TypeReference parsed = parser.parse();
-    if (!parser.success() || !parsed.isValid())
-    {
-        if (const auto& trailing = parser.trailingQualifier())
+        if (!parser.success() || !parsed.isValid())
         {
-            std::string message;
+            if (const auto& trailing = parser.trailingQualifier())
+            {
+                std::string message;
             if (*trailing == "const")
             {
                 message =
@@ -1123,11 +1178,11 @@ TypeReference Binder::buildTypeReference(
                 "Duplicate '" + *duplicate + "' qualifier is not allowed for " + subject + ".",
                 typeSpan);
         }
-        else if (const auto& unknown = parser.unknownQualifier())
-        {
-            std::string message;
-            if (*unknown == "const")
+            else if (const auto& unknown = parser.unknownQualifier())
             {
+                std::string message;
+                if (*unknown == "const")
+                {
                 message =
                     "Legacy 'const' qualifier is not supported for " + subject +
                     "; use 'constant' instead.";
@@ -1138,12 +1193,31 @@ TypeReference Binder::buildTypeReference(
                     "Unknown type qualifier '" + *unknown + "' is not supported for " + subject + ".";
             }
             emitError("BOLT-E2302", std::move(message), typeSpan);
-        }
-        else
-        {
-            emitError("BOLT-E2300", "Unable to parse type '" + normalized + "' for " + subject + ".", typeSpan);
-        }
-        reference.kind = TypeKind::Invalid;
+            }
+            else if (const auto& arity = parser.arityError())
+            {
+                const std::string typeName = arity->typeName.empty()
+                    ? (arity->kind == TypeKind::Pointer ? std::string{"pointer"} : std::string{"reference"})
+                    : arity->typeName;
+                std::string message;
+                if (arity->actual == 0)
+                {
+                    message = "Type '" + typeName + "' requires a target type argument for " + subject + ".";
+                }
+                else
+                {
+                    message = "Type '" + typeName + "' requires exactly one target type argument for " + subject
+                        + "; received " + std::to_string(arity->actual) + ".";
+                }
+
+                const char* code = arity->kind == TypeKind::Reference ? "BOLT-E2305" : "BOLT-E2304";
+                emitError(code, std::move(message), typeSpan);
+            }
+            else
+            {
+                emitError("BOLT-E2300", "Unable to parse type '" + normalized + "' for " + subject + ".", typeSpan);
+            }
+            reference.kind = TypeKind::Invalid;
         reference.isBuiltin = false;
         return reference;
     }
