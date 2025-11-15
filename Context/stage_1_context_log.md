@@ -1,6 +1,6 @@
 # Stage-1 Context Log
 
-**Last updated:** 2025-11-10
+**Last updated:** 2025-11-11
 **Session lead:** Codex (GPT-5)
 
 ---
@@ -26,9 +26,10 @@
 - Extended qualifier validation to nested generic arguments so postfix `constant` tokens inside angle brackets also raise BOLT-E2303 with guided messaging.
 - Hardened `live` qualifier parsing so duplicate prefixes emit diagnostic BOLT-E2218 while preserving binder recovery for the underlying type metadata.
 - Added binder enforcement for misplaced `live` tokens so trailing or nested occurrences raise BOLT-E2219 and are stripped before type metadata is captured.
+- Added binder coverage for missing live types so BOLT-E2217 now fires when the qualifier is not followed by a concrete type and regression tests assert the guided diagnostic.
 
 ## Progress Metric
-- **Estimated Stage-1 completion:** 19%
+- **Estimated Stage-1 completion:** 20%
 
 ## Pending Tasks
 - Prioritise high-level IR type-system expansion items for implementation order.
