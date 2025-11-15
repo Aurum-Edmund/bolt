@@ -1,6 +1,6 @@
 # Stage-1 Context Log
 
-**Last updated:** 2025-11-11
+**Last updated:** 2025-11-12
 **Session lead:** Codex (GPT-5)
 
 ---
@@ -27,9 +27,10 @@
 - Hardened `live` qualifier parsing so duplicate prefixes emit diagnostic BOLT-E2218 while preserving binder recovery for the underlying type metadata.
 - Added binder enforcement for misplaced `live` tokens so trailing or nested occurrences raise BOLT-E2219 and are stripped before type metadata is captured.
 - Added binder coverage for missing live types so BOLT-E2217 now fires when the qualifier is not followed by a concrete type and regression tests assert the guided diagnostic.
+- Extended live qualifier enforcement to blueprint fields so duplicate, misplaced, and missing-type cases emit BOLT-E2218, BOLT-E2219, and BOLT-E2217 respectively with new regression coverage.
 
 ## Progress Metric
-- **Estimated Stage-1 completion:** 20%
+- **Estimated Stage-1 completion:** 23%
 
 ## Pending Tasks
 - Prioritise high-level IR type-system expansion items for implementation order.

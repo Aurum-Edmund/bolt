@@ -586,6 +586,75 @@ public pointer<byte> function wrap(pointer<live byte> payload, integer live valu
         EXPECT_NE(diagnostics.front().message.find("move 'live'"), std::string::npos);
     }
 
+    TEST(BinderTest, DuplicateLiveQualifierOnBlueprintFieldEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint FieldCarrier {
+    live live integer32 flag;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2218");
+        EXPECT_NE(diagnostics.front().message.find("Duplicate 'live' qualifier"), std::string::npos);
+    }
+
+    TEST(BinderTest, MisplacedLiveQualifierInsideFieldGenericEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint FieldCarrier {
+    pointer<live byte> payload;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2219");
+        EXPECT_NE(diagnostics.front().message.find("move 'live'"), std::string::npos);
+    }
+
+    TEST(BinderTest, LiveQualifierWithoutTypeOnFieldEmitsDiagnostic)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint FieldCarrier {
+    live value;
+}
+)";
+
+        std::vector<frontend::Diagnostic> parseDiagnostics;
+        auto unit = parseCompilationUnit(source, parseDiagnostics);
+        ASSERT_TRUE(parseDiagnostics.empty());
+
+        Binder binder{unit, "binder-test"};
+        (void)binder.bind();
+
+        const auto& diagnostics = binder.diagnostics();
+        ASSERT_FALSE(diagnostics.empty());
+        EXPECT_EQ(diagnostics.front().code, "BOLT-E2217");
+        if (diagnostics.size() > 1)
+        {
+            EXPECT_EQ(diagnostics[1].code, "BOLT-E2300");
+        }
+    }
+
     TEST(BinderTest, TypeNamesStartingWithConstAreAccepted)
     {
         const std::string source = R"(package demo.tests; module demo.tests;
