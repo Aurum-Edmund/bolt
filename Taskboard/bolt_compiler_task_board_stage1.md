@@ -43,7 +43,7 @@
 
 Stage-1 execution underway. Continue expanding type-system coverage and plan backend scaffolding spikes in parallel so the MIR
 pipeline can immediately consume the richer metadata, including the newly captured blueprint field information and the canonical
-type strings now available on all TypeReferences.
+type strings now available on all TypeReferences and emitted detail dumps.
 
 **Notes:**
 - Carry over outstanding suggestions (additional fix-it hints, parser recovery improvements) from Stage-0 once prioritised.

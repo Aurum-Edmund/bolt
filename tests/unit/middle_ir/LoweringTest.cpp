@@ -238,6 +238,52 @@ public blueprint Packet {
         ASSERT_NE(viewDetail, block.instructions.end());
     }
 
+    TEST(LoweringTest, EmitsCanonicalTypeTextInDetails)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public pointer   < constant byte > function fetch(pointer   < constant byte > buffer, integer [ ] dynamicValues) {
+    return buffer;
+}
+
+public blueprint Sample {
+    pointer   < constant byte > pointerField;
+    integer [ 4 ] counts;
+}
+)";
+
+        auto hirModule = buildHir(source);
+        Module mirModule = lowerFromHir(hirModule);
+        ASSERT_TRUE(verify(mirModule));
+
+        const auto fnIt = std::find_if(mirModule.functions.begin(), mirModule.functions.end(), [](const Function& fn) {
+            return fn.name == "fetch";
+        });
+        ASSERT_NE(fnIt, mirModule.functions.end());
+
+        const auto& function = *fnIt;
+        ASSERT_EQ(function.blocks.size(), 1u);
+        const auto& functionBlock = function.blocks.front();
+        ASSERT_GE(functionBlock.instructions.size(), 4u);
+        EXPECT_EQ(functionBlock.instructions[0].detail, "modifiers: public");
+        EXPECT_EQ(functionBlock.instructions[1].detail, "return pointer<constant byte>");
+        EXPECT_EQ(functionBlock.instructions[2].detail, "param pointer<constant byte> buffer");
+        EXPECT_EQ(functionBlock.instructions[3].detail, "param integer[] dynamicValues");
+
+        const auto blueprintIt = std::find_if(mirModule.functions.begin(), mirModule.functions.end(), [](const Function& fn) {
+            return fn.name == "blueprint.Sample";
+        });
+        ASSERT_NE(blueprintIt, mirModule.functions.end());
+
+        const auto& blueprintFn = *blueprintIt;
+        ASSERT_EQ(blueprintFn.blocks.size(), 1u);
+        const auto& blueprintBlock = blueprintFn.blocks.front();
+        ASSERT_GE(blueprintBlock.instructions.size(), 3u);
+        EXPECT_EQ(blueprintBlock.instructions[0].detail, "modifiers: public");
+        EXPECT_EQ(blueprintBlock.instructions[1].detail, "field pointer<constant byte> pointerField");
+        EXPECT_EQ(blueprintBlock.instructions[2].detail, "field integer[4] counts");
+    }
+
     TEST(LoweringTest, CapturesBlueprintFieldMetadata)
     {
         const std::string source = R"(package demo.tests; module demo.tests;

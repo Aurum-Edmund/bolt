@@ -111,6 +111,7 @@ intrinsic void intrinsic_memcpy(pointer<byte> dst, pointer<byte> src, unsigned64
 - **Interface**: a blueprint that exposes behavior via **a context pointer and function pointers**.
 - **Kernel markers**: every `external` that touches platform or hardware must be annotated with the appropriate square‑bracket marker, for example `[kernel_allocation]`, `[kernel_serial]`, `[kernel_time]`, `[kernel_sync]`, `[kernel_vfs]`.
 - **MIR metadata**: Stage-1 lowering records blueprint fields (type references, qualifiers, bit widths, alignment) so backend layout and diagnostics can operate on structured data instead of textual summaries alone.
+- **Canonical detail strings**: MIR textual detail emission for returns, parameters, and blueprint fields uses the canonical type text recorded by the binder so dumps stay normalized even when source declarations contain irregular whitespace or qualifier placement.
 
 **Writer interface (example)**
 ```bolt

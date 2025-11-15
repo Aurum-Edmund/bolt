@@ -31,6 +31,15 @@ namespace bolt::mir
             }
             return stream.str();
         }
+
+        const std::string& canonicalTypeText(const bolt::common::TypeReference& type)
+        {
+            if (!type.normalizedText.empty())
+            {
+                return type.normalizedText;
+            }
+            return type.text;
+        }
     } // namespace
 
     Module lowerFromHir(const hir::Module& hirModule)
@@ -112,7 +121,8 @@ namespace bolt::mir
                 mirFunction.hasReturnType = true;
                 mirFunction.returnType = hirFunction.returnType;
                 mirFunction.returnIsLive = hirFunction.returnIsLive;
-                std::string detail = "return " + mirFunction.returnType.text;
+                std::string detail = "return ";
+                detail += canonicalTypeText(mirFunction.returnType);
                 if (hirFunction.returnIsLive)
                 {
                     detail += " [live]";
@@ -131,7 +141,7 @@ namespace bolt::mir
                 mirParameter.defaultValue = parameter.defaultValue;
                 mirFunction.parameters.emplace_back(std::move(mirParameter));
                 std::string detail = "param ";
-                detail += parameter.type.text;
+                detail += canonicalTypeText(parameter.type);
                 detail += ' ';
                 detail += parameter.name;
                 if (parameter.isLive)
@@ -189,7 +199,7 @@ namespace bolt::mir
             for (const auto& field : blueprint.fields)
             {
                 std::ostringstream stream;
-                stream << "field " << field.type.text << ' ' << field.name;
+                stream << "field " << canonicalTypeText(field.type) << ' ' << field.name;
                 if (field.isLive)
                 {
                     stream << " [live]";
