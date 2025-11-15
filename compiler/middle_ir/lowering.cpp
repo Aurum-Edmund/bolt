@@ -154,6 +154,22 @@ namespace bolt::mir
 
         for (const auto& blueprint : hirModule.blueprints)
         {
+            auto& mirBlueprint = builder.createBlueprint(blueprint.name);
+            mirBlueprint.modifiers = blueprint.modifiers;
+            mirBlueprint.isPacked = blueprint.isPacked;
+            mirBlueprint.alignmentBytes = blueprint.alignmentBytes;
+            mirBlueprint.fields.reserve(blueprint.fields.size());
+            for (const auto& field : blueprint.fields)
+            {
+                BlueprintField mirField{};
+                mirField.name = field.name;
+                mirField.type = field.type;
+                mirField.isLive = field.isLive;
+                mirField.bitWidth = field.bitWidth;
+                mirField.alignmentBytes = field.alignmentBytes;
+                mirBlueprint.fields.emplace_back(std::move(mirField));
+            }
+
             auto& mirFunction = builder.createFunction("blueprint." + blueprint.name);
             auto& entryBlock = builder.appendBlock(mirFunction, "entry");
 

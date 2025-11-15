@@ -1,6 +1,6 @@
 # Stage-1 Context Log
 
-**Last updated:** 2025-11-12
+**Last updated:** 2025-11-13
 **Session lead:** Codex (GPT-5)
 
 ---
@@ -28,9 +28,10 @@
 - Added binder enforcement for misplaced `live` tokens so trailing or nested occurrences raise BOLT-E2219 and are stripped before type metadata is captured.
 - Added binder coverage for missing live types so BOLT-E2217 now fires when the qualifier is not followed by a concrete type and regression tests assert the guided diagnostic.
 - Extended live qualifier enforcement to blueprint fields so duplicate, misplaced, and missing-type cases emit BOLT-E2218, BOLT-E2219, and BOLT-E2217 respectively with new regression coverage.
+- Captured blueprint field metadata in MIR modules so qualifiers, array bounds, and alignment bits are available to upcoming backend passes alongside textual blueprint summaries.
 
 ## Progress Metric
-- **Estimated Stage-1 completion:** 23%
+- **Estimated Stage-1 completion:** 26%
 
 ## Pending Tasks
 - Prioritise high-level IR type-system expansion items for implementation order.

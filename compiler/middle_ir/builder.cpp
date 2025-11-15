@@ -25,6 +25,18 @@ namespace bolt::mir
         return fn;
     }
 
+    Blueprint& Builder::createBlueprint(std::string_view name)
+    {
+        m_module.blueprints.emplace_back();
+        Blueprint& blueprint = m_module.blueprints.back();
+        blueprint.name = std::string{name};
+        blueprint.modifiers.clear();
+        blueprint.fields.clear();
+        blueprint.isPacked = false;
+        blueprint.alignmentBytes.reset();
+        return blueprint;
+    }
+
     BasicBlock& Builder::appendBlock(Function& function, std::string_view name)
     {
         function.blocks.emplace_back();

@@ -221,6 +221,60 @@ public blueprint Packet {
         ASSERT_NE(viewDetail, block.instructions.end());
     }
 
+    TEST(LoweringTest, CapturesBlueprintFieldMetadata)
+    {
+        const std::string source = R"(package demo.tests; module demo.tests;
+
+public blueprint Packet {
+    constant byte[32] digest;
+    pointer<constant byte[8]> view;
+}
+)";
+
+        auto hirModule = buildHir(source);
+        Module mirModule = lowerFromHir(hirModule);
+        ASSERT_TRUE(verify(mirModule));
+
+        const auto blueprintIt = std::find_if(mirModule.blueprints.begin(), mirModule.blueprints.end(), [](const Blueprint& bp) {
+            return bp.name == "Packet";
+        });
+        ASSERT_NE(blueprintIt, mirModule.blueprints.end());
+
+        const auto& blueprint = *blueprintIt;
+        EXPECT_FALSE(blueprint.isPacked);
+        EXPECT_FALSE(blueprint.alignmentBytes.has_value());
+        ASSERT_EQ(blueprint.modifiers.size(), 1u);
+        EXPECT_EQ(blueprint.modifiers.front(), "public");
+        ASSERT_EQ(blueprint.fields.size(), 2u);
+
+        const auto& digestField = blueprint.fields[0];
+        EXPECT_EQ(digestField.name, "digest");
+        EXPECT_FALSE(digestField.isLive);
+        EXPECT_FALSE(digestField.bitWidth.has_value());
+        EXPECT_FALSE(digestField.alignmentBytes.has_value());
+        EXPECT_EQ(digestField.type.text, "constant byte[32]");
+        ASSERT_EQ(digestField.type.genericArguments.size(), 1u);
+        const auto& digestElement = digestField.type.genericArguments.front();
+        EXPECT_EQ(digestElement.text, "constant byte");
+        ASSERT_EQ(digestElement.qualifiers.size(), 1u);
+        EXPECT_EQ(digestElement.qualifiers.front(), "constant");
+
+        const auto& viewField = blueprint.fields[1];
+        EXPECT_EQ(viewField.name, "view");
+        EXPECT_FALSE(viewField.isLive);
+        EXPECT_FALSE(viewField.bitWidth.has_value());
+        EXPECT_FALSE(viewField.alignmentBytes.has_value());
+        EXPECT_EQ(viewField.type.kind, bolt::common::TypeKind::Pointer);
+        ASSERT_EQ(viewField.type.genericArguments.size(), 1u);
+        const auto& viewElement = viewField.type.genericArguments.front();
+        EXPECT_EQ(viewElement.text, "constant byte[8]");
+        ASSERT_EQ(viewElement.genericArguments.size(), 1u);
+        const auto& viewElementInner = viewElement.genericArguments.front();
+        EXPECT_EQ(viewElementInner.text, "constant byte");
+        ASSERT_EQ(viewElementInner.qualifiers.size(), 1u);
+        EXPECT_EQ(viewElementInner.qualifiers.front(), "constant");
+    }
+
     TEST(LoweringTest, EmitsBlueprintDetails)
     {
         const std::string source = R"(package demo.tests; module demo.tests;

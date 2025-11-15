@@ -88,6 +88,24 @@ namespace bolt::mir
         std::optional<std::string> blueprintName;
     };
 
+    struct BlueprintField
+    {
+        TypeReference type;
+        std::string name;
+        bool isLive{false};
+        std::optional<std::uint32_t> bitWidth;
+        std::optional<std::uint64_t> alignmentBytes;
+    };
+
+    struct Blueprint
+    {
+        std::string name;
+        std::vector<std::string> modifiers;
+        std::vector<BlueprintField> fields;
+        bool isPacked{false};
+        std::optional<std::uint64_t> alignmentBytes;
+    };
+
     struct Module
     {
         std::string packageName;
@@ -102,5 +120,6 @@ namespace bolt::mir
         };
         std::vector<ResolvedImport> resolvedImports;
         std::vector<Function> functions;
+        std::vector<Blueprint> blueprints;
     };
 } // namespace bolt::mir
